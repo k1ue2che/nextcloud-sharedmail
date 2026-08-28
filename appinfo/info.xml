@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+
+    <id>sharedmail</id>
+    <name>Shared Mail</name>
+
+    <summary>Shared mailboxes for teams and organizations</summary>
+
+    <description>
+        Shared Mail provides centrally managed shared mailboxes
+        for teams, groups and organizations in Nextcloud.
+    </description>
+
+    <version>0.1.0</version>
+
+    <licence>agpl</licence>
+
+    <author>Mirko Hunger</author>
+
+    <namespace>SharedMail</namespace>
+
+    <category>office</category>
+
+    <dependencies>
+        <nextcloud min-version="31"/>
+    </dependencies>
+
+    <navigation>
+        <name>Shared Mail</name>
+        <route>sharedmail.page.index</route>
+        <order>60</order>
+    </navigation>
+
+</info>
