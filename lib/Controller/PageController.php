@@ -6,6 +6,8 @@ namespace OCA\SharedMail\Controller;
 
 use OCA\SharedMail\AppInfo\Application;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\IRequest;
 
@@ -17,6 +19,8 @@ class PageController extends Controller
         parent::__construct(Application::APP_ID, $request);
     }
 
+    #[NoCSRFRequired]
+    #[NoAdminRequired]
     public function index(): TemplateResponse
     {
         return new TemplateResponse(
