@@ -9,6 +9,7 @@ use OCA\SharedMail\Db\Mailbox;
 use OCA\SharedMail\Db\MailboxMapper;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\Settings\ISettings;
+use OCP\IGroupManager;
 
 class Admin implements ISettings
 {
@@ -28,12 +29,26 @@ class Admin implements ISettings
             ],
             $this->mailboxMapper->findAll()
         );
+        $groups = array_map(
+            static fn ($group): array => [
+                'id' => $group->getGID(),
+                'name' => $group->getDisplayName(),
+            ],
+            $this->groupManager->search('')
+        );
+
+        usort(
+            $groups,
+            static fn (array $a, array $b): int =>
+                strcasecmp($a['name'], $b['name'])
+        );
 
         return new TemplateResponse(
             Application::APP_ID,
             'admin',
             [
                 'mailboxes' => $mailboxes,
+                'groups' => $groups,
             ],
             ''
         );

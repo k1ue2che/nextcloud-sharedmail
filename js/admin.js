@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelButton = document.getElementById('sharedmail-cancel-mailbox')
     const wrapper = document.getElementById('sharedmail-mailbox-form-wrapper')
     const form = document.getElementById('sharedmail-mailbox-form')
-
+    
     if (!addButton || !wrapper || !form) {
         return
     }
@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData(form)
 
             const data = Object.fromEntries(formData.entries())
-
+            
+            data.groupIds = formData.getAll('groupIds[]')
             data.imapPort = Number(data.imapPort)
             data.smtpPort = Number(data.smtpPort)
 

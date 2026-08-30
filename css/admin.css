@@ -1,0 +1,50 @@
+#sharedmail-mailbox-form-wrapper {
+    max-width: 900px !important;
+}
+
+#sharedmail-mailbox-form {
+    width: 100%;
+}
+
+#sharedmail-mailbox-form p,
+.sharedmail-field {
+    margin-bottom: 18px;
+}
+
+#sharedmail-mailbox-form label {
+    display: block;
+    width: 100%;
+}
+
+#sharedmail-mailbox-form input[type="text"],
+#sharedmail-mailbox-form input[type="email"],
+#sharedmail-mailbox-form input[type="password"],
+#sharedmail-mailbox-form input[type="number"],
+#sharedmail-mailbox-form textarea,
+#sharedmail-mailbox-form select {
+    box-sizing: border-box;
+    width: min(100%, 760px);
+    max-width: 760px;
+}
+
+#sharedmail-mailbox-form input[type="text"],
+#sharedmail-mailbox-form input[type="email"],
+#sharedmail-mailbox-form input[type="password"] {
+    min-width: 420px;
+}
+
+#sharedmail-mailbox-form textarea {
+    min-height: 90px;
+}
+
+#sharedmail-group-ids {
+    width: min(100%, 760px);
+    min-width: 420px;
+    min-height: 180px;
+}
+
+.sharedmail-hint {
+    margin: 4px 0 8px;
+    opacity: 0.7;
+    max-width: 760px;
+}

@@ -7,17 +7,25 @@ namespace OCA\SharedMail\Controller;
 use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Db\Mailbox;
 use OCA\SharedMail\Db\MailboxMapper;
+use OCA\SharedMail\Db\AccessRule;
+use OCA\SharedMail\Db\AccessRuleMapper;
 use OCA\SharedMail\Service\CredentialService;
+use OCA\SharedMail\Service\MailboxPermission;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
+use OCP\IGroupManager;
+
+
 
 class AdminController extends Controller
 {
     public function __construct(
         IRequest $request,
         private readonly MailboxMapper $mailboxMapper,
+        private readonly AccessRuleMapper $accessRuleMapper,
         private readonly CredentialService $credentialService,
+        private readonly IGroupManager $groupManager,
     ) {
         parent::__construct(Application::APP_ID, $request);
     }
@@ -36,6 +44,7 @@ class AdminController extends Controller
         string $smtpUsername,
         string $smtpPassword,
         string $description = '',
+        array $groupIds = [],
     ): JSONResponse {
         $name = trim($name);
         $email = trim($email);
@@ -82,6 +91,30 @@ class AdminController extends Controller
                 400
             );
         }
+        
+        $groupIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map('strval', $groupIds)
+                )
+            )
+        );
+
+        if ($groupIds === []) {
+            return new JSONResponse(
+                ['error' => 'Mindestens eine Zugriffsgruppe muss ausgewählt werden.'],
+                400
+            );
+        }
+
+        foreach ($groupIds as $groupId) {
+            if (!$this->groupManager->groupExists($groupId)) {
+                return new JSONResponse(
+                    ['error' => 'Die Gruppe "' . $groupId . '" existiert nicht.'],
+                    400
+                );
+            }
+        }
 
         $now = time();
 
@@ -118,6 +151,18 @@ class AdminController extends Controller
         $mailbox->setUpdatedAt($now);
 
         $mailbox = $this->mailboxMapper->insert($mailbox);
+
+        foreach ($groupIds as $groupId) {
+            $accessRule = new AccessRule();
+
+            $accessRule->setMailboxId((int)$mailbox->getId());
+            $accessRule->setPrincipalType('group');
+            $accessRule->setPrincipalId($groupId);
+            $accessRule->setPermissions(MailboxPermission::DEFAULT);
+            $accessRule->setCreatedAt($now);
+
+            $this->accessRuleMapper->insert($accessRule);
+        }
 
         return new JSONResponse([
             'success' => true,
