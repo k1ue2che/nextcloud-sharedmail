@@ -9,5 +9,10 @@ return [
             'url' => '/',
             'verb' => 'GET',
         ],
+        [
+            'name' => 'admin#createMailbox',
+            'url' => '/api/mailboxes',
+            'verb' => 'POST',
+        ],
     ],
 ];
