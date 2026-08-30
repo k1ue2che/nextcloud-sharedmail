@@ -8,13 +8,14 @@ use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Db\Mailbox;
 use OCA\SharedMail\Db\MailboxMapper;
 use OCP\AppFramework\Http\TemplateResponse;
-use OCP\Settings\ISettings;
 use OCP\IGroupManager;
+use OCP\Settings\ISettings;
 
 class Admin implements ISettings
 {
     public function __construct(
         private readonly MailboxMapper $mailboxMapper,
+        private readonly IGroupManager $groupManager,
     ) {
     }
 
@@ -29,6 +30,7 @@ class Admin implements ISettings
             ],
             $this->mailboxMapper->findAll()
         );
+
         $groups = array_map(
             static fn ($group): array => [
                 'id' => $group->getGID(),
