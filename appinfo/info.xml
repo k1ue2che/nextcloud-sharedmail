@@ -14,7 +14,7 @@
 
     <version>0.1.0</version>
 
-    <licence>agpl</licence>
+    <licence>AGPL-3.0-or-later</licence>
 
     <author>Mirko Hunger</author>
 
@@ -23,7 +23,8 @@
     <category>office</category>
 
     <dependencies>
-        <nextcloud min-version="31"/>
+        <php min-version="8.2" max-version="8.5"/>
+        <nextcloud min-version="34" max-version="34"/>
     </dependencies>
 
     <navigation>
