@@ -56,33 +56,6 @@ style('sharedmail', 'admin');
 
     </div>
 
-    <div class="sharedmail-field">
-        <label for="sharedmail-group-ids">
-            <strong>Zugriffsgruppen</strong>
-        </label>
-
-        <p class="sharedmail-hint">
-            Mitglieder dieser Nextcloud-Gruppen können das Postfach sehen und verwenden.
-            Mehrere Gruppen können ausgewählt werden.
-        </p>
-
-        <select
-            id="sharedmail-group-ids"
-            name="groupIds[]"
-            multiple
-            size="8"
-            required>
-
-            <?php foreach ($groups as $group): ?>
-                <option value="<?php p($group['id']); ?>">
-                    <?php p($group['name']); ?>
-                    (<?php p($group['id']); ?>)
-                </option>
-            <?php endforeach; ?>
-
-        </select>
-    </div>
-
     <p style="margin-top: 20px;">
         <button
             id="sharedmail-add-mailbox"
@@ -131,7 +104,34 @@ style('sharedmail', 'admin');
                         placeholder="vorstand@example.org">
                 </label>
             </p>
+            
+            <div class="sharedmail-field">
+                <label for="sharedmail-group-ids">
+                    <strong>Zugriffsgruppen</strong>
+                </label>
 
+                <p class="sharedmail-hint">
+                    Mitglieder dieser Nextcloud-Gruppen können das Postfach sehen und verwenden.
+                    Mehrere Gruppen können ausgewählt werden.
+                </p>
+
+                <select
+                    id="sharedmail-group-ids"
+                    name="groupIds[]"
+                    multiple
+                    size="8"
+                    required>
+
+                    <?php foreach ($groups as $group): ?>
+                        <option value="<?php p($group['id']); ?>">
+                            <?php p($group['name']); ?>
+                            (<?php p($group['id']); ?>)
+                        </option>
+                    <?php endforeach; ?>
+
+                </select>
+            </div>
+            
             <h3>IMAP</h3>
 
             <p>
