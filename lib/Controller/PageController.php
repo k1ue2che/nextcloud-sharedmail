@@ -19,10 +19,6 @@ class PageController extends Controller
         parent::__construct(Application::APP_ID, $request);
     }
 
-    /**
-     * @NoCSRFRequired
-     * @NoAdminRequired
-     */
     #[NoCSRFRequired]
     #[NoAdminRequired]
     public function index(): TemplateResponse
