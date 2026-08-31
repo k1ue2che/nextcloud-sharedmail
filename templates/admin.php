@@ -47,6 +47,16 @@ style('sharedmail', 'admin');
                             <td>
                                 <?= $mailbox['enabled'] ? 'Aktiv' : 'Deaktiviert' ?>
                             </td>
+                            <td> <p>
+                                    <button
+                                        type="button"
+                                        class="sharedmail-delete-mailbox"
+                                        data-mailbox-id="<?php p((string)$mailbox['id']); ?>"
+                                        data-mailbox-name="<?php p($mailbox['name']); ?>">
+                                        Löschen
+                                    </button>
+                                </p>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

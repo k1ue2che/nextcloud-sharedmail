@@ -14,7 +14,7 @@ declare(strict_types=1);
         </p>
 
         <p>
-            Version 0.2.3 – Development
+            Version 0.2.4 – Development
         </p>
     </div>
 </div>

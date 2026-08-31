@@ -44,4 +44,10 @@ class AccessRuleMapper extends QBMapper
 
         return $this->findEntities($qb);
     }
+    public function deleteByMailbox(int $mailboxId): void
+    {
+        foreach ($this->findByMailbox($mailboxId) as $rule) {
+            $this->delete($rule);
+        }
+    }
 }

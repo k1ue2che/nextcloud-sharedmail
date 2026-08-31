@@ -143,6 +143,58 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     })
 
+    document.querySelectorAll('.sharedmail-delete-mailbox').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const mailboxId = button.dataset.mailboxId
+            const mailboxName = button.dataset.mailboxName || 'dieses Postfach'
+
+            const confirmed = window.confirm(
+                `Postfach "${mailboxName}" wirklich aus Shared Mail löschen?\n\n` +
+                'Das echte Mailkonto und die Nachrichten auf dem Mailserver werden nicht gelöscht.'
+            )
+
+            if (!confirmed) {
+                return
+            }
+
+            button.disabled = true
+
+            try {
+                const response = await fetch(
+                    OC.generateUrl(`/apps/sharedmail/api/mailboxes/${mailboxId}`),
+                    {
+                        method: 'DELETE',
+                        headers: {
+                            'requesttoken': OC.requestToken,
+                        },
+                    }
+                )
+
+                const result = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(
+                        result.error || 'Postfach konnte nicht gelöscht werden.'
+                    )
+                }
+
+                OC.Notification.showTemporary(
+                    'Postfach wurde aus Shared Mail gelöscht.'
+                )
+
+                window.location.reload()
+            } catch (error) {
+                console.error(error)
+
+                OC.Notification.showTemporary(
+                    error.message || 'Postfach konnte nicht gelöscht werden.'
+                )
+
+                button.disabled = false
+            }
+        })
+    })
+
     function escapeHtml(value) {
         const div = document.createElement('div')
         div.textContent = String(value)

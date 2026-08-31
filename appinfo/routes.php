@@ -19,5 +19,10 @@ return [
             'url' => '/api/mailboxes/test',
             'verb' => 'POST',
         ],
+        [
+            'name' => 'admin#deleteMailbox',
+            'url' => '/api/mailboxes/{id}',
+            'verb' => 'DELETE',
+        ],
     ],
 ];

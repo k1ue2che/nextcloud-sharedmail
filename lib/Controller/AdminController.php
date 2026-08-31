@@ -5,22 +5,28 @@ declare(strict_types=1);
 namespace OCA\SharedMail\Controller;
 
 use OCA\SharedMail\AppInfo\Application;
-use OCA\SharedMail\Db\Mailbox;
-use OCA\SharedMail\Db\MailboxMapper;
 use OCA\SharedMail\Db\AccessRule;
 use OCA\SharedMail\Db\AccessRuleMapper;
+use OCA\SharedMail\Db\Mailbox;
+use OCA\SharedMail\Db\MailboxMapper;
 use OCA\SharedMail\Service\CredentialService;
-use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MailConnectionTestService;
+use OCA\SharedMail\Service\MailboxPermission;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
-use OCP\IRequest;
+use OCP\IDBConnection;
 use OCP\IGroupManager;
-
-
+use OCP\IRequest;
+use Throwable;
 
 class AdminController extends Controller
 {
+    private const ALLOWED_SECURITY = [
+        'ssl',
+        'tls',
+        'none',
+    ];
+
     public function __construct(
         IRequest $request,
         private readonly MailboxMapper $mailboxMapper,
@@ -28,6 +34,7 @@ class AdminController extends Controller
         private readonly CredentialService $credentialService,
         private readonly IGroupManager $groupManager,
         private readonly MailConnectionTestService $connectionTestService,
+        private readonly IDBConnection $db,
     ) {
         parent::__construct(Application::APP_ID, $request);
     }
@@ -50,120 +57,166 @@ class AdminController extends Controller
     ): JSONResponse {
         $name = trim($name);
         $email = trim($email);
+        $description = trim($description);
 
+        $imapHost = trim($imapHost);
+        $imapUsername = trim($imapUsername);
+        $imapSecurity = strtolower(trim($imapSecurity));
+
+        $smtpHost = trim($smtpHost);
+        $smtpUsername = trim($smtpUsername);
+        $smtpSecurity = strtolower(trim($smtpSecurity));
+
+        /*
+         * Grunddaten prüfen
+         */
         if ($name === '') {
-            return new JSONResponse(
-                ['error' => 'Name darf nicht leer sein.'],
+            return $this->error(
+                'Name darf nicht leer sein.',
                 400
             );
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return new JSONResponse(
-                ['error' => 'Ungültige E-Mail-Adresse.'],
+            return $this->error(
+                'Ungültige E-Mail-Adresse.',
                 400
             );
         }
 
         if ($imapHost === '' || $smtpHost === '') {
-            return new JSONResponse(
-                ['error' => 'IMAP- und SMTP-Host sind erforderlich.'],
+            return $this->error(
+                'IMAP- und SMTP-Host sind erforderlich.',
                 400
             );
         }
 
-        if ($imapPort < 1 || $imapPort > 65535
-            || $smtpPort < 1 || $smtpPort > 65535) {
-            return new JSONResponse(
-                ['error' => 'Ungültiger Port.'],
+        if (!$this->isValidPort($imapPort)
+            || !$this->isValidPort($smtpPort)) {
+            return $this->error(
+                'Ungültiger IMAP- oder SMTP-Port.',
                 400
             );
         }
 
-        $allowedSecurity = [
-            'ssl',
-            'tls',
-            'none',
-        ];
-
-        if (!in_array($imapSecurity, $allowedSecurity, true)
-            || !in_array($smtpSecurity, $allowedSecurity, true)) {
-            return new JSONResponse(
-                ['error' => 'Ungültige Verschlüsselungsart.'],
+        if (!$this->isValidSecurity($imapSecurity)
+            || !$this->isValidSecurity($smtpSecurity)) {
+            return $this->error(
+                'Ungültige Verschlüsselungsart.',
                 400
             );
         }
-        
+
+        /*
+         * Zugriffsgruppen normalisieren
+         */
         $groupIds = array_values(
             array_unique(
                 array_filter(
-                    array_map('strval', $groupIds)
+                    array_map(
+                        static fn ($groupId): string => trim((string)$groupId),
+                        $groupIds
+                    ),
+                    static fn (string $groupId): bool => $groupId !== ''
                 )
             )
         );
 
         if ($groupIds === []) {
-            return new JSONResponse(
-                ['error' => 'Mindestens eine Zugriffsgruppe muss ausgewählt werden.'],
+            return $this->error(
+                'Mindestens eine Zugriffsgruppe muss ausgewählt werden.',
                 400
             );
         }
 
+        /*
+         * Prüfen, ob die Gruppen in Nextcloud existieren
+         */
         foreach ($groupIds as $groupId) {
             if (!$this->groupManager->groupExists($groupId)) {
-                return new JSONResponse(
-                    ['error' => 'Die Gruppe "' . $groupId . '" existiert nicht.'],
+                return $this->error(
+                    'Die Gruppe "' . $groupId . '" existiert nicht.',
                     400
                 );
             }
         }
 
+        /*
+         * Mailbox-Entity vorbereiten
+         */
         $now = time();
 
         $mailbox = new Mailbox();
 
         $mailbox->setName($name);
         $mailbox->setDescription(
-            trim($description) !== ''
-                ? trim($description)
+            $description !== ''
+                ? $description
                 : null
         );
 
         $mailbox->setEmail($email);
 
-        $mailbox->setImapHost(trim($imapHost));
+        $mailbox->setImapHost($imapHost);
         $mailbox->setImapPort($imapPort);
         $mailbox->setImapSecurity($imapSecurity);
-        $mailbox->setImapUsername(trim($imapUsername));
+        $mailbox->setImapUsername($imapUsername);
         $mailbox->setImapPassword(
             $this->credentialService->encrypt($imapPassword)
         );
 
-        $mailbox->setSmtpHost(trim($smtpHost));
+        $mailbox->setSmtpHost($smtpHost);
         $mailbox->setSmtpPort($smtpPort);
         $mailbox->setSmtpSecurity($smtpSecurity);
-        $mailbox->setSmtpUsername(trim($smtpUsername));
+        $mailbox->setSmtpUsername($smtpUsername);
         $mailbox->setSmtpPassword(
             $this->credentialService->encrypt($smtpPassword)
         );
 
         $mailbox->setEnabled(true);
-
         $mailbox->setCreatedAt($now);
         $mailbox->setUpdatedAt($now);
 
-        $mailbox = $this->mailboxMapper->insert($mailbox);
+        /*
+         * Mailbox und Gruppen gemeinsam speichern.
+         *
+         * Entweder alles wird gespeichert oder gar nichts.
+         */
+        $transactionStarted = false;
 
-        foreach ($groupIds as $groupId) {
-            $accessRule = new AccessRule();
+        try {
+            $this->db->beginTransaction();
+            $transactionStarted = true;
 
-            $accessRule->setMailboxId((int)$mailbox->getId());
-            $accessRule->setPrincipalType('group');
-            $accessRule->setPrincipalId($groupId);
-            $accessRule->setPermissions(MailboxPermission::DEFAULT);
-            $accessRule->setCreatedAt($now);
+            $mailbox = $this->mailboxMapper->insert($mailbox);
 
-            $this->accessRuleMapper->insert($accessRule);
+            foreach ($groupIds as $groupId) {
+                $accessRule = new AccessRule();
+
+                $accessRule->setMailboxId(
+                    (int)$mailbox->getId()
+                );
+                $accessRule->setPrincipalType('group');
+                $accessRule->setPrincipalId($groupId);
+                $accessRule->setPermissions(
+                    MailboxPermission::DEFAULT
+                );
+                $accessRule->setCreatedAt($now);
+
+                $this->accessRuleMapper->insert($accessRule);
+            }
+
+            $this->db->commit();
+            $transactionStarted = false;
+        } catch (Throwable) {
+            if ($transactionStarted) {
+                $this->rollbackQuietly();
+            }
+
+            return $this->error(
+                'Postfach konnte nicht gespeichert werden.',
+                500
+            );
         }
 
         return new JSONResponse([
@@ -176,7 +229,7 @@ class AdminController extends Controller
             ],
         ]);
     }
-    
+
     public function testConnection(
         string $imapHost,
         int $imapPort,
@@ -191,40 +244,33 @@ class AdminController extends Controller
     ): JSONResponse {
         $imapHost = trim($imapHost);
         $imapUsername = trim($imapUsername);
+        $imapSecurity = strtolower(trim($imapSecurity));
+
         $smtpHost = trim($smtpHost);
         $smtpUsername = trim($smtpUsername);
+        $smtpSecurity = strtolower(trim($smtpSecurity));
 
         if ($imapHost === '' || $smtpHost === '') {
-            return new JSONResponse([
-                'success' => false,
-                'error' => 'IMAP- und SMTP-Host müssen angegeben werden.',
-            ], 400);
+            return $this->error(
+                'IMAP- und SMTP-Host müssen angegeben werden.',
+                400
+            );
         }
 
-        if (
-            $imapPort < 1 || $imapPort > 65535
-            || $smtpPort < 1 || $smtpPort > 65535
-        ) {
-            return new JSONResponse([
-                'success' => false,
-                'error' => 'Ungültiger IMAP- oder SMTP-Port.',
-            ], 400);
+        if (!$this->isValidPort($imapPort)
+            || !$this->isValidPort($smtpPort)) {
+            return $this->error(
+                'Ungültiger IMAP- oder SMTP-Port.',
+                400
+            );
         }
 
-        $allowedSecurity = [
-            'ssl',
-            'tls',
-            'none',
-        ];
-
-        if (
-            !in_array($imapSecurity, $allowedSecurity, true)
-            || !in_array($smtpSecurity, $allowedSecurity, true)
-        ) {
-            return new JSONResponse([
-                'success' => false,
-                'error' => 'Ungültige Verschlüsselungsart.',
-            ], 400);
+        if (!$this->isValidSecurity($imapSecurity)
+            || !$this->isValidSecurity($smtpSecurity)) {
+            return $this->error(
+                'Ungültige Verschlüsselungsart.',
+                400
+            );
         }
 
         $imap = $this->connectionTestService->testImap(
@@ -244,9 +290,100 @@ class AdminController extends Controller
         );
 
         return new JSONResponse([
-            'success' => $imap['success'] && $smtp['success'],
+            'success' => (
+                $imap['success']
+                && $smtp['success']
+            ),
             'imap' => $imap,
             'smtp' => $smtp,
         ]);
+    }
+
+    public function deleteMailbox(
+        int $id,
+    ): JSONResponse {
+        /*
+         * Erst prüfen, ob das Postfach überhaupt existiert.
+         */
+        try {
+            $mailbox = $this->mailboxMapper->find($id);
+        } catch (Throwable) {
+            return $this->error(
+                'Postfach wurde nicht gefunden.',
+                404
+            );
+        }
+
+        /*
+         * AccessRules und Mailbox gemeinsam entfernen.
+         *
+         * Das echte IMAP-/SMTP-Konto und dessen Nachrichten
+         * werden dadurch NICHT verändert.
+         */
+        $transactionStarted = false;
+
+        try {
+            $this->db->beginTransaction();
+            $transactionStarted = true;
+
+            $this->accessRuleMapper->deleteByMailbox($id);
+            $this->mailboxMapper->delete($mailbox);
+
+            $this->db->commit();
+            $transactionStarted = false;
+        } catch (Throwable) {
+            if ($transactionStarted) {
+                $this->rollbackQuietly();
+            }
+
+            return $this->error(
+                'Postfach konnte nicht gelöscht werden.',
+                500
+            );
+        }
+
+        return new JSONResponse([
+            'success' => true,
+        ]);
+    }
+
+    private function isValidPort(
+        int $port,
+    ): bool {
+        return $port >= 1
+            && $port <= 65535;
+    }
+
+    private function isValidSecurity(
+        string $security,
+    ): bool {
+        return in_array(
+            $security,
+            self::ALLOWED_SECURITY,
+            true
+        );
+    }
+
+    private function error(
+        string $message,
+        int $status,
+    ): JSONResponse {
+        return new JSONResponse([
+            'success' => false,
+            'error' => $message,
+        ], $status);
+    }
+
+    private function rollbackQuietly(): void
+    {
+        try {
+            $this->db->rollBack();
+        } catch (Throwable) {
+            /*
+             * Der ursprüngliche Datenbankfehler ist wichtiger.
+             * Ein zusätzlicher Rollback-Fehler soll ihn nicht
+             * überschreiben.
+             */
+        }
     }
 }
