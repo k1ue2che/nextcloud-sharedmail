@@ -299,6 +299,212 @@ class AdminController extends Controller
         ]);
     }
 
+    public function updateMailbox(
+        int $id,
+        string $name,
+        string $email,
+        string $imapHost,
+        int $imapPort,
+        string $imapSecurity,
+        string $imapUsername,
+        string $imapPassword,
+        string $smtpHost,
+        int $smtpPort,
+        string $smtpSecurity,
+        string $smtpUsername,
+        string $smtpPassword,
+        string $description = '',
+        array $groupIds = [],
+    ): JSONResponse {
+        $name = trim($name);
+        $email = trim($email);
+        $description = trim($description);
+
+        $imapHost = trim($imapHost);
+        $imapUsername = trim($imapUsername);
+        $imapSecurity = strtolower(trim($imapSecurity));
+
+        $smtpHost = trim($smtpHost);
+        $smtpUsername = trim($smtpUsername);
+        $smtpSecurity = strtolower(trim($smtpSecurity));
+
+        if ($name === '') {
+            return $this->error(
+                'Name darf nicht leer sein.',
+                400
+            );
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->error(
+                'Ungültige E-Mail-Adresse.',
+                400
+            );
+        }
+
+        if ($imapHost === '' || $smtpHost === '') {
+            return $this->error(
+                'IMAP- und SMTP-Host sind erforderlich.',
+                400
+            );
+        }
+
+        if (
+            !$this->isValidPort($imapPort)
+            || !$this->isValidPort($smtpPort)
+        ) {
+            return $this->error(
+                'Ungültiger IMAP- oder SMTP-Port.',
+                400
+            );
+        }
+
+        if (
+            !$this->isValidSecurity($imapSecurity)
+            || !$this->isValidSecurity($smtpSecurity)
+        ) {
+            return $this->error(
+                'Ungültige Verschlüsselungsart.',
+                400
+            );
+        }
+
+        $groupIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static fn ($groupId): string =>
+                            trim((string)$groupId),
+                        $groupIds
+                    ),
+                    static fn (string $groupId): bool =>
+                        $groupId !== ''
+                )
+            )
+        );
+
+        if ($groupIds === []) {
+            return $this->error(
+                'Mindestens eine Zugriffsgruppe muss ausgewählt werden.',
+                400
+            );
+        }
+
+        foreach ($groupIds as $groupId) {
+            if (!$this->groupManager->groupExists($groupId)) {
+                return $this->error(
+                    'Die Gruppe "' . $groupId . '" existiert nicht.',
+                    400
+                );
+            }
+        }
+
+        try {
+            $mailbox = $this->mailboxMapper->find($id);
+        } catch (Throwable) {
+            return $this->error(
+                'Postfach wurde nicht gefunden.',
+                404
+            );
+        }
+
+        $mailbox->setName($name);
+
+        $mailbox->setDescription(
+            $description !== ''
+                ? $description
+                : null
+        );
+
+        $mailbox->setEmail($email);
+
+        $mailbox->setImapHost($imapHost);
+        $mailbox->setImapPort($imapPort);
+        $mailbox->setImapSecurity($imapSecurity);
+        $mailbox->setImapUsername($imapUsername);
+
+        /*
+        * Leeres Passwortfeld:
+        * vorhandenes Passwort behalten.
+        */
+        if ($imapPassword !== '') {
+            $mailbox->setImapPassword(
+                $this->credentialService->encrypt($imapPassword)
+            );
+        }
+
+        $mailbox->setSmtpHost($smtpHost);
+        $mailbox->setSmtpPort($smtpPort);
+        $mailbox->setSmtpSecurity($smtpSecurity);
+        $mailbox->setSmtpUsername($smtpUsername);
+
+        if ($smtpPassword !== '') {
+            $mailbox->setSmtpPassword(
+                $this->credentialService->encrypt($smtpPassword)
+            );
+        }
+
+        $mailbox->setUpdatedAt(time());
+
+        $transactionStarted = false;
+
+        try {
+            $this->db->beginTransaction();
+            $transactionStarted = true;
+
+            /*
+            * Mailbox aktualisieren.
+            */
+            $mailbox = $this->mailboxMapper->update($mailbox);
+
+            /*
+            * Alte Gruppenrechte entfernen.
+            */
+            $this->accessRuleMapper->deleteByMailbox($id);
+
+            /*
+            * Aktuelle Gruppenrechte neu anlegen.
+            */
+            $now = time();
+
+            foreach ($groupIds as $groupId) {
+                $accessRule = new AccessRule();
+
+                $accessRule->setMailboxId($id);
+                $accessRule->setPrincipalType('group');
+                $accessRule->setPrincipalId($groupId);
+                $accessRule->setPermissions(
+                    MailboxPermission::DEFAULT
+                );
+                $accessRule->setCreatedAt($now);
+
+                $this->accessRuleMapper->insert($accessRule);
+            }
+
+            $this->db->commit();
+            $transactionStarted = false;
+        } catch (Throwable) {
+            if ($transactionStarted) {
+                $this->rollbackQuietly();
+            }
+
+            return $this->error(
+                'Postfach konnte nicht aktualisiert werden.',
+                500
+            );
+        }
+
+        return new JSONResponse([
+            'success' => true,
+            'mailbox' => [
+                'id' => $mailbox->getId(),
+                'name' => $mailbox->getName(),
+                'email' => $mailbox->getEmail(),
+                'enabled' => $mailbox->getEnabled(),
+            ],
+        ]);
+    }
+
     public function deleteMailbox(
         int $id,
     ): JSONResponse {
