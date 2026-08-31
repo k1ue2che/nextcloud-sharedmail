@@ -14,5 +14,10 @@ return [
             'url' => '/api/mailboxes',
             'verb' => 'POST',
         ],
+        [
+            'name' => 'admin#testConnection',
+            'url' => '/api/mailboxes/test',
+            'verb' => 'POST',
+        ],
     ],
 ];

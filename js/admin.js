@@ -3,7 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelButton = document.getElementById('sharedmail-cancel-mailbox')
     const wrapper = document.getElementById('sharedmail-mailbox-form-wrapper')
     const form = document.getElementById('sharedmail-mailbox-form')
-    
+
+    const testButton = document.getElementById('sharedmail-test-connection')
+    const resultBox = document.getElementById('sharedmail-connection-result')
+
     if (!addButton || !wrapper || !form) {
         return
     }
@@ -17,19 +20,89 @@ document.addEventListener('DOMContentLoaded', () => {
         wrapper.style.display = 'none'
         addButton.style.display = ''
         form.reset()
+
+        if (resultBox) {
+            resultBox.style.display = 'none'
+            resultBox.textContent = ''
+        }
     })
+
+    if (testButton && resultBox) {
+        testButton.addEventListener('click', async () => {
+            testButton.disabled = true
+
+            resultBox.style.display = 'block'
+            resultBox.textContent = 'Verbindung wird getestet …'
+
+            try {
+                const formData = new FormData(form)
+
+                const data = Object.fromEntries(
+                    formData.entries()
+                )
+
+                data.imapPort = Number(data.imapPort)
+                data.smtpPort = Number(data.smtpPort)
+
+                const response = await fetch(
+                    OC.generateUrl('/apps/sharedmail/api/mailboxes/test'),
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'requesttoken': OC.requestToken,
+                        },
+                        body: JSON.stringify(data),
+                    }
+                )
+
+                const result = await response.json()
+
+                if (!response.ok) {
+                    resultBox.textContent =
+                        result.error ?? 'Verbindungstest fehlgeschlagen.'
+
+                    return
+                }
+
+                resultBox.innerHTML = `
+                    <div>
+                        ${result.imap.success ? '✓' : '✗'}
+                        ${escapeHtml(result.imap.message)}
+                    </div>
+
+                    <div>
+                        ${result.smtp.success ? '✓' : '✗'}
+                        ${escapeHtml(result.smtp.message)}
+                    </div>
+                `
+            } catch (error) {
+                console.error(error)
+
+                resultBox.textContent =
+                    'Verbindungstest konnte nicht ausgeführt werden.'
+            } finally {
+                testButton.disabled = false
+            }
+        })
+    }
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault()
 
         const submitButton = form.querySelector('button[type="submit"]')
+
+        if (!submitButton) {
+            return
+        }
+
         submitButton.disabled = true
 
         try {
             const formData = new FormData(form)
 
             const data = Object.fromEntries(formData.entries())
-            
+
             data.groupIds = formData.getAll('groupIds[]')
             data.imapPort = Number(data.imapPort)
             data.smtpPort = Number(data.smtpPort)
@@ -59,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
             )
 
             window.location.reload()
-
         } catch (error) {
             console.error(error)
 
@@ -70,4 +142,11 @@ document.addEventListener('DOMContentLoaded', () => {
             submitButton.disabled = false
         }
     })
+
+    function escapeHtml(value) {
+        const div = document.createElement('div')
+        div.textContent = String(value)
+
+        return div.innerHTML
+    }
 })

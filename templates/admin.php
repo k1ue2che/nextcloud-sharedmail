@@ -244,6 +244,20 @@ style('sharedmail', 'admin');
                 </label>
             </p>
 
+            <div class="sharedmail-field">
+                <button
+                    id="sharedmail-test-connection"
+                    type="button">
+                    IMAP &amp; SMTP testen
+                </button>
+            </div>
+
+            <div
+                id="sharedmail-connection-result"
+                class="sharedmail-field"
+                style="display:none;">
+            </div>
+
             <p>
                 <button
                     type="submit"

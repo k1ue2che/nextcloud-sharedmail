@@ -9,6 +9,8 @@
         }
     },
     "require": {
-        "php": ">=8.2 <=8.5"
+        "php": ">=8.2 <=8.5",
+        "bytestream/horde-imap-client": "2.34.1",
+        "nextcloud/horde-smtp": "1.0.3"
     }
 }

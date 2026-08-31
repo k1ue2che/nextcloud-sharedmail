@@ -11,6 +11,7 @@ use OCA\SharedMail\Db\AccessRule;
 use OCA\SharedMail\Db\AccessRuleMapper;
 use OCA\SharedMail\Service\CredentialService;
 use OCA\SharedMail\Service\MailboxPermission;
+use OCA\SharedMail\Service\MailConnectionTestService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
@@ -26,6 +27,7 @@ class AdminController extends Controller
         private readonly AccessRuleMapper $accessRuleMapper,
         private readonly CredentialService $credentialService,
         private readonly IGroupManager $groupManager,
+        private readonly MailConnectionTestService $connectionTestService,
     ) {
         parent::__construct(Application::APP_ID, $request);
     }
@@ -172,6 +174,79 @@ class AdminController extends Controller
                 'email' => $mailbox->getEmail(),
                 'enabled' => $mailbox->getEnabled(),
             ],
+        ]);
+    }
+    
+    public function testConnection(
+        string $imapHost,
+        int $imapPort,
+        string $imapSecurity,
+        string $imapUsername,
+        string $imapPassword,
+        string $smtpHost,
+        int $smtpPort,
+        string $smtpSecurity,
+        string $smtpUsername,
+        string $smtpPassword,
+    ): JSONResponse {
+        $imapHost = trim($imapHost);
+        $imapUsername = trim($imapUsername);
+        $smtpHost = trim($smtpHost);
+        $smtpUsername = trim($smtpUsername);
+
+        if ($imapHost === '' || $smtpHost === '') {
+            return new JSONResponse([
+                'success' => false,
+                'error' => 'IMAP- und SMTP-Host müssen angegeben werden.',
+            ], 400);
+        }
+
+        if (
+            $imapPort < 1 || $imapPort > 65535
+            || $smtpPort < 1 || $smtpPort > 65535
+        ) {
+            return new JSONResponse([
+                'success' => false,
+                'error' => 'Ungültiger IMAP- oder SMTP-Port.',
+            ], 400);
+        }
+
+        $allowedSecurity = [
+            'ssl',
+            'tls',
+            'none',
+        ];
+
+        if (
+            !in_array($imapSecurity, $allowedSecurity, true)
+            || !in_array($smtpSecurity, $allowedSecurity, true)
+        ) {
+            return new JSONResponse([
+                'success' => false,
+                'error' => 'Ungültige Verschlüsselungsart.',
+            ], 400);
+        }
+
+        $imap = $this->connectionTestService->testImap(
+            $imapHost,
+            $imapPort,
+            $imapSecurity,
+            $imapUsername,
+            $imapPassword,
+        );
+
+        $smtp = $this->connectionTestService->testSmtp(
+            $smtpHost,
+            $smtpPort,
+            $smtpSecurity,
+            $smtpUsername,
+            $smtpPassword,
+        );
+
+        return new JSONResponse([
+            'success' => $imap['success'] && $smtp['success'],
+            'imap' => $imap,
+            'smtp' => $smtp,
         ]);
     }
 }
