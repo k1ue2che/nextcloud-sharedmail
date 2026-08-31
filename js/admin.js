@@ -19,14 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
     )
 
     if (!addButton || !wrapper || !form) {
-        console.error('SharedMail: Grundelemente des Formulars fehlen.')
+        console.error(
+            'SharedMail: Grundelemente des Adminformulars wurden nicht gefunden.'
+        )
         return
     }
 
-    let editingMailboxId = null
-
     /*
+     * ------------------------------------------------------------
      * Hilfsfunktionen
+     * ------------------------------------------------------------
      */
 
     function getField(name) {
@@ -37,11 +39,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const field = getField(name)
 
         if (!field) {
-            console.warn(`SharedMail: Feld "${name}" nicht gefunden.`)
+            console.warn(
+                `SharedMail: Formularfeld "${name}" wurde nicht gefunden.`
+            )
             return
         }
 
         field.value = value ?? ''
+    }
+
+    function getEditingMailboxId() {
+        const mailboxId = form.dataset.mailboxId
+
+        if (!mailboxId) {
+            return null
+        }
+
+        return mailboxId
+    }
+
+    function setEditingMailboxId(mailboxId) {
+        if (!mailboxId) {
+            delete form.dataset.mailboxId
+            return
+        }
+
+        form.dataset.mailboxId = String(mailboxId)
+    }
+
+    function showFormMessage(message, isError = false) {
+        if (!resultBox) {
+            window.alert(message)
+            return
+        }
+
+        resultBox.style.display = 'block'
+        resultBox.textContent = message
+
+        if (isError) {
+            resultBox.dataset.error = 'true'
+        } else {
+            delete resultBox.dataset.error
+        }
     }
 
     function clearConnectionResult() {
@@ -51,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         resultBox.style.display = 'none'
         resultBox.textContent = ''
+        delete resultBox.dataset.error
     }
 
     function setPasswordEditMode(editMode) {
@@ -111,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function resetFormDefaults() {
         form.reset()
 
-        editingMailboxId = null
+        setEditingMailboxId(null)
 
         setField('imapPort', '993')
         setField('imapSecurity', 'ssl')
@@ -150,85 +190,154 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /*
+     * ------------------------------------------------------------
      * Neues Postfach
+     * ------------------------------------------------------------
      */
 
     addButton.addEventListener('click', () => {
         resetFormDefaults()
         openForm()
+
+        console.log('SharedMail: Neues Postfach geöffnet')
     })
 
     /*
-     * Bearbeiten
+     * ------------------------------------------------------------
+     * Vorhandenes Postfach bearbeiten
+     * ------------------------------------------------------------
      */
 
-    document.querySelectorAll('.sharedmail-edit-mailbox').forEach((button) => {
-        button.addEventListener('click', () => {
-            resetFormDefaults()
+    document
+        .querySelectorAll('.sharedmail-edit-mailbox')
+        .forEach((button) => {
+            button.addEventListener('click', () => {
+                resetFormDefaults()
 
-            editingMailboxId = button.dataset.mailboxId ?? null
+                const mailboxId = button.dataset.mailboxId
 
-            console.log(
-                'SharedMail: Bearbeiten geöffnet, Mailbox-ID =',
-                editingMailboxId
-            )
+                if (!mailboxId) {
+                    console.error(
+                        'SharedMail: Bearbeiten-Button enthält keine Mailbox-ID.'
+                    )
+                    return
+                }
 
-            if (!editingMailboxId) {
-                console.error('SharedMail: Keine Mailbox-ID vorhanden.')
-                return
-            }
+                setEditingMailboxId(mailboxId)
 
-            setField('name', button.dataset.name)
-            setField('description', button.dataset.description)
-            setField('email', button.dataset.email)
-
-            setField('imapHost', button.dataset.imapHost)
-            setField('imapPort', button.dataset.imapPort)
-            setField('imapSecurity', button.dataset.imapSecurity)
-            setField('imapUsername', button.dataset.imapUsername)
-
-            setField('smtpHost', button.dataset.smtpHost)
-            setField('smtpPort', button.dataset.smtpPort)
-            setField('smtpSecurity', button.dataset.smtpSecurity)
-            setField('smtpUsername', button.dataset.smtpUsername)
-
-            let groupIds = []
-
-            try {
-                groupIds = JSON.parse(
-                    button.dataset.groupIds || '[]'
+                console.log(
+                    'SharedMail: Bearbeiten geöffnet, Mailbox-ID =',
+                    mailboxId
                 )
 
-                if (!Array.isArray(groupIds)) {
+                setField(
+                    'name',
+                    button.dataset.name
+                )
+
+                setField(
+                    'description',
+                    button.dataset.description
+                )
+
+                setField(
+                    'email',
+                    button.dataset.email
+                )
+
+                setField(
+                    'imapHost',
+                    button.dataset.imapHost
+                )
+
+                setField(
+                    'imapPort',
+                    button.dataset.imapPort
+                )
+
+                setField(
+                    'imapSecurity',
+                    button.dataset.imapSecurity
+                )
+
+                setField(
+                    'imapUsername',
+                    button.dataset.imapUsername
+                )
+
+                setField(
+                    'smtpHost',
+                    button.dataset.smtpHost
+                )
+
+                setField(
+                    'smtpPort',
+                    button.dataset.smtpPort
+                )
+
+                setField(
+                    'smtpSecurity',
+                    button.dataset.smtpSecurity
+                )
+
+                setField(
+                    'smtpUsername',
+                    button.dataset.smtpUsername
+                )
+
+                /*
+                 * Gruppen aus dem JSON-data-Attribut laden.
+                 */
+                let groupIds = []
+
+                try {
+                    groupIds = JSON.parse(
+                        button.dataset.groupIds || '[]'
+                    )
+
+                    if (!Array.isArray(groupIds)) {
+                        groupIds = []
+                    }
+                } catch (error) {
+                    console.error(
+                        'SharedMail: Zugriffsgruppen konnten nicht gelesen werden.',
+                        error
+                    )
+
                     groupIds = []
                 }
-            } catch (error) {
-                console.error(
-                    'SharedMail: Zugriffsgruppen konnten nicht gelesen werden.',
-                    error
-                )
 
-                groupIds = []
-            }
+                selectGroups(groupIds)
 
-            selectGroups(groupIds)
-            setPasswordEditMode(true)
-            clearConnectionResult()
+                /*
+                 * Passwörter werden beim Bearbeiten niemals
+                 * aus der Datenbank an den Browser übertragen.
+                 *
+                 * Leere Passwortfelder bedeuten:
+                 * vorhandenes Passwort beibehalten.
+                 */
+                setPasswordEditMode(true)
 
-            if (formTitle) {
-                formTitle.textContent = 'Postfach bearbeiten'
-            }
+                clearConnectionResult()
 
-            if (saveButton) {
-                saveButton.textContent = 'Änderungen speichern'
-            }
+                if (formTitle) {
+                    formTitle.textContent =
+                        'Postfach bearbeiten'
+                }
 
-            openForm()
+                if (saveButton) {
+                    saveButton.textContent =
+                        'Änderungen speichern'
+                }
+
+                openForm()
+            })
         })
-    })
 
     /*
+     * ------------------------------------------------------------
      * Abbrechen
+     * ------------------------------------------------------------
      */
 
     cancelButton?.addEventListener('click', () => {
@@ -236,7 +345,9 @@ document.addEventListener('DOMContentLoaded', () => {
     })
 
     /*
-     * IMAP / SMTP testen
+     * ------------------------------------------------------------
+     * IMAP / SMTP Verbindung testen
+     * ------------------------------------------------------------
      */
 
     testButton?.addEventListener('click', async () => {
@@ -244,12 +355,22 @@ document.addEventListener('DOMContentLoaded', () => {
             return
         }
 
+        const editingMailboxId =
+            getEditingMailboxId()
+
         const imapPassword =
             getField('imapPassword')?.value ?? ''
 
         const smtpPassword =
             getField('smtpPassword')?.value ?? ''
 
+        /*
+         * Beim Bearbeiten liegen die vorhandenen Passwörter
+         * bewusst nicht im Browser vor.
+         *
+         * Für einen neuen Verbindungstest müssen sie deshalb
+         * neu eingegeben werden.
+         */
         if (
             editingMailboxId !== null
             && (
@@ -257,27 +378,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 || smtpPassword === ''
             )
         ) {
-            resultBox.style.display = 'block'
-            resultBox.textContent =
-                'Für einen neuen Verbindungstest beim Bearbeiten bitte IMAP- und SMTP-Passwort eingeben.'
+            showFormMessage(
+                'Für einen neuen Verbindungstest beim Bearbeiten bitte IMAP- und SMTP-Passwort eingeben.',
+                true
+            )
 
             return
         }
 
         testButton.disabled = true
 
-        resultBox.style.display = 'block'
-        resultBox.textContent = 'Verbindung wird getestet …'
+        showFormMessage(
+            'Verbindung wird getestet …'
+        )
 
         try {
-            const formData = new FormData(form)
+            const formData =
+                new FormData(form)
 
-            const data = Object.fromEntries(
-                formData.entries()
-            )
+            const data =
+                Object.fromEntries(
+                    formData.entries()
+                )
 
-            data.imapPort = Number(data.imapPort)
-            data.smtpPort = Number(data.smtpPort)
+            data.imapPort =
+                Number(data.imapPort)
+
+            data.smtpPort =
+                Number(data.smtpPort)
 
             const response = await fetch(
                 OC.generateUrl(
@@ -286,27 +414,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'requesttoken': OC.requestToken,
+                        'Content-Type':
+                            'application/json',
+
+                        'requesttoken':
+                            OC.requestToken,
                     },
                     body: JSON.stringify(data),
                 }
             )
 
-            const result = await response.json()
+            const responseText =
+                await response.text()
+
+            let result = {}
+
+            if (responseText !== '') {
+                try {
+                    result =
+                        JSON.parse(responseText)
+                } catch (error) {
+                    console.error(
+                        'SharedMail: Verbindungstest lieferte kein gültiges JSON.',
+                        responseText
+                    )
+
+                    throw new Error(
+                        'Der Server hat eine ungültige Antwort geliefert.'
+                    )
+                }
+            }
 
             if (!response.ok) {
-                resultBox.textContent =
+                throw new Error(
                     result.error
-                    ?? 'Verbindungstest fehlgeschlagen.'
-
-                return
+                    || 'Verbindungstest fehlgeschlagen.'
+                )
             }
 
             resultBox.textContent = ''
 
-            const imapResult = document.createElement('div')
-            const smtpResult = document.createElement('div')
+            const imapResult =
+                document.createElement('div')
+
+            const smtpResult =
+                document.createElement('div')
 
             imapResult.textContent =
                 `${result.imap.success ? '✓' : '✗'} ${result.imap.message}`
@@ -314,37 +466,54 @@ document.addEventListener('DOMContentLoaded', () => {
             smtpResult.textContent =
                 `${result.smtp.success ? '✓' : '✗'} ${result.smtp.message}`
 
-            resultBox.appendChild(imapResult)
-            resultBox.appendChild(smtpResult)
+            resultBox.appendChild(
+                imapResult
+            )
+
+            resultBox.appendChild(
+                smtpResult
+            )
         } catch (error) {
             console.error(
                 'SharedMail: Verbindungstest fehlgeschlagen.',
                 error
             )
 
-            resultBox.textContent =
-                'Verbindungstest konnte nicht ausgeführt werden.'
+            showFormMessage(
+                error?.message
+                || 'Verbindungstest konnte nicht ausgeführt werden.',
+                true
+            )
         } finally {
             testButton.disabled = false
         }
     })
 
     /*
-     * Neu anlegen oder bearbeiten
+     * ------------------------------------------------------------
+     * Neues Postfach speichern oder vorhandenes aktualisieren
+     * ------------------------------------------------------------
      */
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault()
 
-        console.log('SM 1: Submit gestartet')
+        console.log(
+            'SM 1: Submit gestartet'
+        )
+
+        const editingMailboxId =
+            getEditingMailboxId()
+
         console.log(
             'SM 2: editingMailboxId =',
             editingMailboxId
         )
 
-        const submitButton = form.querySelector(
-            'button[type="submit"]'
-        )
+        const submitButton =
+            form.querySelector(
+                'button[type="submit"]'
+            )
 
         if (!submitButton) {
             console.error(
@@ -356,16 +525,25 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.disabled = true
 
         try {
-            console.log('SM 3: Erzeuge FormData')
-
-            const formData = new FormData(form)
-
-            console.log('SM 4: FormData wurde erzeugt')
-
-            const data = Object.fromEntries(
-                formData.entries()
+            console.log(
+                'SM 3: FormData wird erzeugt'
             )
 
+            const formData =
+                new FormData(form)
+
+            console.log(
+                'SM 4: FormData wurde erzeugt'
+            )
+
+            const data =
+                Object.fromEntries(
+                    formData.entries()
+                )
+
+            /*
+             * Multi-Select muss separat gelesen werden.
+             */
             data.groupIds =
                 formData.getAll('groupIds[]')
 
@@ -380,11 +558,10 @@ document.addEventListener('DOMContentLoaded', () => {
             )
 
             /*
-             * Zugangsdaten NICHT vollständig in die Konsole schreiben.
-             * Insbesondere keine Passwörter loggen.
+             * Keine Zugangsdaten in die Konsole schreiben.
              */
             console.log(
-                'SM 6: Gruppen =',
+                'SM 6: groupIds =',
                 data.groupIds
             )
 
@@ -404,9 +581,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     '/apps/sharedmail/api/mailboxes'
                 )
 
-            const method = isEditing
-                ? 'PUT'
-                : 'POST'
+            const method =
+                isEditing
+                    ? 'PUT'
+                    : 'POST'
 
             console.log(
                 'SM 8: URL =',
@@ -419,16 +597,19 @@ document.addEventListener('DOMContentLoaded', () => {
             )
 
             /*
-             * Sicherheitsnetz:
-             * Falls der Server gar nicht antwortet,
-             * brechen wir nach 20 Sekunden ab.
+             * Damit der Button bei einem hängenden Serverrequest
+             * nicht dauerhaft deaktiviert bleibt.
              */
-            const controller = new AbortController()
+            const abortController =
+                new AbortController()
 
-            const timeoutId = window.setTimeout(
-                () => controller.abort(),
-                20000
-            )
+            const timeoutId =
+                window.setTimeout(
+                    () => {
+                        abortController.abort()
+                    },
+                    20000
+                )
 
             console.log(
                 'SM 10: fetch() wird gestartet'
@@ -442,15 +623,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         method,
                         headers: {
-                            'Content-Type': 'application/json',
-                            'requesttoken': OC.requestToken,
+                            'Content-Type':
+                                'application/json',
+
+                            'requesttoken':
+                                OC.requestToken,
                         },
-                        body: JSON.stringify(data),
-                        signal: controller.signal,
+
+                        body:
+                            JSON.stringify(data),
+
+                        signal:
+                            abortController.signal,
                     }
                 )
             } finally {
-                window.clearTimeout(timeoutId)
+                window.clearTimeout(
+                    timeoutId
+                )
             }
 
             console.log(
@@ -469,10 +659,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (responseText !== '') {
                 try {
-                    result = JSON.parse(responseText)
+                    result =
+                        JSON.parse(responseText)
                 } catch (error) {
                     console.error(
-                        'SM FEHLER: Serverantwort ist kein gültiges JSON:',
+                        'SM FEHLER: Serverantwort ist kein gültiges JSON.',
                         responseText
                     )
 
@@ -497,25 +688,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 )
             }
 
-            OC.Notification.showTemporary(
-                isEditing
-                    ? 'Postfach wurde aktualisiert.'
-                    : 'Postfach wurde gespeichert.'
-            )
-
             console.log(
-                'SM 14: Erfolgreich, Seite wird neu geladen'
+                'SM 14: Speichern erfolgreich'
             )
 
             window.location.reload()
         } catch (error) {
-            if (error?.name === 'AbortError') {
+            if (
+                error?.name ===
+                'AbortError'
+            ) {
                 console.error(
                     'SM FEHLER: Request-Timeout'
                 )
 
-                OC.Notification.showTemporary(
-                    'Die Serveranfrage hat zu lange gedauert.'
+                showFormMessage(
+                    'Die Serveranfrage hat zu lange gedauert.',
+                    true
                 )
             } else {
                 console.error(
@@ -523,15 +712,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     error
                 )
 
-                OC.Notification.showTemporary(
+                showFormMessage(
                     error?.message
-                    || 'Postfach konnte nicht gespeichert werden.'
+                    || 'Postfach konnte nicht gespeichert werden.',
+                    true
                 )
             }
         } finally {
             /*
-             * Falls kein Reload erfolgt, muss der Button
-             * auf jeden Fall wieder benutzbar werden.
+             * Falls kein Reload erfolgt, wird der Button
+             * garantiert wieder freigegeben.
              */
             submitButton.disabled = false
 
@@ -542,73 +732,102 @@ document.addEventListener('DOMContentLoaded', () => {
     })
 
     /*
-     * Löschen
+     * ------------------------------------------------------------
+     * Postfach löschen
+     * ------------------------------------------------------------
      */
 
-    document.querySelectorAll('.sharedmail-delete-mailbox').forEach((button) => {
-        button.addEventListener('click', async () => {
-            const mailboxId =
-                button.dataset.mailboxId
+    document
+        .querySelectorAll('.sharedmail-delete-mailbox')
+        .forEach((button) => {
+            button.addEventListener(
+                'click',
+                async () => {
+                    const mailboxId =
+                        button.dataset.mailboxId
 
-            const mailboxName =
-                button.dataset.mailboxName
-                || 'dieses Postfach'
+                    const mailboxName =
+                        button.dataset.mailboxName
+                        || 'dieses Postfach'
 
-            if (!mailboxId) {
-                return
-            }
-
-            const confirmed = window.confirm(
-                `Postfach "${mailboxName}" wirklich aus Shared Mail löschen?\n\n`
-                + 'Das echte Mailkonto und die Nachrichten auf dem Mailserver werden nicht gelöscht.'
-            )
-
-            if (!confirmed) {
-                return
-            }
-
-            button.disabled = true
-
-            try {
-                const response = await fetch(
-                    OC.generateUrl(
-                        `/apps/sharedmail/api/mailboxes/${mailboxId}`
-                    ),
-                    {
-                        method: 'DELETE',
-                        headers: {
-                            'requesttoken': OC.requestToken,
-                        },
+                    if (!mailboxId) {
+                        console.error(
+                            'SharedMail: Löschen-Button enthält keine Mailbox-ID.'
+                        )
+                        return
                     }
-                )
 
-                const result = await response.json()
+                    const confirmed =
+                        window.confirm(
+                            `Postfach "${mailboxName}" wirklich aus Shared Mail löschen?\n\n`
+                            + 'Das echte Mailkonto und die Nachrichten auf dem Mailserver werden nicht gelöscht.'
+                        )
 
-                if (!response.ok) {
-                    throw new Error(
-                        result.error
-                        || 'Postfach konnte nicht gelöscht werden.'
-                    )
+                    if (!confirmed) {
+                        return
+                    }
+
+                    button.disabled = true
+
+                    try {
+                        const response =
+                            await fetch(
+                                OC.generateUrl(
+                                    `/apps/sharedmail/api/mailboxes/${mailboxId}`
+                                ),
+                                {
+                                    method:
+                                        'DELETE',
+
+                                    headers: {
+                                        'requesttoken':
+                                            OC.requestToken,
+                                    },
+                                }
+                            )
+
+                        const responseText =
+                            await response.text()
+
+                        let result = {}
+
+                        if (
+                            responseText !== ''
+                        ) {
+                            try {
+                                result =
+                                    JSON.parse(
+                                        responseText
+                                    )
+                            } catch (error) {
+                                throw new Error(
+                                    'Der Server hat eine ungültige Antwort geliefert.'
+                                )
+                            }
+                        }
+
+                        if (!response.ok) {
+                            throw new Error(
+                                result.error
+                                || 'Postfach konnte nicht gelöscht werden.'
+                            )
+                        }
+
+                        window.location.reload()
+                    } catch (error) {
+                        console.error(
+                            'SharedMail: Löschen fehlgeschlagen.',
+                            error
+                        )
+
+                        window.alert(
+                            error?.message
+                            || 'Postfach konnte nicht gelöscht werden.'
+                        )
+                    } finally {
+                        button.disabled = false
+                    }
                 }
-
-                OC.Notification.showTemporary(
-                    'Postfach wurde aus Shared Mail gelöscht.'
-                )
-
-                window.location.reload()
-            } catch (error) {
-                console.error(
-                    'SharedMail: Löschen fehlgeschlagen.',
-                    error
-                )
-
-                OC.Notification.showTemporary(
-                    error?.message
-                    || 'Postfach konnte nicht gelöscht werden.'
-                )
-            } finally {
-                button.disabled = false
-            }
+            )
         })
-    })
 })
