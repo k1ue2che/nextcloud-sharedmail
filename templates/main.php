@@ -4,51 +4,53 @@ declare(strict_types=1);
 
 /** @var array $_ */
 
+script('sharedmail', 'main');
+style('sharedmail', 'main');
+
 $mailboxes = $_['mailboxes'] ?? [];
 ?>
 
-<div id="app-content">
-    <div class="section">
-        <h2>Shared Mail</h2>
+<div id="app-content" class="sharedmail-app">
+
+    <aside class="sharedmail-sidebar">
+
+        <div class="sharedmail-sidebar-header">
+            <h2>Shared Mail</h2>
+        </div>
 
         <?php if ($mailboxes === []): ?>
 
-            <p>
-                Für dich wurden noch keine gemeinsamen
-                Postfächer freigegeben.
-            </p>
+            <div class="sharedmail-empty">
+                <p>
+                    Für dich wurden noch keine gemeinsamen
+                    Postfächer freigegeben.
+                </p>
+            </div>
 
         <?php else: ?>
 
-            <p>
-                Gemeinsame Postfächer, auf die du Zugriff hast:
-            </p>
+            <div class="sharedmail-mailbox-list">
 
-            <div class="sharedmail-user-mailboxes">
+                <?php foreach ($mailboxes as $index => $mailbox): ?>
 
-                <?php foreach ($mailboxes as $mailbox): ?>
+                    <button
+                        type="button"
+                        class="sharedmail-mailbox-button<?php
+                            echo $index === 0 ? ' active' : '';
+                        ?>"
+                        data-mailbox-id="<?php p((string)$mailbox['id']); ?>"
+                        data-mailbox-name="<?php p($mailbox['name']); ?>"
+                        data-mailbox-email="<?php p($mailbox['email']); ?>">
 
-                    <div
-                        class="sharedmail-user-mailbox"
-                        data-mailbox-id="<?php p((string)$mailbox['id']); ?>">
-
-                        <h3>
+                        <span class="sharedmail-mailbox-name">
                             <?php p($mailbox['name']); ?>
-                        </h3>
+                        </span>
 
-                        <p>
-                            <strong>
-                                <?php p($mailbox['email']); ?>
-                            </strong>
-                        </p>
+                        <span class="sharedmail-mailbox-email">
+                            <?php p($mailbox['email']); ?>
+                        </span>
 
-                        <?php if (!empty($mailbox['description'])): ?>
-                            <p>
-                                <?php p($mailbox['description']); ?>
-                            </p>
-                        <?php endif; ?>
-
-                    </div>
+                    </button>
 
                 <?php endforeach; ?>
 
@@ -56,8 +58,79 @@ $mailboxes = $_['mailboxes'] ?? [];
 
         <?php endif; ?>
 
-        <p style="margin-top:30px; opacity:.6;">
-            Version 0.2.6 – Development
-        </p>
-    </div>
+    </aside>
+
+
+    <main class="sharedmail-main">
+
+        <?php if ($mailboxes !== []): ?>
+
+            <header class="sharedmail-main-header">
+
+                <div>
+                    <h2 id="sharedmail-current-mailbox-name">
+                        <?php p($mailboxes[0]['name']); ?>
+                    </h2>
+
+                    <div
+                        id="sharedmail-current-mailbox-email"
+                        class="sharedmail-current-email">
+
+                        <?php p($mailboxes[0]['email']); ?>
+
+                    </div>
+                </div>
+
+            </header>
+
+
+            <div
+                id="sharedmail-folder-loading"
+                class="sharedmail-loading">
+
+                IMAP-Ordner werden geladen …
+
+            </div>
+
+
+            <div
+                id="sharedmail-folder-error"
+                class="sharedmail-error"
+                style="display:none;">
+            </div>
+
+
+            <div
+                id="sharedmail-folder-list"
+                class="sharedmail-folder-list">
+            </div>
+
+
+            <div
+                id="sharedmail-message-area"
+                class="sharedmail-message-area">
+
+                <p>
+                    Wähle einen Ordner aus.
+                </p>
+
+            </div>
+
+        <?php else: ?>
+
+            <div class="sharedmail-main-empty">
+
+                <h2>Shared Mail</h2>
+
+                <p>
+                    Sobald dir ein gemeinsames Postfach freigegeben wird,
+                    erscheint es hier.
+                </p>
+
+            </div>
+
+        <?php endif; ?>
+
+    </main>
+
 </div>

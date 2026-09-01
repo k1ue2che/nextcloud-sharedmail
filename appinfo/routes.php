@@ -29,5 +29,10 @@ return [
             'url' => '/api/mailboxes/{id}',
             'verb' => 'PUT',
         ],
+        [
+            'name' => 'mail#folders',
+            'url' => '/api/mailboxes/{id}/folders',
+            'verb' => 'GET',
+        ],
     ],
 ];
