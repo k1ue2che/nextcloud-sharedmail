@@ -31,6 +31,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    /*
+     * Nextcloud CSRF-Token.
+     *
+     * Je nach Nextcloud-Kontext liegt er
+     * entweder in OC.requestToken oder
+     * window.requesttoken.
+     */
+    function getRequestToken() {
+        if (
+            window.OC
+            && typeof OC.requestToken === 'string'
+            && OC.requestToken !== ''
+        ) {
+            return OC.requestToken
+        }
+
+        if (
+            typeof window.requesttoken === 'string'
+            && window.requesttoken !== ''
+        ) {
+            return window.requesttoken
+        }
+
+        return ''
+    }
+
+
     function getFolderHost(mailboxId) {
         return document.querySelector(
             `.sharedmail-mailbox-folder-host[data-folder-host-for="${mailboxId}"]`
@@ -160,6 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    /*
+     * Flache IMAP-Ordnerliste in
+     * einen echten Baum umwandeln.
+     */
     function buildFolderTree(folders) {
         const nodes = new Map()
 
@@ -235,9 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ) * 1000
             )
         } else if (message.date) {
-            date = new Date(
-                message.date
-            )
+            date =
+                new Date(
+                    message.date
+                )
         }
 
         if (
@@ -326,9 +358,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 ) * 1000
             )
         } else if (message.date) {
-            date = new Date(
-                message.date
-            )
+            date =
+                new Date(
+                    message.date
+                )
         }
 
         if (
@@ -442,6 +475,186 @@ document.addEventListener('DOMContentLoaded', () => {
                     value !== ''
             )
             .join(', ')
+    }
+
+
+    /*
+     * Sichtbare Zeile sofort auf
+     * gelesen / ungelesen umstellen.
+     */
+    function updateMessageRowReadState(
+        row,
+        isRead
+    ) {
+        if (!row) {
+            return
+        }
+
+        if (isRead) {
+            row.classList.remove(
+                'sharedmail-message-unread'
+            )
+        } else {
+            row.classList.add(
+                'sharedmail-message-unread'
+            )
+        }
+
+        const marker =
+            row.querySelector(
+                '.sharedmail-message-unread-marker'
+            )
+
+        if (marker) {
+            marker.textContent =
+                isRead
+                    ? ''
+                    : '●'
+        }
+    }
+
+
+    /*
+     * Persönlicher Lesestatus.
+     *
+     * Hier wird NICHT IMAP-\Seen verändert.
+     */
+    async function markMessageRead(
+        mailboxId,
+        folder,
+        uid
+    ) {
+        const url =
+            OC.generateUrl(
+                `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/read`
+            )
+            + '?folder='
+            + encodeURIComponent(
+                folder
+            )
+
+        const headers = {
+            Accept:
+                'application/json',
+        }
+
+        const requestToken =
+            getRequestToken()
+
+        if (requestToken !== '') {
+            headers.requesttoken =
+                requestToken
+        }
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: 'POST',
+                    headers,
+                }
+            )
+
+        const responseText =
+            await response.text()
+
+        let result = {}
+
+        if (responseText !== '') {
+            try {
+                result =
+                    JSON.parse(
+                        responseText
+                    )
+            } catch (error) {
+                console.error(
+                    'SharedMail: Ungültige Read-State-Antwort.',
+                    responseText
+                )
+
+                throw new Error(
+                    'Der Lesestatus konnte nicht gespeichert werden.'
+                )
+            }
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                result.error
+                || 'Der Lesestatus konnte nicht gespeichert werden.'
+            )
+        }
+
+        return result
+    }
+
+
+    /*
+     * Bereits vorbereitet für späteren
+     * Menüpunkt "Als ungelesen markieren".
+     */
+    async function markMessageUnread(
+        mailboxId,
+        folder,
+        uid
+    ) {
+        const url =
+            OC.generateUrl(
+                `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/unread`
+            )
+            + '?folder='
+            + encodeURIComponent(
+                folder
+            )
+
+        const headers = {
+            Accept:
+                'application/json',
+        }
+
+        const requestToken =
+            getRequestToken()
+
+        if (requestToken !== '') {
+            headers.requesttoken =
+                requestToken
+        }
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: 'POST',
+                    headers,
+                }
+            )
+
+        const responseText =
+            await response.text()
+
+        let result = {}
+
+        if (responseText !== '') {
+            try {
+                result =
+                    JSON.parse(
+                        responseText
+                    )
+            } catch (error) {
+                throw new Error(
+                    'Der Lesestatus konnte nicht gespeichert werden.'
+                )
+            }
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                result.error
+                || 'Der Lesestatus konnte nicht gespeichert werden.'
+            )
+        }
+
+        return result
     }
 
 
@@ -732,20 +945,17 @@ ${html || ''}
             row.className =
                 'sharedmail-viewer-meta-row'
 
-
             const label =
                 document.createElement('strong')
 
             label.textContent =
                 'An:'
 
-
             const value =
                 document.createElement('span')
 
             value.textContent =
                 toText
-
 
             row.appendChild(label)
             row.appendChild(value)
@@ -766,20 +976,17 @@ ${html || ''}
             row.className =
                 'sharedmail-viewer-meta-row'
 
-
             const label =
                 document.createElement('strong')
 
             label.textContent =
                 'CC:'
 
-
             const value =
                 document.createElement('span')
 
             value.textContent =
                 ccText
-
 
             row.appendChild(label)
             row.appendChild(value)
@@ -798,6 +1005,11 @@ ${html || ''}
             'sharedmail-viewer-status'
 
 
+        /*
+         * Nach dem erfolgreichen Öffnen
+         * sollte die Nachricht für diesen
+         * Benutzer gelesen sein.
+         */
         if (!message.seen) {
             const unread =
                 document.createElement('span')
@@ -855,8 +1067,7 @@ ${html || ''}
 
 
         if (
-            message.body?.type
-                === 'html'
+            message.body?.type === 'html'
             && message.body?.content
         ) {
             body.appendChild(
@@ -1040,6 +1251,16 @@ ${html || ''}
     }
 
 
+    /*
+     * Einzelne Nachricht öffnen.
+     *
+     * Ablauf:
+     *
+     * 1. Mailbody per GET laden
+     * 2. IMAP bleibt dank peek=true unverändert
+     * 3. persönlichen Read-State per POST setzen
+     * 4. Mail als gelesen darstellen
+     */
     async function loadMessage(
         folder,
         uid,
@@ -1125,6 +1346,7 @@ ${html || ''}
 
             let result = {}
 
+
             if (responseText !== '') {
                 try {
                     result =
@@ -1162,8 +1384,54 @@ ${html || ''}
             }
 
 
-            renderMessageViewer(
+            const message =
                 result.message
+
+
+            /*
+             * Wenn sie für diesen Benutzer
+             * noch ungelesen ist:
+             *
+             * persönlichen DB-Status setzen.
+             */
+            if (
+                message
+                && !message.seen
+            ) {
+                try {
+                    await markMessageRead(
+                        requestedMailboxId,
+                        requestedFolder,
+                        uid
+                    )
+
+                    /*
+                     * API erfolgreich:
+                     * UI sofort aktualisieren.
+                     */
+                    message.seen =
+                        true
+
+                    updateMessageRowReadState(
+                        row,
+                        true
+                    )
+                } catch (error) {
+                    /*
+                     * Mail darf trotzdem angezeigt
+                     * werden, falls nur das Speichern
+                     * des Lesestatus fehlschlägt.
+                     */
+                    console.error(
+                        'SharedMail: Persönlicher Lesestatus konnte nicht gespeichert werden.',
+                        error
+                    )
+                }
+            }
+
+
+            renderMessageViewer(
+                message
             )
         } catch (error) {
             console.error(
@@ -1291,25 +1559,24 @@ ${html || ''}
                         'button'
                     )
 
-                row.type = 'button'
+                row.type =
+                    'button'
 
                 row.className =
                     'sharedmail-message-row'
 
-
                 row.dataset.uid =
-                    String(message.uid)
+                    String(
+                        message.uid
+                    )
 
                 row.dataset.folderName =
                     folder.name
 
 
                 /*
-                 * NUR ungelesene Nachrichten
-                 * bekommen diese Klasse.
-                 *
-                 * Gelesene Nachrichten bleiben
-                 * automatisch normal dargestellt.
+                 * message.seen ist jetzt bereits
+                 * der PERSÖNLICHE Lesestatus.
                  */
                 if (!message.seen) {
                     row.classList.add(
@@ -1615,6 +1882,7 @@ ${html || ''}
 
             let result = {}
 
+
             if (responseText !== '') {
                 try {
                     result =
@@ -1745,14 +2013,8 @@ ${html || ''}
             )
 
 
-            /*
-             * Pfeil ist ein eigener Button.
-             *
-             * Dadurch kann auch ein nicht
-             * auswählbarer Elternordner seine
-             * Unterordner auf- und zuklappen.
-             */
             let toggle = null
+
 
             if (
                 node.children.length > 0
@@ -1881,8 +2143,7 @@ ${html || ''}
 
 
             if (
-                folder.messages
-                !== null
+                folder.messages !== null
             ) {
                 const messages =
                     document.createElement(
@@ -1983,9 +2244,7 @@ ${html || ''}
             }
 
 
-            if (
-                folder.selectable
-            ) {
+            if (folder.selectable) {
                 const entry = {
                     folder,
                     button,
@@ -2261,10 +2520,6 @@ ${html || ''}
     )
 
 
-    /*
-     * Beim Start erstes berechtigtes
-     * Postfach automatisch öffnen.
-     */
     loadFolders(
         mailboxButtons[0]
     )
