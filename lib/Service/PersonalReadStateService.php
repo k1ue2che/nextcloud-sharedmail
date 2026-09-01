@@ -16,38 +16,25 @@ class PersonalReadStateService
     ) {
     }
 
-
     /**
      * @param int[] $uids
-     * @return int[]
+     * @return array<int, bool>
      */
-    public function getReadUids(
+    public function getStates(
         int $mailboxId,
         string $folder,
-        array $uids,
+        array $uids
     ): array {
         $user =
-            $this->userSession
-                ->getUser();
+            $this->userSession->getUser();
 
         if ($user === null) {
             return [];
         }
 
-        $folder =
-            trim($folder);
-
-        if (
-            $mailboxId <= 0
-            || $folder === ''
-            || $uids === []
-        ) {
-            return [];
-        }
-
         return $this
             ->readStateMapper
-            ->findReadUids(
+            ->findStates(
                 $mailboxId,
                 $user->getUID(),
                 $folder,
@@ -55,62 +42,156 @@ class PersonalReadStateService
             );
     }
 
-
-    public function isRead(
+    /**
+     * Persönlichen Lesestatus einer einzelnen
+     * Nachricht bestimmen.
+     *
+     * Keine DB-Zeile:
+     * IMAP-\Seen bleibt der Fallback.
+     */
+    public function resolveIsRead(
         int $mailboxId,
         string $folder,
         int $uid,
+        bool $imapSeen
     ): bool {
         $user =
-            $this->userSession
-                ->getUser();
+            $this->userSession->getUser();
 
         if ($user === null) {
-            return false;
+            return $imapSeen;
         }
 
-        $folder =
-            trim($folder);
+        $state =
+            $this
+                ->readStateMapper
+                ->findOne(
+                    $mailboxId,
+                    $user->getUID(),
+                    $folder,
+                    $uid
+                );
 
-        if (
-            $mailboxId <= 0
-            || $folder === ''
-            || $uid <= 0
-        ) {
-            return false;
+        if ($state === null) {
+            return $imapSeen;
         }
 
-        return $this
-            ->readStateMapper
-            ->findOne(
-                $mailboxId,
-                $user->getUID(),
-                $folder,
-                $uid
-            ) !== null;
+        return (bool)$state->getIsRead();
     }
 
+    /**
+     * Persönlichen Lesestatus auf eine komplette
+     * Nachrichtenliste anwenden.
+     *
+     * @param array<int, array<string, mixed>> $messages
+     * @return array<int, array<string, mixed>>
+     */
+    public function applyToMessages(
+        int $mailboxId,
+        string $folder,
+        array $messages
+    ): array {
+        if ($messages === []) {
+            return [];
+        }
+
+        $uids = [];
+
+        foreach ($messages as $message) {
+            $uid =
+                (int)($message['uid'] ?? 0);
+
+            if ($uid > 0) {
+                $uids[] = $uid;
+            }
+        }
+
+        $states =
+            $this->getStates(
+                $mailboxId,
+                $folder,
+                $uids
+            );
+
+        foreach ($messages as &$message) {
+            $uid =
+                (int)($message['uid'] ?? 0);
+
+            $imapSeen =
+                (bool)($message['seen'] ?? false);
+
+            /*
+             * Originalen IMAP-Status behalten.
+             * Später wichtig für persönliche
+             * Ordnerzähler.
+             */
+            $message['imapSeen'] =
+                $imapSeen;
+
+            if (
+                $uid > 0
+                && array_key_exists(
+                    $uid,
+                    $states
+                )
+            ) {
+                $message['seen'] =
+                    $states[$uid];
+            } else {
+                /*
+                 * Kein persönlicher Override:
+                 * IMAP-\Seen verwenden.
+                 */
+                $message['seen'] =
+                    $imapSeen;
+            }
+        }
+
+        unset($message);
+
+        return $messages;
+    }
 
     public function markRead(
         int $mailboxId,
         string $folder,
+        int $uid
+    ): bool {
+        return $this->setState(
+            $mailboxId,
+            $folder,
+            $uid,
+            true
+        );
+    }
+
+    public function markUnread(
+        int $mailboxId,
+        string $folder,
+        int $uid
+    ): bool {
+        return $this->setState(
+            $mailboxId,
+            $folder,
+            $uid,
+            false
+        );
+    }
+
+    private function setState(
+        int $mailboxId,
+        string $folder,
         int $uid,
+        bool $isRead
     ): bool {
         $user =
-            $this->userSession
-                ->getUser();
-
-        if ($user === null) {
-            return false;
-        }
-
-        $folder =
-            trim($folder);
+            $this->userSession->getUser();
 
         if (
-            $mailboxId <= 0
-            || $folder === ''
+            $user === null
+            || $mailboxId <= 0
             || $uid <= 0
+            || trim($folder) === ''
         ) {
             return false;
         }
@@ -118,8 +199,15 @@ class PersonalReadStateService
         $userId =
             $user->getUID();
 
-        $existing =
-            $this->readStateMapper
+        $folder =
+            trim($folder);
+
+        $now =
+            time();
+
+        $state =
+            $this
+                ->readStateMapper
                 ->findOne(
                     $mailboxId,
                     $userId,
@@ -127,83 +215,67 @@ class PersonalReadStateService
                     $uid
                 );
 
-        /*
-         * Zeile existiert bereits:
-         * Die Nachricht ist für diesen Benutzer
-         * schon gelesen.
-         *
-         * read_at bleibt bewusst der Zeitpunkt
-         * des ersten Lesens.
-         */
-        if ($existing !== null) {
+        if ($state === null) {
+            $state =
+                new ReadState();
+
+            $state->setMailboxId(
+                $mailboxId
+            );
+
+            $state->setUserId(
+                $userId
+            );
+
+            $state->setFolder(
+                $folder
+            );
+
+            $state->setUid(
+                $uid
+            );
+
+            $state->setIsRead(
+                $isRead
+            );
+
+            $state->setChangedAt(
+                $now
+            );
+
+            $state->setReadAt(
+                $isRead
+                    ? $now
+                    : null
+            );
+
+            $this
+                ->readStateMapper
+                ->insert(
+                    $state
+                );
+
             return true;
         }
 
-        $state =
-            new ReadState();
-
-        $state->setMailboxId(
-            $mailboxId
+        $state->setIsRead(
+            $isRead
         );
 
-        $state->setUserId(
-            $userId
-        );
-
-        $state->setFolder(
-            $folder
-        );
-
-        $state->setUid(
-            $uid
+        $state->setChangedAt(
+            $now
         );
 
         $state->setReadAt(
-            time()
+            $isRead
+                ? $now
+                : null
         );
 
-        $this->readStateMapper
-            ->insert(
+        $this
+            ->readStateMapper
+            ->update(
                 $state
-            );
-
-        return true;
-    }
-
-
-    public function markUnread(
-        int $mailboxId,
-        string $folder,
-        int $uid,
-    ): bool {
-        $user =
-            $this->userSession
-                ->getUser();
-
-        if ($user === null) {
-            return false;
-        }
-
-        $folder =
-            trim($folder);
-
-        if (
-            $mailboxId <= 0
-            || $folder === ''
-            || $uid <= 0
-        ) {
-            return false;
-        }
-
-        /*
-         * Kein Datensatz = persönlich ungelesen.
-         */
-        $this->readStateMapper
-            ->deleteOne(
-                $mailboxId,
-                $user->getUID(),
-                $folder,
-                $uid
             );
 
         return true;

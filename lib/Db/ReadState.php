@@ -12,6 +12,8 @@ class ReadState extends Entity
     protected $userId;
     protected $folder;
     protected $uid;
+    protected $isRead;
+    protected $changedAt;
     protected $readAt;
 
     public function __construct()
@@ -38,6 +40,16 @@ class ReadState extends Entity
 
         $this->addType(
             'uid',
+            'integer'
+        );
+
+        $this->addType(
+            'isRead',
+            'boolean'
+        );
+
+        $this->addType(
+            'changedAt',
             'integer'
         );
 

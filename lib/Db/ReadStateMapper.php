@@ -13,7 +13,7 @@ use OCP\IDBConnection;
 class ReadStateMapper extends QBMapper
 {
     public function __construct(
-        IDBConnection $db,
+        IDBConnection $db
     ) {
         parent::__construct(
             $db,
@@ -26,16 +26,13 @@ class ReadStateMapper extends QBMapper
         int $mailboxId,
         string $userId,
         string $folder,
-        int $uid,
+        int $uid
     ): ?ReadState {
-        $qb =
-            $this->db
-                ->getQueryBuilder();
+        $qb = $this->db->getQueryBuilder();
 
-        $qb->select('*')
-            ->from(
-                'sharedmail_read_state'
-            )
+        $qb
+            ->select('*')
+            ->from($this->getTableName())
             ->where(
                 $qb->expr()->eq(
                     'mailbox_id',
@@ -49,8 +46,7 @@ class ReadStateMapper extends QBMapper
                 $qb->expr()->eq(
                     'user_id',
                     $qb->createNamedParameter(
-                        $userId,
-                        IQueryBuilder::PARAM_STR
+                        $userId
                     )
                 )
             )
@@ -58,8 +54,7 @@ class ReadStateMapper extends QBMapper
                 $qb->expr()->eq(
                     'folder',
                     $qb->createNamedParameter(
-                        $folder,
-                        IQueryBuilder::PARAM_STR
+                        $folder
                     )
                 )
             )
@@ -85,52 +80,54 @@ class ReadStateMapper extends QBMapper
         }
     }
 
-
     /**
-     * Liefert von einer gegebenen UID-Liste nur
-     * diejenigen zurück, die der Benutzer bereits
-     * persönlich gelesen hat.
+     * Liefert die expliziten persönlichen Zustände
+     * für mehrere IMAP-UIDs.
+     *
+     * Rückgabe:
+     *
+     * [
+     *     123 => true,
+     *     124 => false,
+     * ]
+     *
+     * Fehlende UID:
+     * kein persönlicher Override vorhanden.
      *
      * @param int[] $uids
-     * @return int[]
+     * @return array<int, bool>
      */
-    public function findReadUids(
+    public function findStates(
         int $mailboxId,
         string $userId,
         string $folder,
-        array $uids,
+        array $uids
     ): array {
-        $uids =
-            array_values(
-                array_unique(
-                    array_filter(
-                        array_map(
-                            static fn (
-                                mixed $uid
-                            ): int =>
-                                (int)$uid,
-                            $uids
-                        ),
-                        static fn (
-                            int $uid
-                        ): bool =>
-                            $uid > 0
-                    )
+        $uids = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $uids
+                    ),
+                    static fn (int $uid): bool =>
+                        $uid > 0
                 )
-            );
+            )
+        );
 
         if ($uids === []) {
             return [];
         }
 
-        $qb =
-            $this->db
-                ->getQueryBuilder();
+        $qb = $this->db->getQueryBuilder();
 
-        $qb->select('uid')
-            ->from(
-                'sharedmail_read_state'
+        $qb
+            ->select(
+                'uid',
+                'is_read'
             )
+            ->from($this->getTableName())
             ->where(
                 $qb->expr()->eq(
                     'mailbox_id',
@@ -144,8 +141,7 @@ class ReadStateMapper extends QBMapper
                 $qb->expr()->eq(
                     'user_id',
                     $qb->createNamedParameter(
-                        $userId,
-                        IQueryBuilder::PARAM_STR
+                        $userId
                     )
                 )
             )
@@ -153,8 +149,7 @@ class ReadStateMapper extends QBMapper
                 $qb->expr()->eq(
                     'folder',
                     $qb->createNamedParameter(
-                        $folder,
-                        IQueryBuilder::PARAM_STR
+                        $folder
                     )
                 )
             )
@@ -171,47 +166,42 @@ class ReadStateMapper extends QBMapper
         $result =
             $qb->executeQuery();
 
-        $readUids = [];
+        $states = [];
 
-        try {
-            while (
-                $row =
-                    $result
-                        ->fetchAssociative()
-            ) {
-                $uid =
-                    (int)$row['uid'];
+        while (
+            $row =
+                $result->fetchAssociative()
+        ) {
+            $uid =
+                (int)$row['uid'];
 
-                if ($uid > 0) {
-                    $readUids[] =
-                        $uid;
-                }
-            }
-        } finally {
-            $result->closeCursor();
+            $states[$uid] =
+                (bool)$row['is_read'];
         }
 
-        return array_values(
-            array_unique(
-                $readUids
-            )
-        );
+        $result->closeCursor();
+
+        return $states;
     }
 
-
-    public function deleteOne(
+    /**
+     * Alle persönlichen Zustände eines Ordners.
+     *
+     * Wird später für den persönlichen
+     * Ungelesen-Zähler benötigt.
+     *
+     * @return ReadState[]
+     */
+    public function findByFolder(
         int $mailboxId,
         string $userId,
-        string $folder,
-        int $uid,
-    ): void {
-        $qb =
-            $this->db
-                ->getQueryBuilder();
+        string $folder
+    ): array {
+        $qb = $this->db->getQueryBuilder();
 
-        $qb->delete(
-            'sharedmail_read_state'
-        )
+        $qb
+            ->select('*')
+            ->from($this->getTableName())
             ->where(
                 $qb->expr()->eq(
                     'mailbox_id',
@@ -225,8 +215,7 @@ class ReadStateMapper extends QBMapper
                 $qb->expr()->eq(
                     'user_id',
                     $qb->createNamedParameter(
-                        $userId,
-                        IQueryBuilder::PARAM_STR
+                        $userId
                     )
                 )
             )
@@ -234,21 +223,35 @@ class ReadStateMapper extends QBMapper
                 $qb->expr()->eq(
                     'folder',
                     $qb->createNamedParameter(
-                        $folder,
-                        IQueryBuilder::PARAM_STR
+                        $folder
                     )
                 )
+            );
+
+        return $this->findEntities(
+            $qb
+        );
+    }
+
+    public function deleteByMailbox(
+        int $mailboxId
+    ): int {
+        $qb = $this->db->getQueryBuilder();
+
+        $qb
+            ->delete(
+                $this->getTableName()
             )
-            ->andWhere(
+            ->where(
                 $qb->expr()->eq(
-                    'uid',
+                    'mailbox_id',
                     $qb->createNamedParameter(
-                        $uid,
+                        $mailboxId,
                         IQueryBuilder::PARAM_INT
                     )
                 )
             );
 
-        $qb->executeStatement();
+        return $qb->executeStatement();
     }
 }
