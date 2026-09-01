@@ -4,20 +4,12 @@ declare(strict_types=1);
 
 return [
     'routes' => [
-
-        /*
-         * Hauptseite
-         */
         [
             'name' => 'page#index',
             'url' => '/',
             'verb' => 'GET',
         ],
 
-
-        /*
-         * Administration
-         */
         [
             'name' => 'admin#createMailbox',
             'url' => '/api/mailboxes',
@@ -42,10 +34,6 @@ return [
             'verb' => 'DELETE',
         ],
 
-
-        /*
-         * Shared-Mail Client
-         */
         [
             'name' => 'mail#folders',
             'url' => '/api/mailboxes/{id}/folders',
@@ -58,13 +46,6 @@ return [
             'verb' => 'GET',
         ],
 
-
-        /*
-         * Persönlicher Lesestatus.
-         *
-         * Diese spezifischen Routen stehen bewusst
-         * vor der allgemeinen Message-Route.
-         */
         [
             'name' => 'mail#markRead',
             'url' => '/api/mailboxes/{id}/messages/{uid}/read',
@@ -77,10 +58,12 @@ return [
             'verb' => 'POST',
         ],
 
+        [
+            'name' => 'move#message',
+            'url' => '/api/mailboxes/{id}/messages/{uid}/move',
+            'verb' => 'POST',
+        ],
 
-        /*
-         * Einzelne Nachricht
-         */
         [
             'name' => 'mail#message',
             'url' => '/api/mailboxes/{id}/messages/{uid}',
