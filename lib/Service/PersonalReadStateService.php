@@ -43,12 +43,57 @@ class PersonalReadStateService
     }
 
     /**
-     * Persönlichen Lesestatus einer einzelnen
-     * Nachricht bestimmen.
+     * Alle persönlichen Overrides eines Ordners.
      *
-     * Keine DB-Zeile:
-     * IMAP-\Seen bleibt der Fallback.
+     * Rückgabe:
+     *
+     * [
+     *     UID => true,
+     *     UID => false,
+     * ]
+     *
+     * true  = persönlich gelesen
+     * false = persönlich ungelesen
+     *
+     * @return array<int, bool>
      */
+    public function getFolderStates(
+        int $mailboxId,
+        string $folder
+    ): array {
+        $user =
+            $this->userSession->getUser();
+
+        if ($user === null) {
+            return [];
+        }
+
+        $rows =
+            $this
+                ->readStateMapper
+                ->findByFolder(
+                    $mailboxId,
+                    $user->getUID(),
+                    $folder
+                );
+
+        $states = [];
+
+        foreach ($rows as $row) {
+            $uid =
+                (int)$row->getUid();
+
+            if ($uid <= 0) {
+                continue;
+            }
+
+            $states[$uid] =
+                (bool)$row->getIsRead();
+        }
+
+        return $states;
+    }
+
     public function resolveIsRead(
         int $mailboxId,
         string $folder,
@@ -80,9 +125,6 @@ class PersonalReadStateService
     }
 
     /**
-     * Persönlichen Lesestatus auf eine komplette
-     * Nachrichtenliste anwenden.
-     *
      * @param array<int, array<string, mixed>> $messages
      * @return array<int, array<string, mixed>>
      */
@@ -120,11 +162,6 @@ class PersonalReadStateService
             $imapSeen =
                 (bool)($message['seen'] ?? false);
 
-            /*
-             * Originalen IMAP-Status behalten.
-             * Später wichtig für persönliche
-             * Ordnerzähler.
-             */
             $message['imapSeen'] =
                 $imapSeen;
 
@@ -138,10 +175,6 @@ class PersonalReadStateService
                 $message['seen'] =
                     $states[$uid];
             } else {
-                /*
-                 * Kein persönlicher Override:
-                 * IMAP-\Seen verwenden.
-                 */
                 $message['seen'] =
                     $imapSeen;
             }
