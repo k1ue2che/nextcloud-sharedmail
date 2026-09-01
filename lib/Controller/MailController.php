@@ -32,11 +32,63 @@ class MailController extends Controller
     public function folders(
         int $id,
     ): JSONResponse {
+        $mailbox =
+            $this->mailboxAccessService
+                ->getAccessibleMailbox($id);
+
+        if ($mailbox === null) {
+            return new JSONResponse([
+                'success' => false,
+                'error' =>
+                    'Kein Zugriff auf dieses Postfach.',
+            ], 403);
+        }
+
+        try {
+            $folders =
+                $this->mailboxImapService
+                    ->getFolders($mailbox);
+        } catch (Throwable) {
+            return new JSONResponse([
+                'success' => false,
+                'error' =>
+                    'Die IMAP-Ordner konnten nicht geladen werden.',
+            ], 500);
+        }
+
+        return new JSONResponse([
+            'success' => true,
+
+            'mailbox' => [
+                'id' =>
+                    $mailbox->getId(),
+
+                'name' =>
+                    $mailbox->getName(),
+
+                'email' =>
+                    $mailbox->getEmail(),
+            ],
+
+            'folders' => $folders,
+        ]);
+    }
+
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function messages(
+        int $id,
+        string $folder = 'INBOX',
+        int $limit = 50,
+        int $offset = 0,
+    ): JSONResponse {
         /*
-         * Ganz wichtig:
-         * Nicht einfach mailboxMapper->find($id)!
+         * Auch hier gilt:
          *
-         * Erst unsere zentrale Zugriffsprüfung.
+         * NIEMALS direkt MailboxMapper->find().
+         *
+         * Jeder IMAP-Endpunkt läuft zuerst
+         * durch unsere Zugriffsprüfung.
          */
         $mailbox =
             $this->mailboxAccessService
@@ -45,29 +97,59 @@ class MailController extends Controller
         if ($mailbox === null) {
             return new JSONResponse([
                 'success' => false,
-                'error' => 'Kein Zugriff auf dieses Postfach.',
+                'error' =>
+                    'Kein Zugriff auf dieses Postfach.',
             ], 403);
         }
 
         try {
-            $folders =
+            $result =
                 $this->mailboxImapService
-                    ->getFolders($mailbox);
-        } catch (Throwable $e) {
+                    ->getMessages(
+                        $mailbox,
+                        $folder,
+                        $limit,
+                        $offset
+                    );
+        } catch (Throwable) {
             return new JSONResponse([
                 'success' => false,
-                'error' => 'Die IMAP-Ordner konnten nicht geladen werden.',
+                'error' =>
+                    'Die Nachrichten konnten nicht geladen werden.',
             ], 500);
         }
 
         return new JSONResponse([
             'success' => true,
+
             'mailbox' => [
-                'id' => $mailbox->getId(),
-                'name' => $mailbox->getName(),
-                'email' => $mailbox->getEmail(),
+                'id' =>
+                    $mailbox->getId(),
+
+                'name' =>
+                    $mailbox->getName(),
+
+                'email' =>
+                    $mailbox->getEmail(),
             ],
-            'folders' => $folders,
+
+            'folder' =>
+                $result['folder'],
+
+            'total' =>
+                $result['total'],
+
+            'offset' =>
+                $result['offset'],
+
+            'limit' =>
+                $result['limit'],
+
+            'hasMore' =>
+                $result['hasMore'],
+
+            'messages' =>
+                $result['messages'],
         ]);
     }
 }

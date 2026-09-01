@@ -34,5 +34,10 @@ return [
             'url' => '/api/mailboxes/{id}/folders',
             'verb' => 'GET',
         ],
+        [
+            'name' => 'mail#messages',
+            'url' => '/api/mailboxes/{id}/messages',
+            'verb' => 'GET',
+        ],
     ],
 ];
