@@ -1,40 +1,66 @@
+/*
+ * Shared Mail
+ * Main application layout
+ */
+
 .sharedmail-app {
     display: flex;
     width: 100%;
     min-height: calc(100vh - 50px);
+    background: var(--color-main-background);
 }
 
+
+/*
+ * Linke Seitenleiste
+ */
+
 .sharedmail-sidebar {
-    width: 280px;
-    min-width: 280px;
+    width: 300px;
+    min-width: 300px;
     border-right: 1px solid var(--color-border);
     background: var(--color-main-background);
 }
 
 .sharedmail-sidebar-header {
-    padding: 20px;
+    padding: 22px 18px 14px;
 }
 
 .sharedmail-sidebar-header h2 {
     margin: 0;
+    font-size: 1.55rem;
 }
+
+
+/*
+ * Postfächer
+ */
 
 .sharedmail-mailbox-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 0 8px 16px;
+    padding: 0 8px 18px;
+}
+
+.sharedmail-mailbox-section {
+    width: 100%;
 }
 
 .sharedmail-mailbox-button {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+
     width: 100%;
-    padding: 12px 14px;
+
+    padding: 10px 12px;
+
     border: 0;
     border-radius: var(--border-radius-large);
+
     background: transparent;
+
     text-align: left;
     cursor: pointer;
 }
@@ -52,66 +78,150 @@
 }
 
 .sharedmail-mailbox-email {
-    margin-top: 3px;
+    max-width: 100%;
+    margin-top: 2px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 0.82rem;
+    opacity: 0.7;
+}
+
+
+/*
+ * Ordnerbereich unter dem jeweiligen Postfach
+ */
+
+.sharedmail-mailbox-folder-host {
+    margin-top: 4px;
+    padding-bottom: 8px;
+}
+
+.sharedmail-folder-loading {
+    padding: 8px 12px 8px 28px;
     font-size: 0.85rem;
-    opacity: 0.7;
+    opacity: 0.65;
 }
 
-.sharedmail-main {
-    flex: 1;
-    min-width: 0;
-    padding: 20px 28px;
-}
+.sharedmail-folder-error {
+    margin: 6px 8px;
+    padding: 8px 10px;
 
-.sharedmail-main-header {
-    display: flex;
-    align-items: center;
-    min-height: 60px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--color-border);
-}
-
-.sharedmail-main-header h2 {
-    margin: 0;
-}
-
-.sharedmail-current-email {
-    margin-top: 3px;
-    opacity: 0.7;
-}
-
-.sharedmail-loading {
-    padding: 20px 0;
-}
-
-.sharedmail-error,
-.sharedmail-message-error {
-    margin: 16px 0;
-    padding: 12px 16px;
     border-radius: var(--border-radius-large);
+
     background: var(--color-error-hover);
+
+    font-size: 0.85rem;
+}
+
+.sharedmail-folder-empty {
+    padding: 8px 12px 8px 28px;
+    font-size: 0.85rem;
+    opacity: 0.65;
 }
 
 .sharedmail-folder-list {
-    max-width: 760px;
-    padding: 16px 0;
+    width: 100%;
 }
 
-.sharedmail-folder {
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) auto;
-    align-items: center;
+
+/*
+ * Ordnerbaum
+ */
+
+.sharedmail-folder-node {
     width: 100%;
-    min-height: 46px;
-    padding: 6px 12px;
+}
+
+.sharedmail-folder-children {
+    width: 100%;
+}
+
+.sharedmail-folder-row {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+
+    padding-left:
+        calc(
+            var(
+                --sharedmail-folder-depth,
+                0
+            )
+            * 16px
+        );
+}
+
+
+/*
+ * Auf-/Zuklappen
+ */
+
+.sharedmail-folder-toggle,
+.sharedmail-folder-toggle-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 20px;
+
+    width: 20px;
+    height: 34px;
+
+    padding: 0;
+    margin: 0;
+
     border: 0;
-    border-radius: var(--border-radius-large);
     background: transparent;
-    text-align: left;
+
+    font-size: 12px;
+}
+
+.sharedmail-folder-toggle {
     cursor: pointer;
 }
 
-.sharedmail-folder:hover {
+.sharedmail-folder-toggle:hover {
+    background: var(--color-background-hover);
+    border-radius: var(--border-radius);
+}
+
+
+/*
+ * Ordner selbst
+ */
+
+.sharedmail-folder {
+    display: grid;
+
+    grid-template-columns:
+        26px
+        minmax(0, 1fr)
+        auto;
+
+    align-items: center;
+
+    flex: 1;
+    min-width: 0;
+
+    min-height: 36px;
+
+    padding: 4px 8px;
+
+    border: 0;
+    border-radius: var(--border-radius-large);
+
+    background: transparent;
+
+    text-align: left;
+
+    cursor: pointer;
+}
+
+.sharedmail-folder:hover:not(:disabled) {
     background: var(--color-background-hover);
 }
 
@@ -120,12 +230,12 @@
 }
 
 .sharedmail-folder-disabled {
-    opacity: 0.55;
     cursor: default;
+    opacity: 0.52;
 }
 
 .sharedmail-folder-icon {
-    font-size: 18px;
+    font-size: 16px;
 }
 
 .sharedmail-folder-label {
@@ -137,22 +247,63 @@
 .sharedmail-folder-counters {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding-left: 15px;
+    gap: 5px;
+
+    padding-left: 6px;
 }
 
 .sharedmail-folder-unseen {
-    min-width: 24px;
-    padding: 2px 7px;
+    min-width: 22px;
+
+    padding: 1px 6px;
+
     border-radius: 20px;
-    text-align: center;
+
     background: var(--color-primary-element);
     color: var(--color-primary-element-text);
+
+    text-align: center;
+    font-size: 0.85rem;
 }
 
 .sharedmail-folder-total {
-    min-width: 24px;
+    min-width: 18px;
+
     text-align: right;
+
+    font-size: 0.85rem;
+    opacity: 0.6;
+}
+
+
+/*
+ * Hauptbereich
+ */
+
+.sharedmail-main {
+    flex: 1;
+    min-width: 0;
+
+    padding: 20px 28px;
+}
+
+.sharedmail-main-header {
+    display: flex;
+    align-items: center;
+
+    min-height: 68px;
+
+    padding-bottom: 14px;
+
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sharedmail-main-header h2 {
+    margin: 0;
+}
+
+.sharedmail-current-email {
+    margin-top: 3px;
     opacity: 0.65;
 }
 
@@ -162,40 +313,71 @@
  */
 
 .sharedmail-message-area {
-    margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid var(--color-border);
 }
 
 .sharedmail-message-list-header {
     display: flex;
     align-items: baseline;
     gap: 14px;
+
     margin-bottom: 12px;
 }
 
 .sharedmail-message-list-header h3 {
     margin: 0;
+    font-size: 1.35rem;
 }
 
 .sharedmail-message-count {
     font-size: 0.9rem;
+    opacity: 0.6;
+}
+
+.sharedmail-message-loading {
+    font-size: 0.9rem;
     opacity: 0.65;
 }
 
-.sharedmail-message-loading,
 .sharedmail-message-empty {
-    padding: 16px 0;
-    opacity: 0.7;
+    padding: 18px 0;
+    opacity: 0.65;
 }
+
+.sharedmail-message-error {
+    margin: 12px 0;
+
+    padding: 12px 16px;
+
+    border-radius: var(--border-radius-large);
+
+    background: var(--color-error-hover);
+}
+
+
+/*
+ * Nachrichtenliste
+ */
 
 .sharedmail-message-list {
     width: 100%;
+    max-width: 1100px;
+
     border-top: 1px solid var(--color-border);
 }
 
+
+/*
+ * GELESENE Nachricht
+ *
+ * Standardzustand:
+ * - normaler Hintergrund
+ * - normale Schrift
+ */
+
 .sharedmail-message-row {
     display: grid;
+
     grid-template-columns:
         20px
         minmax(150px, 240px)
@@ -204,55 +386,124 @@
         90px;
 
     align-items: center;
-    width: 100%;
-    min-height: 48px;
 
-    padding: 6px 10px;
+    width: 100%;
+    min-height: 46px;
+
+    padding: 5px 10px;
 
     border: 0;
     border-bottom: 1px solid var(--color-border);
 
-    background: transparent;
+    background: var(--color-main-background);
+
+    font-weight: 400;
+
     text-align: left;
+
     cursor: pointer;
 }
+
+.sharedmail-message-row
+.sharedmail-message-sender,
+.sharedmail-message-row
+.sharedmail-message-subject {
+    font-weight: 400;
+}
+
+.sharedmail-message-row:not(.sharedmail-message-unread)
+.sharedmail-message-sender,
+.sharedmail-message-row:not(.sharedmail-message-unread)
+.sharedmail-message-subject {
+    opacity: 0.72;
+}
+
+
+/*
+ * UNGELESENE Nachricht
+ *
+ * - hervorgehobener Hintergrund
+ * - Absender fett
+ * - Betreff fett
+ */
+
+.sharedmail-message-row.sharedmail-message-unread {
+    background: var(--color-primary-light);
+}
+
+.sharedmail-message-row.sharedmail-message-unread
+.sharedmail-message-sender,
+.sharedmail-message-row.sharedmail-message-unread
+.sharedmail-message-subject {
+    font-weight: 700;
+    opacity: 1;
+}
+
+
+/*
+ * Hover / Auswahl
+ */
 
 .sharedmail-message-row:hover {
     background: var(--color-background-hover);
 }
 
 .sharedmail-message-row.active {
-    background: var(--color-primary-light);
+    outline: 1px solid var(--color-primary-element);
+    outline-offset: -1px;
 }
 
-.sharedmail-message-unread {
-    font-weight: 600;
-}
+
+/*
+ * Ungelesen-Punkt
+ */
 
 .sharedmail-message-unread-marker {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--color-primary-element);
 }
 
+
+/*
+ * Absender
+ */
+
 .sharedmail-message-sender {
     overflow: hidden;
-    padding-right: 15px;
+
+    padding-right: 14px;
+
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+
+/*
+ * Betreff
+ */
+
 .sharedmail-message-subject {
     overflow: hidden;
-    padding-right: 15px;
+
+    padding-right: 14px;
+
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+
+/*
+ * Mail-Flags
+ */
 
 .sharedmail-message-flags {
     display: flex;
     align-items: center;
-    gap: 6px;
+
+    gap: 5px;
+
     min-width: 38px;
+
     padding-right: 8px;
 }
 
@@ -264,15 +515,28 @@
     font-size: 17px;
 }
 
+
+/*
+ * Datum
+ */
+
 .sharedmail-message-date {
     text-align: right;
     white-space: nowrap;
-    opacity: 0.75;
+
+    font-weight: 400;
+    opacity: 0.65;
 }
+
+
+/*
+ * Weitere Nachrichten
+ */
 
 .sharedmail-load-more-wrapper {
     display: flex;
     justify-content: center;
+
     padding: 20px;
 }
 
@@ -280,28 +544,233 @@
     min-width: 220px;
 }
 
+
+/*
+ * Mail-Viewer
+ */
+
+.sharedmail-viewer {
+    width: 100%;
+    max-width: 1000px;
+}
+
+.sharedmail-viewer-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding-bottom: 14px;
+
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sharedmail-viewer-subject {
+    margin: 0;
+    font-size: 1.45rem;
+}
+
+.sharedmail-viewer-date {
+    flex: 0 0 auto;
+
+    opacity: 0.65;
+
+    white-space: nowrap;
+}
+
+
+/*
+ * Mail-Metadaten
+ */
+
+.sharedmail-viewer-meta {
+    padding: 14px 0;
+
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sharedmail-viewer-meta-row {
+    display: grid;
+
+    grid-template-columns:
+        48px
+        minmax(0, 1fr);
+
+    gap: 8px;
+
+    margin: 4px 0;
+}
+
+.sharedmail-viewer-meta-row span {
+    overflow-wrap: anywhere;
+}
+
+
+/*
+ * Status
+ */
+
+.sharedmail-viewer-status {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 14px;
+
+    padding: 10px 0;
+
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+
+/*
+ * Mailinhalt
+ */
+
+.sharedmail-viewer-body {
+    min-height: 200px;
+
+    padding: 22px 0;
+}
+
+.sharedmail-plain-body {
+    white-space: pre-wrap;
+
+    overflow-wrap: anywhere;
+
+    line-height: 1.55;
+}
+
+.sharedmail-html-frame {
+    display: block;
+
+    width: 100%;
+    min-height: 500px;
+
+    border: 0;
+
+    background: var(--color-main-background);
+}
+
+
+/*
+ * Anhänge
+ */
+
+.sharedmail-attachments {
+    margin-top: 20px;
+    padding-top: 18px;
+
+    border-top: 1px solid var(--color-border);
+}
+
+.sharedmail-attachments h3 {
+    margin: 0 0 12px;
+}
+
+.sharedmail-attachment-list {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 10px;
+}
+
+.sharedmail-attachment {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    min-width: 240px;
+
+    padding: 10px 14px;
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-large);
+
+    background: var(--color-background-hover);
+}
+
+.sharedmail-attachment-icon {
+    font-size: 22px;
+}
+
+.sharedmail-attachment-info {
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+}
+
+.sharedmail-attachment-info strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sharedmail-attachment-details {
+    margin-top: 2px;
+
+    font-size: 0.82rem;
+    opacity: 0.65;
+}
+
+
+/*
+ * Viewer Footer
+ */
+
+.sharedmail-viewer-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+
+    border-top: 1px solid var(--color-border);
+}
+
+
+/*
+ * Empty states
+ */
+
 .sharedmail-empty,
 .sharedmail-main-empty {
     padding: 20px;
 }
 
 
-@media (max-width: 900px) {
+/*
+ * Tablet
+ */
+
+@media (max-width: 950px) {
+
+    .sharedmail-sidebar {
+        width: 260px;
+        min-width: 260px;
+    }
+
     .sharedmail-message-row {
         grid-template-columns:
             18px
             minmax(120px, 180px)
             minmax(150px, 1fr)
-            70px;
+            75px;
     }
 
     .sharedmail-message-flags {
         display: none;
     }
+
 }
 
 
-@media (max-width: 800px) {
+/*
+ * Mobile
+ */
+
+@media (max-width: 760px) {
+
     .sharedmail-app {
         display: block;
     }
@@ -309,12 +778,13 @@
     .sharedmail-sidebar {
         width: 100%;
         min-width: 0;
+
         border-right: 0;
         border-bottom: 1px solid var(--color-border);
     }
 
     .sharedmail-main {
-        padding: 20px;
+        padding: 18px;
     }
 
     .sharedmail-message-row {
@@ -340,8 +810,8 @@
 
     .sharedmail-message-subject {
         grid-area: subject;
+
         padding-top: 3px;
-        opacity: 0.8;
     }
 
     .sharedmail-message-date {
@@ -351,134 +821,7 @@
     .sharedmail-message-flags {
         display: none;
     }
-}
-/*
- * Mail-Viewer
- */
 
-.sharedmail-viewer {
-    max-width: 1000px;
-}
-
-.sharedmail-viewer-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid var(--color-border);
-}
-
-.sharedmail-viewer-subject {
-    margin: 0;
-    font-size: 1.45rem;
-}
-
-.sharedmail-viewer-date {
-    flex: 0 0 auto;
-    opacity: 0.65;
-    white-space: nowrap;
-}
-
-.sharedmail-viewer-meta {
-    padding: 14px 0;
-    border-bottom: 1px solid var(--color-border);
-}
-
-.sharedmail-viewer-meta-row {
-    display: grid;
-    grid-template-columns: 55px minmax(0, 1fr);
-    gap: 8px;
-    margin: 4px 0;
-}
-
-.sharedmail-viewer-meta-row span {
-    overflow-wrap: anywhere;
-}
-
-.sharedmail-viewer-status {
-    display: flex;
-    gap: 14px;
-    padding: 10px 0;
-    font-size: 0.9rem;
-    opacity: 0.75;
-}
-
-.sharedmail-viewer-body {
-    padding: 22px 0;
-    min-height: 200px;
-}
-
-.sharedmail-plain-body {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    line-height: 1.55;
-}
-
-.sharedmail-html-frame {
-    display: block;
-    width: 100%;
-    min-height: 500px;
-    border: 0;
-    background: var(--color-main-background);
-}
-
-.sharedmail-attachments {
-    margin-top: 20px;
-    padding-top: 18px;
-    border-top: 1px solid var(--color-border);
-}
-
-.sharedmail-attachments h3 {
-    margin: 0 0 12px;
-}
-
-.sharedmail-attachment-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.sharedmail-attachment {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 240px;
-    padding: 10px 14px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius-large);
-    background: var(--color-background-hover);
-}
-
-.sharedmail-attachment-icon {
-    font-size: 22px;
-}
-
-.sharedmail-attachment-info {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.sharedmail-attachment-info strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.sharedmail-attachment-details {
-    margin-top: 2px;
-    font-size: 0.82rem;
-    opacity: 0.65;
-}
-
-.sharedmail-viewer-footer {
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid var(--color-border);
-}
-
-@media (max-width: 800px) {
     .sharedmail-viewer-header {
         display: block;
     }
@@ -488,6 +831,9 @@
     }
 
     .sharedmail-viewer-meta-row {
-        grid-template-columns: 40px minmax(0, 1fr);
+        grid-template-columns:
+            40px
+            minmax(0, 1fr);
     }
+
 }

@@ -1,68 +1,135 @@
 document.addEventListener('DOMContentLoaded', () => {
     const mailboxButtons = Array.from(
-        document.querySelectorAll('.sharedmail-mailbox-button')
+        document.querySelectorAll(
+            '.sharedmail-mailbox-button'
+        )
     )
 
-    const folderList = document.getElementById(
-        'sharedmail-folder-list'
-    )
+    const currentMailboxName =
+        document.getElementById(
+            'sharedmail-current-mailbox-name'
+        )
 
-    const loadingBox = document.getElementById(
-        'sharedmail-folder-loading'
-    )
+    const currentMailboxEmail =
+        document.getElementById(
+            'sharedmail-current-mailbox-email'
+        )
 
-    const errorBox = document.getElementById(
-        'sharedmail-folder-error'
-    )
-
-    const currentMailboxName = document.getElementById(
-        'sharedmail-current-mailbox-name'
-    )
-
-    const currentMailboxEmail = document.getElementById(
-        'sharedmail-current-mailbox-email'
-    )
-
-    const messageArea = document.getElementById(
-        'sharedmail-message-area'
-    )
+    const messageArea =
+        document.getElementById(
+            'sharedmail-message-area'
+        )
 
     let activeMailboxId = null
     let activeFolderName = null
+    let activeFolder = null
+    let activeFolderButton = null
 
-    if (
-        mailboxButtons.length === 0
-        || !folderList
-    ) {
+
+    if (mailboxButtons.length === 0) {
         return
     }
 
-    function setLoading(loading) {
-        if (!loadingBox) {
+
+    function getFolderHost(mailboxId) {
+        return document.querySelector(
+            `.sharedmail-mailbox-folder-host[data-folder-host-for="${mailboxId}"]`
+        )
+    }
+
+
+    function getFolderList(mailboxId) {
+        return getFolderHost(mailboxId)
+            ?.querySelector(
+                '.sharedmail-folder-list'
+            ) || null
+    }
+
+
+    function setFolderLoading(
+        mailboxId,
+        loading
+    ) {
+        const host =
+            getFolderHost(mailboxId)
+
+        if (!host) {
             return
         }
 
-        loadingBox.style.display =
-            loading ? 'block' : 'none'
-    }
+        const loadingElement =
+            host.querySelector(
+                '.sharedmail-folder-loading'
+            )
 
-    function clearError() {
-        if (!errorBox) {
+        if (!loadingElement) {
             return
         }
 
-        errorBox.style.display = 'none'
-        errorBox.textContent = ''
+        loadingElement.hidden =
+            !loading
     }
 
-    function showError(message) {
-        if (!errorBox) {
+
+    function clearFolderError(mailboxId) {
+        const host =
+            getFolderHost(mailboxId)
+
+        if (!host) {
             return
         }
 
-        errorBox.style.display = 'block'
-        errorBox.textContent = message
+        const error =
+            host.querySelector(
+                '.sharedmail-folder-error'
+            )
+
+        if (!error) {
+            return
+        }
+
+        error.hidden = true
+        error.textContent = ''
     }
+
+
+    function showFolderError(
+        mailboxId,
+        message
+    ) {
+        const host =
+            getFolderHost(mailboxId)
+
+        if (!host) {
+            return
+        }
+
+        const error =
+            host.querySelector(
+                '.sharedmail-folder-error'
+            )
+
+        if (!error) {
+            return
+        }
+
+        error.textContent = message
+        error.hidden = false
+    }
+
+
+    function selectMailboxHost(mailboxId) {
+        document
+            .querySelectorAll(
+                '.sharedmail-mailbox-folder-host'
+            )
+            .forEach((host) => {
+                host.hidden =
+                    host.dataset.folderHostFor
+                    !== String(mailboxId)
+            })
+    }
+
 
     function getFolderIcon(folder) {
         switch (folder.specialUse) {
@@ -92,6 +159,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+
+    function buildFolderTree(folders) {
+        const nodes = new Map()
+
+        folders.forEach((folder) => {
+            nodes.set(
+                folder.name,
+                {
+                    folder,
+                    children: [],
+                }
+            )
+        })
+
+        const roots = []
+
+        nodes.forEach((node) => {
+            const folder =
+                node.folder
+
+            const delimiter =
+                folder.delimiter
+
+            if (
+                !delimiter
+                || !folder.name.includes(
+                    delimiter
+                )
+            ) {
+                roots.push(node)
+                return
+            }
+
+            const position =
+                folder.name.lastIndexOf(
+                    delimiter
+                )
+
+            if (position <= 0) {
+                roots.push(node)
+                return
+            }
+
+            const parentName =
+                folder.name.substring(
+                    0,
+                    position
+                )
+
+            const parent =
+                nodes.get(parentName)
+
+            if (parent) {
+                parent.children.push(node)
+            } else {
+                roots.push(node)
+            }
+        })
+
+        return roots
+    }
+
+
     function formatMessageDate(message) {
         let date = null
 
@@ -100,25 +230,35 @@ document.addEventListener('DOMContentLoaded', () => {
             && message.timestamp !== undefined
         ) {
             date = new Date(
-                Number(message.timestamp) * 1000
+                Number(
+                    message.timestamp
+                ) * 1000
             )
         } else if (message.date) {
-            date = new Date(message.date)
+            date = new Date(
+                message.date
+            )
         }
 
         if (
             !date
-            || Number.isNaN(date.getTime())
+            || Number.isNaN(
+                date.getTime()
+            )
         ) {
             return ''
         }
 
-        const now = new Date()
+        const now =
+            new Date()
 
         const isToday =
-            date.getFullYear() === now.getFullYear()
-            && date.getMonth() === now.getMonth()
-            && date.getDate() === now.getDate()
+            date.getFullYear()
+                === now.getFullYear()
+            && date.getMonth()
+                === now.getMonth()
+            && date.getDate()
+                === now.getDate()
 
         if (isToday) {
             return new Intl.DateTimeFormat(
@@ -130,7 +270,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ).format(date)
         }
 
-        const yesterday = new Date(now)
+        const yesterday =
+            new Date(now)
 
         yesterday.setDate(
             yesterday.getDate() - 1
@@ -171,6 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ).format(date)
     }
 
+
     function formatFullDate(message) {
         let date = null
 
@@ -179,15 +321,21 @@ document.addEventListener('DOMContentLoaded', () => {
             && message.timestamp !== undefined
         ) {
             date = new Date(
-                Number(message.timestamp) * 1000
+                Number(
+                    message.timestamp
+                ) * 1000
             )
         } else if (message.date) {
-            date = new Date(message.date)
+            date = new Date(
+                message.date
+            )
         }
 
         if (
             !date
-            || Number.isNaN(date.getTime())
+            || Number.isNaN(
+                date.getTime()
+            )
         ) {
             return ''
         }
@@ -204,30 +352,43 @@ document.addEventListener('DOMContentLoaded', () => {
         ).format(date)
     }
 
+
     function formatBytes(bytes) {
-        const size = Number(bytes || 0)
+        const size =
+            Number(bytes || 0)
 
         if (size < 1024) {
             return `${size} B`
         }
 
-        if (size < 1024 * 1024) {
-            return `${(size / 1024).toFixed(1)} KB`
+        if (
+            size
+            < 1024 * 1024
+        ) {
+            return `${
+                (size / 1024)
+                    .toFixed(1)
+            } KB`
         }
 
-        return `${(
-            size
-            / 1024
-            / 1024
-        ).toFixed(1)} MB`
+        return `${
+            (
+                size
+                / 1024
+                / 1024
+            ).toFixed(1)
+        } MB`
     }
+
 
     function getSenderText(message) {
         const name =
-            message.from?.name?.trim() || ''
+            message.from?.name?.trim()
+            || ''
 
         const email =
-            message.from?.email?.trim() || ''
+            message.from?.email?.trim()
+            || ''
 
         if (name !== '') {
             return name
@@ -240,12 +401,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'Unbekannter Absender'
     }
 
+
     function formatAddress(address) {
         const name =
-            address?.name?.trim() || ''
+            address?.name?.trim()
+            || ''
 
         const email =
-            address?.email?.trim() || ''
+            address?.email?.trim()
+            || ''
 
         if (
             name !== ''
@@ -261,16 +425,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return name
     }
 
+
     function formatAddresses(addresses) {
-        if (!Array.isArray(addresses)) {
+        if (
+            !Array.isArray(
+                addresses
+            )
+        ) {
             return ''
         }
 
         return addresses
             .map(formatAddress)
-            .filter((value) => value !== '')
+            .filter(
+                (value) =>
+                    value !== ''
+            )
             .join(', ')
     }
+
 
     function renderMessageLoading(folder) {
         if (!messageArea) {
@@ -279,14 +452,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messageArea.textContent = ''
 
+        const header =
+            document.createElement('div')
+
+        header.className =
+            'sharedmail-message-list-header'
+
+
         const heading =
             document.createElement('h3')
 
         heading.textContent =
-            folder.label || folder.name
+            folder.label
+            || folder.name
+
 
         const loading =
-            document.createElement('p')
+            document.createElement('span')
 
         loading.className =
             'sharedmail-message-loading'
@@ -294,9 +476,20 @@ document.addEventListener('DOMContentLoaded', () => {
         loading.textContent =
             'Nachrichten werden geladen …'
 
-        messageArea.appendChild(heading)
-        messageArea.appendChild(loading)
+
+        header.appendChild(
+            heading
+        )
+
+        header.appendChild(
+            loading
+        )
+
+        messageArea.appendChild(
+            header
+        )
     }
+
 
     function renderMessageError(
         folder,
@@ -312,7 +505,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.createElement('h3')
 
         heading.textContent =
-            folder.label || folder.name
+            folder.label
+            || folder.name
+
 
         const error =
             document.createElement('div')
@@ -320,32 +515,29 @@ document.addEventListener('DOMContentLoaded', () => {
         error.className =
             'sharedmail-message-error'
 
-        error.textContent = message
+        error.textContent =
+            message
 
-        messageArea.appendChild(heading)
-        messageArea.appendChild(error)
+
+        messageArea.appendChild(
+            heading
+        )
+
+        messageArea.appendChild(
+            error
+        )
     }
 
-    /*
-     * HTML-Mail niemals direkt mit innerHTML
-     * in die Nextcloud-Seite schreiben.
-     *
-     * Wir verwenden ein sandboxed iframe.
-     * Zusätzlich blockiert CSP externe Ressourcen.
-     */
+
     function createSafeHtmlFrame(html) {
         const iframe =
-            document.createElement('iframe')
+            document.createElement(
+                'iframe'
+            )
 
         iframe.className =
             'sharedmail-html-frame'
 
-        /*
-         * Kein allow-scripts.
-         * Kein allow-same-origin.
-         * Keine Formulare.
-         * Keine Navigation außerhalb.
-         */
         iframe.setAttribute(
             'sandbox',
             ''
@@ -424,22 +616,9 @@ ${html || ''}
 </html>
         `
 
-        iframe.addEventListener(
-            'load',
-            () => {
-                /*
-                 * Wegen sandbox ohne same-origin ist
-                 * automatisches Auslesen der Höhe nicht
-                 * zuverlässig möglich.
-                 *
-                 * Daher sinnvolle Mindesthöhe.
-                 */
-                iframe.style.height = '500px'
-            }
-        )
-
         return iframe
     }
+
 
     function renderMessageViewer(message) {
         if (!messageArea) {
@@ -455,9 +634,6 @@ ${html || ''}
             'sharedmail-viewer'
 
 
-        /*
-         * Kopf
-         */
         const header =
             document.createElement('div')
 
@@ -483,18 +659,24 @@ ${html || ''}
             'sharedmail-viewer-date'
 
         date.textContent =
-            formatFullDate(message)
+            formatFullDate(
+                message
+            )
 
 
-        header.appendChild(subject)
-        header.appendChild(date)
+        header.appendChild(
+            subject
+        )
 
-        viewer.appendChild(header)
+        header.appendChild(
+            date
+        )
+
+        viewer.appendChild(
+            header
+        )
 
 
-        /*
-         * Absender / Empfänger
-         */
         const meta =
             document.createElement('div')
 
@@ -512,7 +694,8 @@ ${html || ''}
         const fromLabel =
             document.createElement('strong')
 
-        fromLabel.textContent = 'Von:'
+        fromLabel.textContent =
+            'Von:'
 
 
         const fromValue =
@@ -524,10 +707,17 @@ ${html || ''}
             )
 
 
-        fromRow.appendChild(fromLabel)
-        fromRow.appendChild(fromValue)
+        fromRow.appendChild(
+            fromLabel
+        )
 
-        meta.appendChild(fromRow)
+        fromRow.appendChild(
+            fromValue
+        )
+
+        meta.appendChild(
+            fromRow
+        )
 
 
         const toText =
@@ -536,30 +726,31 @@ ${html || ''}
             )
 
         if (toText !== '') {
-            const toRow =
+            const row =
                 document.createElement('div')
 
-            toRow.className =
+            row.className =
                 'sharedmail-viewer-meta-row'
 
 
-            const toLabel =
+            const label =
                 document.createElement('strong')
 
-            toLabel.textContent = 'An:'
+            label.textContent =
+                'An:'
 
 
-            const toValue =
+            const value =
                 document.createElement('span')
 
-            toValue.textContent =
+            value.textContent =
                 toText
 
 
-            toRow.appendChild(toLabel)
-            toRow.appendChild(toValue)
+            row.appendChild(label)
+            row.appendChild(value)
 
-            meta.appendChild(toRow)
+            meta.appendChild(row)
         }
 
 
@@ -569,44 +760,43 @@ ${html || ''}
             )
 
         if (ccText !== '') {
-            const ccRow =
+            const row =
                 document.createElement('div')
 
-            ccRow.className =
+            row.className =
                 'sharedmail-viewer-meta-row'
 
 
-            const ccLabel =
+            const label =
                 document.createElement('strong')
 
-            ccLabel.textContent = 'CC:'
+            label.textContent =
+                'CC:'
 
 
-            const ccValue =
+            const value =
                 document.createElement('span')
 
-            ccValue.textContent =
+            value.textContent =
                 ccText
 
 
-            ccRow.appendChild(ccLabel)
-            ccRow.appendChild(ccValue)
+            row.appendChild(label)
+            row.appendChild(value)
 
-            meta.appendChild(ccRow)
+            meta.appendChild(row)
         }
 
 
         viewer.appendChild(meta)
 
 
-        /*
-         * Statusleiste
-         */
         const status =
             document.createElement('div')
 
         status.className =
             'sharedmail-viewer-status'
+
 
         if (!message.seen) {
             const unread =
@@ -615,8 +805,11 @@ ${html || ''}
             unread.textContent =
                 '● Ungelesen'
 
-            status.appendChild(unread)
+            status.appendChild(
+                unread
+            )
         }
+
 
         if (message.flagged) {
             const flagged =
@@ -625,8 +818,11 @@ ${html || ''}
             flagged.textContent =
                 '★ Markiert'
 
-            status.appendChild(flagged)
+            status.appendChild(
+                flagged
+            )
         }
+
 
         if (message.answered) {
             const answered =
@@ -635,17 +831,22 @@ ${html || ''}
             answered.textContent =
                 '↩ Beantwortet'
 
-            status.appendChild(answered)
+            status.appendChild(
+                answered
+            )
         }
 
-        if (status.children.length > 0) {
-            viewer.appendChild(status)
+
+        if (
+            status.children.length
+            > 0
+        ) {
+            viewer.appendChild(
+                status
+            )
         }
 
 
-        /*
-         * Body
-         */
         const body =
             document.createElement('div')
 
@@ -654,7 +855,8 @@ ${html || ''}
 
 
         if (
-            message.body?.type === 'html'
+            message.body?.type
+                === 'html'
             && message.body?.content
         ) {
             body.appendChild(
@@ -670,18 +872,20 @@ ${html || ''}
                 'sharedmail-plain-body'
 
             plain.textContent =
-                message.body?.content || ''
+                message.body?.content
+                || ''
 
-            body.appendChild(plain)
+            body.appendChild(
+                plain
+            )
         }
 
 
-        viewer.appendChild(body)
+        viewer.appendChild(
+            body
+        )
 
 
-        /*
-         * Anhänge
-         */
         const attachments =
             Array.isArray(
                 message.attachments
@@ -689,7 +893,10 @@ ${html || ''}
                 ? message.attachments
                 : []
 
-        if (attachments.length > 0) {
+
+        if (
+            attachments.length > 0
+        ) {
             const attachmentArea =
                 document.createElement('div')
 
@@ -704,6 +911,7 @@ ${html || ''}
                 attachments.length === 1
                     ? '1 Anhang'
                     : `${attachments.length} Anhänge`
+
 
             attachmentArea.appendChild(
                 attachmentHeading
@@ -732,7 +940,8 @@ ${html || ''}
                     icon.className =
                         'sharedmail-attachment-icon'
 
-                    icon.textContent = '📎'
+                    icon.textContent =
+                        '📎'
 
 
                     const info =
@@ -770,15 +979,12 @@ ${html || ''}
                     info.appendChild(name)
                     info.appendChild(details)
 
-
                     item.appendChild(icon)
                     item.appendChild(info)
 
-                    /*
-                     * Download kommt im nächsten Schritt.
-                     * MIME-ID liegt bereits vor.
-                     */
-                    attachmentList.appendChild(item)
+                    attachmentList.appendChild(
+                        item
+                    )
                 }
             )
 
@@ -793,9 +999,6 @@ ${html || ''}
         }
 
 
-        /*
-         * Zurück-Button
-         */
         const footer =
             document.createElement('div')
 
@@ -811,31 +1014,16 @@ ${html || ''}
         back.textContent =
             '← Zurück zur Nachrichtenliste'
 
+
         back.addEventListener(
             'click',
             () => {
-                const activeFolderButton =
-                    document.querySelector(
-                        '.sharedmail-folder.active'
-                    )
-
                 if (
-                    activeFolderName
+                    activeFolder
                     && activeFolderButton
                 ) {
                     loadMessages(
-                        {
-                            name:
-                                activeFolderName,
-
-                            label:
-                                activeFolderButton
-                                    .querySelector(
-                                        '.sharedmail-folder-label'
-                                    )
-                                    ?.textContent
-                                || activeFolderName,
-                        },
+                        activeFolder,
                         activeFolderButton,
                         0
                     )
@@ -851,6 +1039,7 @@ ${html || ''}
         messageArea.appendChild(viewer)
     }
 
+
     async function loadMessage(
         folder,
         uid,
@@ -864,6 +1053,13 @@ ${html || ''}
             return
         }
 
+        const requestedMailboxId =
+            activeMailboxId
+
+        const requestedFolder =
+            folder
+
+
         document
             .querySelectorAll(
                 '.sharedmail-message-row.active'
@@ -873,6 +1069,7 @@ ${html || ''}
                     'active'
                 )
             })
+
 
         if (row) {
             row.classList.add(
@@ -902,12 +1099,13 @@ ${html || ''}
         try {
             const url =
                 OC.generateUrl(
-                    `/apps/sharedmail/api/mailboxes/${activeMailboxId}/messages/${uid}`
+                    `/apps/sharedmail/api/mailboxes/${requestedMailboxId}/messages/${uid}`
                 )
                 + '?folder='
                 + encodeURIComponent(
-                    folder
+                    requestedFolder
                 )
+
 
             const response =
                 await fetch(
@@ -920,6 +1118,7 @@ ${html || ''}
                         },
                     }
                 )
+
 
             const responseText =
                 await response.text()
@@ -953,6 +1152,16 @@ ${html || ''}
             }
 
 
+            if (
+                activeMailboxId
+                    !== requestedMailboxId
+                || activeFolderName
+                    !== requestedFolder
+            ) {
+                return
+            }
+
+
             renderMessageViewer(
                 result.message
             )
@@ -965,22 +1174,23 @@ ${html || ''}
             if (messageArea) {
                 messageArea.textContent = ''
 
-                const errorBox =
+                const errorElement =
                     document.createElement('div')
 
-                errorBox.className =
+                errorElement.className =
                     'sharedmail-message-error'
 
-                errorBox.textContent =
+                errorElement.textContent =
                     error?.message
                     || 'Die Nachricht konnte nicht geladen werden.'
 
                 messageArea.appendChild(
-                    errorBox
+                    errorElement
                 )
             }
         }
     }
+
 
     function renderMessages(
         result,
@@ -991,6 +1201,7 @@ ${html || ''}
         }
 
         messageArea.textContent = ''
+
 
         const header =
             document.createElement('div')
@@ -1003,7 +1214,8 @@ ${html || ''}
             document.createElement('h3')
 
         heading.textContent =
-            folder.label || folder.name
+            folder.label
+            || folder.name
 
 
         const count =
@@ -1012,8 +1224,11 @@ ${html || ''}
         count.className =
             'sharedmail-message-count'
 
+
         const total =
-            Number(result.total || 0)
+            Number(
+                result.total || 0
+            )
 
         count.textContent =
             total === 1
@@ -1021,18 +1236,30 @@ ${html || ''}
                 : `${total} Nachrichten`
 
 
-        header.appendChild(heading)
-        header.appendChild(count)
+        header.appendChild(
+            heading
+        )
 
-        messageArea.appendChild(header)
+        header.appendChild(
+            count
+        )
+
+        messageArea.appendChild(
+            header
+        )
 
 
         const messages =
-            Array.isArray(result.messages)
+            Array.isArray(
+                result.messages
+            )
                 ? result.messages
                 : []
 
-        if (messages.length === 0) {
+
+        if (
+            messages.length === 0
+        ) {
             const empty =
                 document.createElement('div')
 
@@ -1042,7 +1269,9 @@ ${html || ''}
             empty.textContent =
                 'Dieser Ordner enthält keine Nachrichten.'
 
-            messageArea.appendChild(empty)
+            messageArea.appendChild(
+                empty
+            )
 
             return
         }
@@ -1055,165 +1284,216 @@ ${html || ''}
             'sharedmail-message-list'
 
 
-        messages.forEach((message) => {
-            const row =
-                document.createElement('button')
+        messages.forEach(
+            (message) => {
+                const row =
+                    document.createElement(
+                        'button'
+                    )
 
-            row.type = 'button'
+                row.type = 'button'
 
-            row.className =
-                'sharedmail-message-row'
-
-            row.dataset.uid =
-                String(message.uid)
-
-            row.dataset.folderName =
-                folder.name
+                row.className =
+                    'sharedmail-message-row'
 
 
-            if (!message.seen) {
-                row.classList.add(
-                    'sharedmail-message-unread'
-                )
-            }
+                row.dataset.uid =
+                    String(message.uid)
+
+                row.dataset.folderName =
+                    folder.name
 
 
-            const unreadMarker =
-                document.createElement('span')
-
-            unreadMarker.className =
-                'sharedmail-message-unread-marker'
-
-            unreadMarker.textContent =
-                message.seen ? '' : '●'
-
-
-            const sender =
-                document.createElement('span')
-
-            sender.className =
-                'sharedmail-message-sender'
-
-            sender.textContent =
-                getSenderText(message)
-
-            if (message.from?.email) {
-                sender.title =
-                    message.from.email
-            }
-
-
-            const subject =
-                document.createElement('span')
-
-            subject.className =
-                'sharedmail-message-subject'
-
-            subject.textContent =
-                message.subject
-                || '(Kein Betreff)'
-
-
-            const flags =
-                document.createElement('span')
-
-            flags.className =
-                'sharedmail-message-flags'
-
-
-            if (message.flagged) {
-                const star =
-                    document.createElement('span')
-
-                star.className =
-                    'sharedmail-message-flagged'
-
-                star.textContent = '★'
-
-                star.title = 'Markiert'
-
-                flags.appendChild(star)
-            }
-
-
-            if (message.answered) {
-                const answered =
-                    document.createElement('span')
-
-                answered.className =
-                    'sharedmail-message-answered'
-
-                answered.textContent = '↩'
-
-                answered.title =
-                    'Beantwortet'
-
-                flags.appendChild(answered)
-            }
-
-
-            const date =
-                document.createElement('span')
-
-            date.className =
-                'sharedmail-message-date'
-
-            date.textContent =
-                formatMessageDate(message)
-
-
-            row.appendChild(
-                unreadMarker
-            )
-
-            row.appendChild(
-                sender
-            )
-
-            row.appendChild(
-                subject
-            )
-
-            row.appendChild(
-                flags
-            )
-
-            row.appendChild(
-                date
-            )
-
-
-            row.addEventListener(
-                'click',
-                () => {
-                    loadMessage(
-                        folder.name,
-                        message.uid,
-                        row
+                /*
+                 * NUR ungelesene Nachrichten
+                 * bekommen diese Klasse.
+                 *
+                 * Gelesene Nachrichten bleiben
+                 * automatisch normal dargestellt.
+                 */
+                if (!message.seen) {
+                    row.classList.add(
+                        'sharedmail-message-unread'
                     )
                 }
-            )
 
 
-            list.appendChild(row)
-        })
+                const unreadMarker =
+                    document.createElement(
+                        'span'
+                    )
+
+                unreadMarker.className =
+                    'sharedmail-message-unread-marker'
+
+                unreadMarker.textContent =
+                    message.seen
+                        ? ''
+                        : '●'
 
 
-        messageArea.appendChild(list)
+                const sender =
+                    document.createElement(
+                        'span'
+                    )
+
+                sender.className =
+                    'sharedmail-message-sender'
+
+                sender.textContent =
+                    getSenderText(
+                        message
+                    )
+
+
+                if (
+                    message.from?.email
+                ) {
+                    sender.title =
+                        message.from.email
+                }
+
+
+                const subject =
+                    document.createElement(
+                        'span'
+                    )
+
+                subject.className =
+                    'sharedmail-message-subject'
+
+                subject.textContent =
+                    message.subject
+                    || '(Kein Betreff)'
+
+
+                const flags =
+                    document.createElement(
+                        'span'
+                    )
+
+                flags.className =
+                    'sharedmail-message-flags'
+
+
+                if (message.flagged) {
+                    const star =
+                        document.createElement(
+                            'span'
+                        )
+
+                    star.className =
+                        'sharedmail-message-flagged'
+
+                    star.textContent =
+                        '★'
+
+                    star.title =
+                        'Markiert'
+
+                    flags.appendChild(
+                        star
+                    )
+                }
+
+
+                if (message.answered) {
+                    const answered =
+                        document.createElement(
+                            'span'
+                        )
+
+                    answered.className =
+                        'sharedmail-message-answered'
+
+                    answered.textContent =
+                        '↩'
+
+                    answered.title =
+                        'Beantwortet'
+
+                    flags.appendChild(
+                        answered
+                    )
+                }
+
+
+                const date =
+                    document.createElement(
+                        'span'
+                    )
+
+                date.className =
+                    'sharedmail-message-date'
+
+                date.textContent =
+                    formatMessageDate(
+                        message
+                    )
+
+
+                row.appendChild(
+                    unreadMarker
+                )
+
+                row.appendChild(
+                    sender
+                )
+
+                row.appendChild(
+                    subject
+                )
+
+                row.appendChild(
+                    flags
+                )
+
+                row.appendChild(
+                    date
+                )
+
+
+                row.addEventListener(
+                    'click',
+                    () => {
+                        loadMessage(
+                            folder.name,
+                            message.uid,
+                            row
+                        )
+                    }
+                )
+
+
+                list.appendChild(
+                    row
+                )
+            }
+        )
+
+
+        messageArea.appendChild(
+            list
+        )
 
 
         if (result.hasMore) {
             const wrapper =
-                document.createElement('div')
+                document.createElement(
+                    'div'
+                )
 
             wrapper.className =
                 'sharedmail-load-more-wrapper'
 
 
             const button =
-                document.createElement('button')
+                document.createElement(
+                    'button'
+                )
 
-            button.type = 'button'
+            button.type =
+                'button'
 
             button.className =
                 'sharedmail-load-more'
@@ -1227,21 +1507,27 @@ ${html || ''}
                 () => {
                     loadMessages(
                         folder,
-                        null,
-                        Number(result.offset || 0)
-                            + messages.length
+                        activeFolderButton,
+                        Number(
+                            result.offset
+                            || 0
+                        )
+                        + messages.length
                     )
                 }
             )
 
 
-            wrapper.appendChild(button)
+            wrapper.appendChild(
+                button
+            )
 
             messageArea.appendChild(
                 wrapper
             )
         }
     }
+
 
     async function loadMessages(
         folder,
@@ -1256,11 +1542,19 @@ ${html || ''}
             return
         }
 
+
         activeFolderName =
             folder.name
 
+        activeFolder =
+            folder
+
 
         if (folderButton) {
+            activeFolderButton =
+                folderButton
+
+
             document
                 .querySelectorAll(
                     '.sharedmail-folder.active'
@@ -1271,19 +1565,26 @@ ${html || ''}
                     )
                 })
 
+
             folderButton.classList.add(
                 'active'
             )
         }
 
 
-        renderMessageLoading(folder)
+        renderMessageLoading(
+            folder
+        )
+
+
+        const requestedMailboxId =
+            activeMailboxId
 
 
         try {
             const url =
                 OC.generateUrl(
-                    `/apps/sharedmail/api/mailboxes/${activeMailboxId}/messages`
+                    `/apps/sharedmail/api/mailboxes/${requestedMailboxId}/messages`
                 )
                 + '?folder='
                 + encodeURIComponent(
@@ -1315,10 +1616,21 @@ ${html || ''}
             let result = {}
 
             if (responseText !== '') {
-                result =
-                    JSON.parse(
+                try {
+                    result =
+                        JSON.parse(
+                            responseText
+                        )
+                } catch (error) {
+                    console.error(
+                        'SharedMail: Ungültige Nachrichten-Antwort.',
                         responseText
                     )
+
+                    throw new Error(
+                        'Der Server hat eine ungültige Antwort geliefert.'
+                    )
+                }
             }
 
 
@@ -1331,8 +1643,10 @@ ${html || ''}
 
 
             if (
-                activeFolderName
-                !== folder.name
+                activeMailboxId
+                    !== requestedMailboxId
+                || activeFolderName
+                    !== folder.name
             ) {
                 return
             }
@@ -1356,15 +1670,24 @@ ${html || ''}
         }
     }
 
-    function renderFolders(folders) {
+
+    function renderFolders(
+        folders,
+        folderList
+    ) {
         folderList.textContent = ''
 
+
         if (
-            !Array.isArray(folders)
+            !Array.isArray(
+                folders
+            )
             || folders.length === 0
         ) {
             const empty =
-                document.createElement('div')
+                document.createElement(
+                    'div'
+                )
 
             empty.className =
                 'sharedmail-folder-empty'
@@ -1379,45 +1702,141 @@ ${html || ''}
             return
         }
 
+
+        const tree =
+            buildFolderTree(
+                folders
+            )
+
+
         let inboxEntry = null
-        let firstSelectableEntry = null
+        let firstSelectableEntry =
+            null
 
 
-        folders.forEach((folder) => {
+        function renderNode(
+            node,
+            depth = 0
+        ) {
+            const folder =
+                node.folder
+
+
+            const wrapper =
+                document.createElement(
+                    'div'
+                )
+
+            wrapper.className =
+                'sharedmail-folder-node'
+
+
+            const row =
+                document.createElement(
+                    'div'
+                )
+
+            row.className =
+                'sharedmail-folder-row'
+
+            row.style.setProperty(
+                '--sharedmail-folder-depth',
+                String(depth)
+            )
+
+
+            /*
+             * Pfeil ist ein eigener Button.
+             *
+             * Dadurch kann auch ein nicht
+             * auswählbarer Elternordner seine
+             * Unterordner auf- und zuklappen.
+             */
+            let toggle = null
+
+            if (
+                node.children.length > 0
+            ) {
+                toggle =
+                    document.createElement(
+                        'button'
+                    )
+
+                toggle.type =
+                    'button'
+
+                toggle.className =
+                    'sharedmail-folder-toggle'
+
+                toggle.textContent =
+                    '▾'
+
+                toggle.setAttribute(
+                    'aria-expanded',
+                    'true'
+                )
+
+                row.appendChild(
+                    toggle
+                )
+            } else {
+                const placeholder =
+                    document.createElement(
+                        'span'
+                    )
+
+                placeholder.className =
+                    'sharedmail-folder-toggle-placeholder'
+
+                row.appendChild(
+                    placeholder
+                )
+            }
+
+
             const button =
-                document.createElement('button')
+                document.createElement(
+                    'button'
+                )
 
-            button.type = 'button'
+            button.type =
+                'button'
 
             button.className =
                 'sharedmail-folder'
-
-
-            if (!folder.selectable) {
-                button.classList.add(
-                    'sharedmail-folder-disabled'
-                )
-
-                button.disabled = true
-            }
-
 
             button.dataset.folderName =
                 folder.name
 
 
+            if (!folder.selectable) {
+                button.disabled =
+                    true
+
+                button.classList.add(
+                    'sharedmail-folder-disabled'
+                )
+            }
+
+
             const icon =
-                document.createElement('span')
+                document.createElement(
+                    'span'
+                )
 
             icon.className =
                 'sharedmail-folder-icon'
 
             icon.textContent =
-                getFolderIcon(folder)
+                getFolderIcon(
+                    folder
+                )
 
 
             const label =
-                document.createElement('span')
+                document.createElement(
+                    'span'
+                )
 
             label.className =
                 'sharedmail-folder-label'
@@ -1428,7 +1847,9 @@ ${html || ''}
 
 
             const counters =
-                document.createElement('span')
+                document.createElement(
+                    'span'
+                )
 
             counters.className =
                 'sharedmail-folder-counters'
@@ -1436,16 +1857,22 @@ ${html || ''}
 
             if (
                 folder.unseen !== null
-                && Number(folder.unseen) > 0
+                && Number(
+                    folder.unseen
+                ) > 0
             ) {
                 const unseen =
-                    document.createElement('strong')
+                    document.createElement(
+                        'strong'
+                    )
 
                 unseen.className =
                     'sharedmail-folder-unseen'
 
                 unseen.textContent =
-                    String(folder.unseen)
+                    String(
+                        folder.unseen
+                    )
 
                 counters.appendChild(
                     unseen
@@ -1453,15 +1880,22 @@ ${html || ''}
             }
 
 
-            if (folder.messages !== null) {
+            if (
+                folder.messages
+                !== null
+            ) {
                 const messages =
-                    document.createElement('span')
+                    document.createElement(
+                        'span'
+                    )
 
                 messages.className =
                     'sharedmail-folder-total'
 
                 messages.textContent =
-                    String(folder.messages)
+                    String(
+                        folder.messages
+                    )
 
                 counters.appendChild(
                     messages
@@ -1469,19 +1903,98 @@ ${html || ''}
             }
 
 
-            button.appendChild(icon)
-            button.appendChild(label)
-            button.appendChild(counters)
+            button.appendChild(
+                icon
+            )
+
+            button.appendChild(
+                label
+            )
+
+            button.appendChild(
+                counters
+            )
 
 
-            if (folder.selectable) {
+            row.appendChild(
+                button
+            )
+
+            wrapper.appendChild(
+                row
+            )
+
+
+            let childrenContainer =
+                null
+
+
+            if (
+                node.children.length > 0
+            ) {
+                childrenContainer =
+                    document.createElement(
+                        'div'
+                    )
+
+                childrenContainer.className =
+                    'sharedmail-folder-children'
+
+
+                node.children.forEach(
+                    (child) => {
+                        childrenContainer.appendChild(
+                            renderNode(
+                                child,
+                                depth + 1
+                            )
+                        )
+                    }
+                )
+
+
+                wrapper.appendChild(
+                    childrenContainer
+                )
+
+
+                toggle.addEventListener(
+                    'click',
+                    () => {
+                        const willOpen =
+                            childrenContainer.hidden
+
+                        childrenContainer.hidden =
+                            !willOpen
+
+                        toggle.textContent =
+                            willOpen
+                                ? '▾'
+                                : '▸'
+
+                        toggle.setAttribute(
+                            'aria-expanded',
+                            willOpen
+                                ? 'true'
+                                : 'false'
+                        )
+                    }
+                )
+            }
+
+
+            if (
+                folder.selectable
+            ) {
                 const entry = {
                     folder,
                     button,
                 }
 
 
-                if (!firstSelectableEntry) {
+                if (
+                    !firstSelectableEntry
+                ) {
                     firstSelectableEntry =
                         entry
                 }
@@ -1489,7 +2002,7 @@ ${html || ''}
 
                 if (
                     folder.specialUse
-                    === 'inbox'
+                        === 'inbox'
                     || folder.name
                         .toUpperCase()
                         === 'INBOX'
@@ -1512,10 +2025,20 @@ ${html || ''}
             }
 
 
-            folderList.appendChild(
-                button
-            )
-        })
+            return wrapper
+        }
+
+
+        tree.forEach(
+            (node) => {
+                folderList.appendChild(
+                    renderNode(
+                        node,
+                        0
+                    )
+                )
+            }
+        )
 
 
         const initialEntry =
@@ -1532,13 +2055,20 @@ ${html || ''}
         }
     }
 
-    async function loadFolders(button) {
+
+    async function loadFolders(
+        mailboxButton
+    ) {
         const mailboxId =
-            button.dataset.mailboxId
+            mailboxButton
+                .dataset
+                .mailboxId
+
 
         if (!mailboxId) {
             return
         }
+
 
         activeMailboxId =
             mailboxId
@@ -1546,50 +2076,86 @@ ${html || ''}
         activeFolderName =
             null
 
+        activeFolder =
+            null
 
-        clearError()
-        setLoading(true)
-
-        folderList.textContent = ''
+        activeFolderButton =
+            null
 
 
         mailboxButtons.forEach(
-            (mailboxButton) => {
-                mailboxButton.classList.remove(
+            (button) => {
+                button.classList.remove(
                     'active'
                 )
             }
         )
 
-        button.classList.add(
+
+        mailboxButton.classList.add(
             'active'
         )
 
 
+        selectMailboxHost(
+            mailboxId
+        )
+
+        clearFolderError(
+            mailboxId
+        )
+
+        setFolderLoading(
+            mailboxId,
+            true
+        )
+
+
+        const folderList =
+            getFolderList(
+                mailboxId
+            )
+
+
+        if (folderList) {
+            folderList.textContent =
+                ''
+        }
+
+
         if (currentMailboxName) {
             currentMailboxName.textContent =
-                button.dataset.mailboxName
+                mailboxButton
+                    .dataset
+                    .mailboxName
                 || 'Shared Mail'
         }
 
 
         if (currentMailboxEmail) {
             currentMailboxEmail.textContent =
-                button.dataset.mailboxEmail
+                mailboxButton
+                    .dataset
+                    .mailboxEmail
                 || ''
         }
 
 
         if (messageArea) {
-            messageArea.textContent = ''
+            messageArea.textContent =
+                ''
 
             const info =
-                document.createElement('p')
+                document.createElement(
+                    'p'
+                )
 
             info.textContent =
                 'Postfach wird geladen …'
 
-            messageArea.appendChild(info)
+            messageArea.appendChild(
+                info
+            )
         }
 
 
@@ -1614,11 +2180,23 @@ ${html || ''}
 
             let result = {}
 
+
             if (responseText !== '') {
-                result =
-                    JSON.parse(
+                try {
+                    result =
+                        JSON.parse(
+                            responseText
+                        )
+                } catch (error) {
+                    console.error(
+                        'SharedMail: Ungültige Ordner-Antwort.',
                         responseText
                     )
+
+                    throw new Error(
+                        'Der Server hat eine ungültige Antwort geliefert.'
+                    )
+                }
             }
 
 
@@ -1638,8 +2216,16 @@ ${html || ''}
             }
 
 
+            if (!folderList) {
+                throw new Error(
+                    'Die Ordneransicht konnte nicht initialisiert werden.'
+                )
+            }
+
+
             renderFolders(
-                result.folders ?? []
+                result.folders ?? [],
+                folderList
             )
         } catch (error) {
             console.error(
@@ -1647,14 +2233,19 @@ ${html || ''}
                 error
             )
 
-            showError(
+            showFolderError(
+                mailboxId,
                 error?.message
                 || 'Die IMAP-Ordner konnten nicht geladen werden.'
             )
         } finally {
-            setLoading(false)
+            setFolderLoading(
+                mailboxId,
+                false
+            )
         }
     }
+
 
     mailboxButtons.forEach(
         (button) => {
@@ -1670,6 +2261,10 @@ ${html || ''}
     )
 
 
+    /*
+     * Beim Start erstes berechtigtes
+     * Postfach automatisch öffnen.
+     */
     loadFolders(
         mailboxButtons[0]
     )

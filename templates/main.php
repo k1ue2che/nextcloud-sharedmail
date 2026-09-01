@@ -33,24 +33,54 @@ $mailboxes = $_['mailboxes'] ?? [];
 
                 <?php foreach ($mailboxes as $index => $mailbox): ?>
 
-                    <button
-                        type="button"
-                        class="sharedmail-mailbox-button<?php
-                            echo $index === 0 ? ' active' : '';
-                        ?>"
-                        data-mailbox-id="<?php p((string)$mailbox['id']); ?>"
-                        data-mailbox-name="<?php p($mailbox['name']); ?>"
-                        data-mailbox-email="<?php p($mailbox['email']); ?>">
+                    <div
+                        class="sharedmail-mailbox-section"
+                        data-mailbox-section-id="<?php p((string)$mailbox['id']); ?>">
 
-                        <span class="sharedmail-mailbox-name">
-                            <?php p($mailbox['name']); ?>
-                        </span>
+                        <button
+                            type="button"
+                            class="sharedmail-mailbox-button<?php
+                                echo $index === 0 ? ' active' : '';
+                            ?>"
+                            data-mailbox-id="<?php p((string)$mailbox['id']); ?>"
+                            data-mailbox-name="<?php p($mailbox['name']); ?>"
+                            data-mailbox-email="<?php p($mailbox['email']); ?>">
 
-                        <span class="sharedmail-mailbox-email">
-                            <?php p($mailbox['email']); ?>
-                        </span>
+                            <span class="sharedmail-mailbox-name">
+                                <?php p($mailbox['name']); ?>
+                            </span>
 
-                    </button>
+                            <span class="sharedmail-mailbox-email">
+                                <?php p($mailbox['email']); ?>
+                            </span>
+
+                        </button>
+
+                        <div
+                            class="sharedmail-mailbox-folder-host"
+                            data-folder-host-for="<?php p((string)$mailbox['id']); ?>"
+                            <?php if ($index !== 0): ?>
+                                hidden
+                            <?php endif; ?>>
+
+                            <div
+                                class="sharedmail-folder-loading"
+                                hidden>
+                                IMAP-Ordner werden geladen …
+                            </div>
+
+                            <div
+                                class="sharedmail-folder-error"
+                                hidden>
+                            </div>
+
+                            <div
+                                class="sharedmail-folder-list">
+                            </div>
+
+                        </div>
+
+                    </div>
 
                 <?php endforeach; ?>
 
@@ -85,33 +115,11 @@ $mailboxes = $_['mailboxes'] ?? [];
 
 
             <div
-                id="sharedmail-folder-loading"
-                class="sharedmail-loading">
-
-                IMAP-Ordner werden geladen …
-
-            </div>
-
-
-            <div
-                id="sharedmail-folder-error"
-                class="sharedmail-error"
-                style="display:none;">
-            </div>
-
-
-            <div
-                id="sharedmail-folder-list"
-                class="sharedmail-folder-list">
-            </div>
-
-
-            <div
                 id="sharedmail-message-area"
                 class="sharedmail-message-area">
 
                 <p>
-                    Wähle einen Ordner aus.
+                    Postfach wird geladen …
                 </p>
 
             </div>
