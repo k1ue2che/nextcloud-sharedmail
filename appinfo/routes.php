@@ -39,5 +39,10 @@ return [
             'url' => '/api/mailboxes/{id}/messages',
             'verb' => 'GET',
         ],
+        [
+            'name' => 'mail#message',
+            'url' => '/api/mailboxes/{id}/messages/{uid}',
+            'verb' => 'GET',
+        ],
     ],
 ];

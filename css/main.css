@@ -352,3 +352,142 @@
         display: none;
     }
 }
+/*
+ * Mail-Viewer
+ */
+
+.sharedmail-viewer {
+    max-width: 1000px;
+}
+
+.sharedmail-viewer-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sharedmail-viewer-subject {
+    margin: 0;
+    font-size: 1.45rem;
+}
+
+.sharedmail-viewer-date {
+    flex: 0 0 auto;
+    opacity: 0.65;
+    white-space: nowrap;
+}
+
+.sharedmail-viewer-meta {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sharedmail-viewer-meta-row {
+    display: grid;
+    grid-template-columns: 55px minmax(0, 1fr);
+    gap: 8px;
+    margin: 4px 0;
+}
+
+.sharedmail-viewer-meta-row span {
+    overflow-wrap: anywhere;
+}
+
+.sharedmail-viewer-status {
+    display: flex;
+    gap: 14px;
+    padding: 10px 0;
+    font-size: 0.9rem;
+    opacity: 0.75;
+}
+
+.sharedmail-viewer-body {
+    padding: 22px 0;
+    min-height: 200px;
+}
+
+.sharedmail-plain-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.55;
+}
+
+.sharedmail-html-frame {
+    display: block;
+    width: 100%;
+    min-height: 500px;
+    border: 0;
+    background: var(--color-main-background);
+}
+
+.sharedmail-attachments {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--color-border);
+}
+
+.sharedmail-attachments h3 {
+    margin: 0 0 12px;
+}
+
+.sharedmail-attachment-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.sharedmail-attachment {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 240px;
+    padding: 10px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-large);
+    background: var(--color-background-hover);
+}
+
+.sharedmail-attachment-icon {
+    font-size: 22px;
+}
+
+.sharedmail-attachment-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sharedmail-attachment-info strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sharedmail-attachment-details {
+    margin-top: 2px;
+    font-size: 0.82rem;
+    opacity: 0.65;
+}
+
+.sharedmail-viewer-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 800px) {
+    .sharedmail-viewer-header {
+        display: block;
+    }
+
+    .sharedmail-viewer-date {
+        margin-top: 6px;
+    }
+
+    .sharedmail-viewer-meta-row {
+        grid-template-columns: 40px minmax(0, 1fr);
+    }
+}

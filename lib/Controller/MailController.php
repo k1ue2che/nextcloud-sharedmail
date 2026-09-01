@@ -152,4 +152,61 @@ class MailController extends Controller
                 $result['messages'],
         ]);
     }
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function message(
+        int $id,
+        int $uid,
+        string $folder = 'INBOX',
+    ): JSONResponse {
+        /*
+        * Auch der Mail-Viewer kommt niemals
+        * an unserer Berechtigungsprüfung vorbei.
+        */
+        $mailbox =
+            $this->mailboxAccessService
+                ->getAccessibleMailbox($id);
+
+        if ($mailbox === null) {
+            return new JSONResponse([
+                'success' => false,
+                'error' =>
+                    'Kein Zugriff auf dieses Postfach.',
+            ], 403);
+        }
+
+        try {
+            $message =
+                $this->mailboxImapService
+                    ->getMessage(
+                        $mailbox,
+                        $folder,
+                        $uid
+                    );
+        } catch (Throwable) {
+            return new JSONResponse([
+                'success' => false,
+                'error' =>
+                    'Die Nachricht konnte nicht geladen werden.',
+            ], 500);
+        }
+
+        return new JSONResponse([
+            'success' => true,
+
+            'mailbox' => [
+                'id' =>
+                    $mailbox->getId(),
+
+                'name' =>
+                    $mailbox->getName(),
+
+                'email' =>
+                    $mailbox->getEmail(),
+            ],
+
+            'message' =>
+                $message,
+        ]);
+    }
 }

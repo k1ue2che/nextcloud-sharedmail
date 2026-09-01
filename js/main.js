@@ -171,6 +171,57 @@ document.addEventListener('DOMContentLoaded', () => {
         ).format(date)
     }
 
+    function formatFullDate(message) {
+        let date = null
+
+        if (
+            message.timestamp !== null
+            && message.timestamp !== undefined
+        ) {
+            date = new Date(
+                Number(message.timestamp) * 1000
+            )
+        } else if (message.date) {
+            date = new Date(message.date)
+        }
+
+        if (
+            !date
+            || Number.isNaN(date.getTime())
+        ) {
+            return ''
+        }
+
+        return new Intl.DateTimeFormat(
+            'de-DE',
+            {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }
+        ).format(date)
+    }
+
+    function formatBytes(bytes) {
+        const size = Number(bytes || 0)
+
+        if (size < 1024) {
+            return `${size} B`
+        }
+
+        if (size < 1024 * 1024) {
+            return `${(size / 1024).toFixed(1)} KB`
+        }
+
+        return `${(
+            size
+            / 1024
+            / 1024
+        ).toFixed(1)} MB`
+    }
+
     function getSenderText(message) {
         const name =
             message.from?.name?.trim() || ''
@@ -187,6 +238,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return 'Unbekannter Absender'
+    }
+
+    function formatAddress(address) {
+        const name =
+            address?.name?.trim() || ''
+
+        const email =
+            address?.email?.trim() || ''
+
+        if (
+            name !== ''
+            && email !== ''
+        ) {
+            return `${name} <${email}>`
+        }
+
+        if (email !== '') {
+            return email
+        }
+
+        return name
+    }
+
+    function formatAddresses(addresses) {
+        if (!Array.isArray(addresses)) {
+            return ''
+        }
+
+        return addresses
+            .map(formatAddress)
+            .filter((value) => value !== '')
+            .join(', ')
     }
 
     function renderMessageLoading(folder) {
@@ -241,6 +324,662 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messageArea.appendChild(heading)
         messageArea.appendChild(error)
+    }
+
+    /*
+     * HTML-Mail niemals direkt mit innerHTML
+     * in die Nextcloud-Seite schreiben.
+     *
+     * Wir verwenden ein sandboxed iframe.
+     * Zusätzlich blockiert CSP externe Ressourcen.
+     */
+    function createSafeHtmlFrame(html) {
+        const iframe =
+            document.createElement('iframe')
+
+        iframe.className =
+            'sharedmail-html-frame'
+
+        /*
+         * Kein allow-scripts.
+         * Kein allow-same-origin.
+         * Keine Formulare.
+         * Keine Navigation außerhalb.
+         */
+        iframe.setAttribute(
+            'sandbox',
+            ''
+        )
+
+        const csp = `
+            default-src 'none';
+            img-src data:;
+            style-src 'unsafe-inline';
+            font-src 'none';
+            media-src 'none';
+            frame-src 'none';
+            connect-src 'none';
+            form-action 'none';
+            base-uri 'none';
+        `
+
+        iframe.srcdoc = `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta
+    http-equiv="Content-Security-Policy"
+    content="${csp.replace(/\s+/g, ' ').trim()}"
+>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+>
+<style>
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        color: #222;
+        font-family:
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    body {
+        padding: 4px;
+        overflow-wrap: anywhere;
+    }
+
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    table {
+        max-width: 100%;
+    }
+
+    pre {
+        white-space: pre-wrap;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: underline;
+        pointer-events: none;
+    }
+</style>
+</head>
+<body>
+${html || ''}
+</body>
+</html>
+        `
+
+        iframe.addEventListener(
+            'load',
+            () => {
+                /*
+                 * Wegen sandbox ohne same-origin ist
+                 * automatisches Auslesen der Höhe nicht
+                 * zuverlässig möglich.
+                 *
+                 * Daher sinnvolle Mindesthöhe.
+                 */
+                iframe.style.height = '500px'
+            }
+        )
+
+        return iframe
+    }
+
+    function renderMessageViewer(message) {
+        if (!messageArea) {
+            return
+        }
+
+        messageArea.textContent = ''
+
+        const viewer =
+            document.createElement('div')
+
+        viewer.className =
+            'sharedmail-viewer'
+
+
+        /*
+         * Kopf
+         */
+        const header =
+            document.createElement('div')
+
+        header.className =
+            'sharedmail-viewer-header'
+
+
+        const subject =
+            document.createElement('h2')
+
+        subject.className =
+            'sharedmail-viewer-subject'
+
+        subject.textContent =
+            message.subject
+            || '(Kein Betreff)'
+
+
+        const date =
+            document.createElement('div')
+
+        date.className =
+            'sharedmail-viewer-date'
+
+        date.textContent =
+            formatFullDate(message)
+
+
+        header.appendChild(subject)
+        header.appendChild(date)
+
+        viewer.appendChild(header)
+
+
+        /*
+         * Absender / Empfänger
+         */
+        const meta =
+            document.createElement('div')
+
+        meta.className =
+            'sharedmail-viewer-meta'
+
+
+        const fromRow =
+            document.createElement('div')
+
+        fromRow.className =
+            'sharedmail-viewer-meta-row'
+
+
+        const fromLabel =
+            document.createElement('strong')
+
+        fromLabel.textContent = 'Von:'
+
+
+        const fromValue =
+            document.createElement('span')
+
+        fromValue.textContent =
+            formatAddress(
+                message.from
+            )
+
+
+        fromRow.appendChild(fromLabel)
+        fromRow.appendChild(fromValue)
+
+        meta.appendChild(fromRow)
+
+
+        const toText =
+            formatAddresses(
+                message.to
+            )
+
+        if (toText !== '') {
+            const toRow =
+                document.createElement('div')
+
+            toRow.className =
+                'sharedmail-viewer-meta-row'
+
+
+            const toLabel =
+                document.createElement('strong')
+
+            toLabel.textContent = 'An:'
+
+
+            const toValue =
+                document.createElement('span')
+
+            toValue.textContent =
+                toText
+
+
+            toRow.appendChild(toLabel)
+            toRow.appendChild(toValue)
+
+            meta.appendChild(toRow)
+        }
+
+
+        const ccText =
+            formatAddresses(
+                message.cc
+            )
+
+        if (ccText !== '') {
+            const ccRow =
+                document.createElement('div')
+
+            ccRow.className =
+                'sharedmail-viewer-meta-row'
+
+
+            const ccLabel =
+                document.createElement('strong')
+
+            ccLabel.textContent = 'CC:'
+
+
+            const ccValue =
+                document.createElement('span')
+
+            ccValue.textContent =
+                ccText
+
+
+            ccRow.appendChild(ccLabel)
+            ccRow.appendChild(ccValue)
+
+            meta.appendChild(ccRow)
+        }
+
+
+        viewer.appendChild(meta)
+
+
+        /*
+         * Statusleiste
+         */
+        const status =
+            document.createElement('div')
+
+        status.className =
+            'sharedmail-viewer-status'
+
+        if (!message.seen) {
+            const unread =
+                document.createElement('span')
+
+            unread.textContent =
+                '● Ungelesen'
+
+            status.appendChild(unread)
+        }
+
+        if (message.flagged) {
+            const flagged =
+                document.createElement('span')
+
+            flagged.textContent =
+                '★ Markiert'
+
+            status.appendChild(flagged)
+        }
+
+        if (message.answered) {
+            const answered =
+                document.createElement('span')
+
+            answered.textContent =
+                '↩ Beantwortet'
+
+            status.appendChild(answered)
+        }
+
+        if (status.children.length > 0) {
+            viewer.appendChild(status)
+        }
+
+
+        /*
+         * Body
+         */
+        const body =
+            document.createElement('div')
+
+        body.className =
+            'sharedmail-viewer-body'
+
+
+        if (
+            message.body?.type === 'html'
+            && message.body?.content
+        ) {
+            body.appendChild(
+                createSafeHtmlFrame(
+                    message.body.content
+                )
+            )
+        } else {
+            const plain =
+                document.createElement('div')
+
+            plain.className =
+                'sharedmail-plain-body'
+
+            plain.textContent =
+                message.body?.content || ''
+
+            body.appendChild(plain)
+        }
+
+
+        viewer.appendChild(body)
+
+
+        /*
+         * Anhänge
+         */
+        const attachments =
+            Array.isArray(
+                message.attachments
+            )
+                ? message.attachments
+                : []
+
+        if (attachments.length > 0) {
+            const attachmentArea =
+                document.createElement('div')
+
+            attachmentArea.className =
+                'sharedmail-attachments'
+
+
+            const attachmentHeading =
+                document.createElement('h3')
+
+            attachmentHeading.textContent =
+                attachments.length === 1
+                    ? '1 Anhang'
+                    : `${attachments.length} Anhänge`
+
+            attachmentArea.appendChild(
+                attachmentHeading
+            )
+
+
+            const attachmentList =
+                document.createElement('div')
+
+            attachmentList.className =
+                'sharedmail-attachment-list'
+
+
+            attachments.forEach(
+                (attachment) => {
+                    const item =
+                        document.createElement('div')
+
+                    item.className =
+                        'sharedmail-attachment'
+
+
+                    const icon =
+                        document.createElement('span')
+
+                    icon.className =
+                        'sharedmail-attachment-icon'
+
+                    icon.textContent = '📎'
+
+
+                    const info =
+                        document.createElement('div')
+
+                    info.className =
+                        'sharedmail-attachment-info'
+
+
+                    const name =
+                        document.createElement('strong')
+
+                    name.textContent =
+                        attachment.name
+                        || 'Anhang'
+
+
+                    const details =
+                        document.createElement('span')
+
+                    details.className =
+                        'sharedmail-attachment-details'
+
+                    details.textContent =
+                        [
+                            attachment.contentType,
+                            formatBytes(
+                                attachment.size
+                            ),
+                        ]
+                            .filter(Boolean)
+                            .join(' · ')
+
+
+                    info.appendChild(name)
+                    info.appendChild(details)
+
+
+                    item.appendChild(icon)
+                    item.appendChild(info)
+
+                    /*
+                     * Download kommt im nächsten Schritt.
+                     * MIME-ID liegt bereits vor.
+                     */
+                    attachmentList.appendChild(item)
+                }
+            )
+
+
+            attachmentArea.appendChild(
+                attachmentList
+            )
+
+            viewer.appendChild(
+                attachmentArea
+            )
+        }
+
+
+        /*
+         * Zurück-Button
+         */
+        const footer =
+            document.createElement('div')
+
+        footer.className =
+            'sharedmail-viewer-footer'
+
+
+        const back =
+            document.createElement('button')
+
+        back.type = 'button'
+
+        back.textContent =
+            '← Zurück zur Nachrichtenliste'
+
+        back.addEventListener(
+            'click',
+            () => {
+                const activeFolderButton =
+                    document.querySelector(
+                        '.sharedmail-folder.active'
+                    )
+
+                if (
+                    activeFolderName
+                    && activeFolderButton
+                ) {
+                    loadMessages(
+                        {
+                            name:
+                                activeFolderName,
+
+                            label:
+                                activeFolderButton
+                                    .querySelector(
+                                        '.sharedmail-folder-label'
+                                    )
+                                    ?.textContent
+                                || activeFolderName,
+                        },
+                        activeFolderButton,
+                        0
+                    )
+                }
+            }
+        )
+
+
+        footer.appendChild(back)
+
+        viewer.appendChild(footer)
+
+        messageArea.appendChild(viewer)
+    }
+
+    async function loadMessage(
+        folder,
+        uid,
+        row
+    ) {
+        if (
+            !activeMailboxId
+            || !folder
+            || !uid
+        ) {
+            return
+        }
+
+        document
+            .querySelectorAll(
+                '.sharedmail-message-row.active'
+            )
+            .forEach((item) => {
+                item.classList.remove(
+                    'active'
+                )
+            })
+
+        if (row) {
+            row.classList.add(
+                'active'
+            )
+        }
+
+
+        if (messageArea) {
+            messageArea.textContent = ''
+
+            const loading =
+                document.createElement('p')
+
+            loading.className =
+                'sharedmail-message-loading'
+
+            loading.textContent =
+                'Nachricht wird geladen …'
+
+            messageArea.appendChild(
+                loading
+            )
+        }
+
+
+        try {
+            const url =
+                OC.generateUrl(
+                    `/apps/sharedmail/api/mailboxes/${activeMailboxId}/messages/${uid}`
+                )
+                + '?folder='
+                + encodeURIComponent(
+                    folder
+                )
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method: 'GET',
+                        headers: {
+                            Accept:
+                                'application/json',
+                        },
+                    }
+                )
+
+            const responseText =
+                await response.text()
+
+            let result = {}
+
+            if (responseText !== '') {
+                try {
+                    result =
+                        JSON.parse(
+                            responseText
+                        )
+                } catch (error) {
+                    console.error(
+                        'SharedMail: Ungültige Mail-Antwort.',
+                        responseText
+                    )
+
+                    throw new Error(
+                        'Der Server hat eine ungültige Antwort geliefert.'
+                    )
+                }
+            }
+
+
+            if (!response.ok) {
+                throw new Error(
+                    result.error
+                    || 'Die Nachricht konnte nicht geladen werden.'
+                )
+            }
+
+
+            renderMessageViewer(
+                result.message
+            )
+        } catch (error) {
+            console.error(
+                'SharedMail: Nachricht konnte nicht geladen werden.',
+                error
+            )
+
+            if (messageArea) {
+                messageArea.textContent = ''
+
+                const errorBox =
+                    document.createElement('div')
+
+                errorBox.className =
+                    'sharedmail-message-error'
+
+                errorBox.textContent =
+                    error?.message
+                    || 'Die Nachricht konnte nicht geladen werden.'
+
+                messageArea.appendChild(
+                    errorBox
+                )
+            }
+        }
     }
 
     function renderMessages(
@@ -331,6 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.dataset.folderName =
                 folder.name
 
+
             if (!message.seen) {
                 row.classList.add(
                     'sharedmail-message-unread'
@@ -380,6 +1120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             flags.className =
                 'sharedmail-message-flags'
 
+
             if (message.flagged) {
                 const star =
                     document.createElement('span')
@@ -393,6 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 flags.appendChild(star)
             }
+
 
             if (message.answered) {
                 const answered =
@@ -444,28 +1186,14 @@ document.addEventListener('DOMContentLoaded', () => {
             row.addEventListener(
                 'click',
                 () => {
-                    document
-                        .querySelectorAll(
-                            '.sharedmail-message-row.active'
-                        )
-                        .forEach((item) => {
-                            item.classList.remove(
-                                'active'
-                            )
-                        })
-
-                    row.classList.add(
-                        'active'
+                    loadMessage(
+                        folder.name,
+                        message.uid,
+                        row
                     )
-
-                    /*
-                     * 0.2.9:
-                     * Hier laden wir später den
-                     * eigentlichen Nachrichteninhalt
-                     * anhand der stabilen IMAP-UID.
-                     */
                 }
             )
+
 
             list.appendChild(row)
         })
@@ -475,26 +1203,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
         if (result.hasMore) {
-            const loadMoreWrapper =
+            const wrapper =
                 document.createElement('div')
 
-            loadMoreWrapper.className =
+            wrapper.className =
                 'sharedmail-load-more-wrapper'
 
 
-            const loadMore =
+            const button =
                 document.createElement('button')
 
-            loadMore.type = 'button'
+            button.type = 'button'
 
-            loadMore.className =
+            button.className =
                 'sharedmail-load-more'
 
-            loadMore.textContent =
+            button.textContent =
                 'Weitere Nachrichten laden'
 
 
-            loadMore.addEventListener(
+            button.addEventListener(
                 'click',
                 () => {
                     loadMessages(
@@ -507,12 +1235,10 @@ document.addEventListener('DOMContentLoaded', () => {
             )
 
 
-            loadMoreWrapper.appendChild(
-                loadMore
-            )
+            wrapper.appendChild(button)
 
             messageArea.appendChild(
-                loadMoreWrapper
+                wrapper
             )
         }
     }
@@ -533,6 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         activeFolderName =
             folder.name
 
+
         if (folderButton) {
             document
                 .querySelectorAll(
@@ -549,7 +1276,9 @@ document.addEventListener('DOMContentLoaded', () => {
             )
         }
 
+
         renderMessageLoading(folder)
+
 
         try {
             const url =
@@ -566,17 +1295,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     String(offset)
                 )
 
+
             const response =
                 await fetch(
                     url,
                     {
                         method: 'GET',
                         headers: {
-                            'Accept':
+                            Accept:
                                 'application/json',
                         },
                     }
                 )
+
 
             const responseText =
                 await response.text()
@@ -584,22 +1315,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let result = {}
 
             if (responseText !== '') {
-                try {
-                    result =
-                        JSON.parse(
-                            responseText
-                        )
-                } catch (error) {
-                    console.error(
-                        'SharedMail: Ungültige Nachrichten-Antwort.',
+                result =
+                    JSON.parse(
                         responseText
                     )
-
-                    throw new Error(
-                        'Der Server hat eine ungültige Antwort geliefert.'
-                    )
-                }
             }
+
 
             if (!response.ok) {
                 throw new Error(
@@ -608,16 +1329,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 )
             }
 
-            /*
-             * Benutzer könnte zwischenzeitlich
-             * einen anderen Ordner gewählt haben.
-             */
+
             if (
                 activeFolderName
                 !== folder.name
             ) {
                 return
             }
+
 
             renderMessages(
                 result,
@@ -663,6 +1382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let inboxEntry = null
         let firstSelectableEntry = null
 
+
         folders.forEach((folder) => {
             const button =
                 document.createElement('button')
@@ -672,6 +1392,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.className =
                 'sharedmail-folder'
 
+
             if (!folder.selectable) {
                 button.classList.add(
                     'sharedmail-folder-disabled'
@@ -679,6 +1400,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 button.disabled = true
             }
+
 
             button.dataset.folderName =
                 folder.name
@@ -758,10 +1480,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     button,
                 }
 
+
                 if (!firstSelectableEntry) {
                     firstSelectableEntry =
                         entry
                 }
+
 
                 if (
                     folder.specialUse
@@ -773,6 +1497,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     inboxEntry =
                         entry
                 }
+
 
                 button.addEventListener(
                     'click',
@@ -793,13 +1518,10 @@ document.addEventListener('DOMContentLoaded', () => {
         })
 
 
-        /*
-         * Nach dem Laden eines Postfachs
-         * automatisch INBOX öffnen.
-         */
         const initialEntry =
             inboxEntry
             || firstSelectableEntry
+
 
         if (initialEntry) {
             loadMessages(
@@ -824,10 +1546,12 @@ document.addEventListener('DOMContentLoaded', () => {
         activeFolderName =
             null
 
+
         clearError()
         setLoading(true)
 
         folderList.textContent = ''
+
 
         mailboxButtons.forEach(
             (mailboxButton) => {
@@ -865,9 +1589,7 @@ document.addEventListener('DOMContentLoaded', () => {
             info.textContent =
                 'Postfach wird geladen …'
 
-            messageArea.appendChild(
-                info
-            )
+            messageArea.appendChild(info)
         }
 
 
@@ -880,11 +1602,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         method: 'GET',
                         headers: {
-                            'Accept':
+                            Accept:
                                 'application/json',
                         },
                     }
                 )
+
 
             const responseText =
                 await response.text()
@@ -892,21 +1615,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let result = {}
 
             if (responseText !== '') {
-                try {
-                    result =
-                        JSON.parse(
-                            responseText
-                        )
-                } catch (error) {
-                    console.error(
-                        'SharedMail: Ungültige Serverantwort.',
+                result =
+                    JSON.parse(
                         responseText
                     )
-
-                    throw new Error(
-                        'Der Server hat eine ungültige Antwort geliefert.'
-                    )
-                }
             }
 
 
@@ -918,10 +1630,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
 
-            /*
-             * Inzwischen könnte ein anderes
-             * Postfach gewählt worden sein.
-             */
             if (
                 activeMailboxId
                 !== mailboxId
@@ -961,10 +1669,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     )
 
-    /*
-     * Erstes verfügbares Postfach
-     * automatisch öffnen.
-     */
+
     loadFolders(
         mailboxButtons[0]
     )
