@@ -15,12 +15,6 @@ class PersonalFolderCountService
     }
 
     /**
-     * Ersetzt den globalen IMAP-Ungelesen-Zähler
-     * durch den persönlichen Zähler des aktuellen
-     * Nextcloud-Benutzers.
-     *
-     * IMAP bleibt weiterhin Source of Truth.
-     *
      * @param array<int, array<string, mixed>> $folders
      * @return array<int, array<string, mixed>>
      */
@@ -31,10 +25,6 @@ class PersonalFolderCountService
     ): array {
         $folderStates = [];
 
-        /*
-         * Erst einmal für alle Ordner den globalen
-         * IMAP-Wert sichern.
-         */
         foreach ($folders as &$folder) {
             $imapUnseen = (int)($folder['unseen'] ?? 0);
 
@@ -75,10 +65,6 @@ class PersonalFolderCountService
 
         unset($folder);
 
-        /*
-         * Gibt es nirgendwo persönliche Overrides,
-         * sind IMAP- und persönliche Zähler identisch.
-         */
         if ($folderStates === []) {
             return $folders;
         }
@@ -110,11 +96,6 @@ class PersonalFolderCountService
                 $states =
                     $folderStates[$folderName];
 
-                /*
-                 * Nur die IMAP-Flags der Nachrichten
-                 * abfragen, für die ein persönlicher
-                 * Zustand existiert.
-                 */
                 $imapSeenStates =
                     $this->getImapSeenStates(
                         $client,
@@ -136,14 +117,8 @@ class PersonalFolderCountService
                     $uid = (int)$uid;
 
                     /*
-                     * Nachricht existiert im Ordner
-                     * nicht mehr.
-                     *
-                     * Beispiel:
-                     * verschoben oder gelöscht.
-                     *
-                     * Dann ignorieren wir den alten
-                     * Read-State beim Zähler.
+                     * Nachricht existiert nicht mehr
+                     * in diesem IMAP-Ordner.
                      */
                     if (
                         !array_key_exists(
@@ -158,10 +133,8 @@ class PersonalFolderCountService
                         $imapSeenStates[$uid];
 
                     /*
-                     * IMAP sagt ungelesen,
-                     * Benutzer sagt gelesen:
-                     *
-                     * persönlichen Zähler reduzieren.
+                     * IMAP ungelesen,
+                     * persönlich gelesen.
                      */
                     if (
                         !$imapSeen
@@ -172,10 +145,8 @@ class PersonalFolderCountService
                     }
 
                     /*
-                     * IMAP sagt gelesen,
-                     * Benutzer sagt ungelesen:
-                     *
-                     * persönlichen Zähler erhöhen.
+                     * IMAP gelesen,
+                     * persönlich ungelesen.
                      */
                     if (
                         $imapSeen
@@ -201,11 +172,8 @@ class PersonalFolderCountService
                     $personalUnseen;
 
                 /*
-                 * Das bestehende Frontend verwendet
-                 * bereits "unseen".
-                 *
-                 * Deshalb ersetzen wir dort den Wert
-                 * direkt durch den persönlichen Wert.
+                 * Das bestehende Frontend zeigt
+                 * bereits "unseen" an.
                  */
                 $folder['unseen'] =
                     $personalUnseen;
@@ -214,11 +182,11 @@ class PersonalFolderCountService
             unset($folder);
         } catch (\Throwable) {
             /*
-             * Ein Fehler bei der Personalisierung
-             * darf die Ordnerliste niemals zerstören.
+             * Personalisierung darf die Ordnerliste
+             * nicht komplett zerstören.
              *
-             * Dann bleiben einfach die normalen
-             * IMAP-Zähler sichtbar.
+             * Bei Fehler bleibt der globale
+             * IMAP-Zähler erhalten.
              */
             return $folders;
         } finally {
@@ -226,7 +194,7 @@ class PersonalFolderCountService
                 try {
                     $client->logout();
                 } catch (\Throwable) {
-                    // Nichts weiter zu tun.
+                    // Ignorieren.
                 }
             }
         }
@@ -277,7 +245,6 @@ class PersonalFolderCountService
                 $query,
                 [
                     'ids' => $ids,
-                    'exists' => true,
                 ]
             );
 
@@ -291,24 +258,17 @@ class PersonalFolderCountService
                 continue;
             }
 
-            $flags = array_map(
-                static fn ($flag): string =>
-                    strtolower(
-                        (string)$flag
-                    ),
-                $result->getFlags()
-            );
+            $flags =
+                array_map(
+                    static fn ($flag): string =>
+                        strtolower(
+                            (string)$flag
+                        ),
+                    $result->getFlags()
+                );
 
             $seenStates[$uid] =
                 in_array(
-                    strtolower(
-                        (string)
-                        \Horde_Imap_Client::FLAG_SEEN
-                    ),
-                    $flags,
-                    true
-                )
-                || in_array(
                     '\\seen',
                     $flags,
                     true
@@ -347,14 +307,14 @@ class PersonalFolderCountService
                 ->credentialService
                 ->decrypt(
                     (string)
-                    $mailbox->getImapPass()
+                    $mailbox->getImapPassword()
                 );
 
         return new \Horde_Imap_Client_Socket(
             [
                 'username' =>
                     (string)
-                    $mailbox->getImapUser(),
+                    $mailbox->getImapUsername(),
 
                 'password' =>
                     $password,
