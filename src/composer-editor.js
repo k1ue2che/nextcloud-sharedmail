@@ -679,13 +679,9 @@ async function openReplyComposer(
 
     sendButton.textContent =
         'Senden'
-
-    /*
-     * 0.2.22:
-     * UI vollständig, SMTP noch nicht verbunden.
-     */
+   
     sendButton.disabled =
-        true
+        false
 
     sendButton.title =
         'Antwort senden'

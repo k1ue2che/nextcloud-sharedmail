@@ -257,3 +257,33 @@
         flex: 1;
     }
 }
+/*
+ * CKEditor bewusst als helle Mail-Schreibfläche darstellen.
+ * Verhindert falsche Nextcloud-Dark-Mode-Farben.
+ */
+.sharedmail-composer
+.ck.ck-editor__editable_inline {
+    background: #ffffff !important;
+    color: #202020 !important;
+    caret-color: #202020 !important;
+}
+
+.sharedmail-composer
+.ck.ck-editor__editable_inline p,
+.sharedmail-composer
+.ck.ck-editor__editable_inline li,
+.sharedmail-composer
+.ck.ck-editor__editable_inline blockquote {
+    color: #202020 !important;
+}
+
+.sharedmail-composer
+.ck.ck-editor__editable_inline a {
+    color: #00679e !important;
+}
+
+.sharedmail-composer
+.ck.ck-editor__editable_inline blockquote {
+    color: #666666 !important;
+    opacity: 1 !important;
+}
