@@ -792,6 +792,21 @@ ${html || ''}
         return iframe
     }
 
+    function getAttachmentDownloadUrl(
+        mailboxId,
+        folder,
+        uid,
+        mimeId
+    ) {
+        return OC.generateUrl(
+            `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/attachment`
+        )
+            + '?folder='
+            + encodeURIComponent(folder)
+            + '&mimeId='
+            + encodeURIComponent(mimeId)
+    }
+
 
     function renderMessageViewer(message) {
         if (!messageArea) {
@@ -1114,10 +1129,84 @@ ${html || ''}
                     info.appendChild(name)
                     info.appendChild(details)
 
+
+                    const actions =
+                        document.createElement('div')
+
+                    actions.className =
+                        'sharedmail-attachment-actions'
+
+
+                    const download =
+                        document.createElement('a')
+
+                    download.className =
+                        'sharedmail-attachment-download'
+
+                    download.textContent =
+                        'Herunterladen'
+
+                    download.href =
+                        getAttachmentDownloadUrl(
+                            activeMailboxId,
+                            message.folder
+                                || activeFolderName
+                                || 'INBOX',
+                            message.uid,
+                            attachment.mimeId
+                        )
+
+                    /*
+                    * Normales Browser-Download-Verhalten.
+                    */
+                    download.setAttribute(
+                        'download',
+                        attachment.name
+                        || 'Anhang'
+                    )
+
+
+                    actions.appendChild(
+                        download
+                    )
+
+
                     item.appendChild(icon)
                     item.appendChild(info)
+                    item.appendChild(actions)
 
-                    attachmentList.appendChild(item)
+
+                    /*
+                    * Auch ein Klick auf die Anhangsbox
+                    * löst den Download aus.
+                    *
+                    * Klick auf den Link selbst nicht doppelt
+                    * behandeln.
+                    */
+                    item.addEventListener(
+                        'click',
+                        (event) => {
+                            if (
+                                event.target.closest(
+                                    '.sharedmail-attachment-download'
+                                )
+                            ) {
+                                return
+                            }
+
+                            window.location.href =
+                                download.href
+                        }
+                    )
+
+
+                    item.style.cursor =
+                        'pointer'
+
+
+                    attachmentList.appendChild(
+                        item
+                    )
                 }
             )
 
