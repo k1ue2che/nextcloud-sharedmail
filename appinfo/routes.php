@@ -65,6 +65,12 @@ return [
         ],
 
         [
+            'name' => 'reply#send',
+            'url' => '/api/mailboxes/{id}/messages/{uid}/reply',
+            'verb' => 'POST',
+        ],
+
+        [
             'name' => 'attachment#view',
             'url' => '/api/mailboxes/{id}/messages/{uid}/attachment/view',
             'verb' => 'GET',

@@ -16,6 +16,126 @@ import 'ckeditor5/ckeditor5.css'
 
 let activeEditor = null
 
+function getRequestToken() {
+    return (
+        window.OC?.requestToken
+        || document
+            .querySelector(
+                'head meta[name="requesttoken"]'
+            )
+            ?.getAttribute(
+                'content'
+            )
+        || ''
+    )
+}
+
+
+function getActiveMailboxId() {
+    const button =
+        document.querySelector(
+            '.sharedmail-mailbox-button.active'
+        )
+
+    const mailboxId =
+        Number(
+            button?.dataset
+                ?.mailboxId
+            || 0
+        )
+
+    return Number.isInteger(mailboxId)
+        ? mailboxId
+        : 0
+}
+
+
+async function sendReply(
+    message,
+    to,
+    subject,
+    html
+) {
+    const mailboxId =
+        getActiveMailboxId()
+
+    const uid =
+        Number(
+            message?.uid
+            || 0
+        )
+
+    const folder =
+        String(
+            message?.folder
+            || 'INBOX'
+        )
+
+    if (
+        mailboxId <= 0
+        || uid <= 0
+    ) {
+        throw new Error(
+            'Postfach oder Nachricht konnte nicht bestimmt werden.'
+        )
+    }
+
+    const url =
+        OC.generateUrl(
+            `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/reply`
+        )
+
+    const response =
+        await fetch(
+            url,
+            {
+                method:
+                    'POST',
+
+                headers: {
+                    'Content-Type':
+                        'application/json',
+
+                    'Accept':
+                        'application/json',
+
+                    'requesttoken':
+                        getRequestToken(),
+                },
+
+                body:
+                    JSON.stringify({
+                        folder,
+                        to,
+                        subject,
+                        html,
+                    }),
+            }
+        )
+
+    let data = null
+
+    try {
+        data =
+            await response.json()
+    } catch (error) {
+        throw new Error(
+            'Der Server hat keine gültige Antwort geliefert.'
+        )
+    }
+
+    if (
+        !response.ok
+        || !data?.success
+    ) {
+        throw new Error(
+            data?.message
+            || 'Die Antwort konnte nicht gesendet werden.'
+        )
+    }
+
+    return data
+}
 
 /*
  * Allgemeiner CKEditor-Wrapper.
@@ -518,7 +638,7 @@ async function openReplyComposer(
         'sharedmail-composer-status'
 
     status.textContent =
-        'Versand wird im nächsten Schritt angeschlossen.'
+        ''
 
     composer.appendChild(
         status
@@ -568,7 +688,7 @@ async function openReplyComposer(
         true
 
     sendButton.title =
-        'SMTP-Versand folgt in 0.2.23'
+        'Antwort senden'
 
 
     footer.appendChild(
@@ -634,6 +754,117 @@ async function openReplyComposer(
                 === 'function'
             ) {
                 options.onCancel()
+            }
+        }
+    )
+
+    sendButton.addEventListener(
+        'click',
+        async () => {
+            if (!activeEditor) {
+                status.textContent =
+                    'Der Editor ist noch nicht bereit.'
+
+                return
+            }
+
+            const to =
+                String(
+                    toInput.value
+                    || ''
+                ).trim()
+
+            const subject =
+                String(
+                    subjectInput.value
+                    || ''
+                ).trim()
+
+            const html =
+                String(
+                    activeEditor.getData()
+                    || ''
+                ).trim()
+
+            if (to === '') {
+                status.textContent =
+                    'Bitte einen Empfänger angeben.'
+
+                toInput.focus()
+
+                return
+            }
+
+            if (html === '') {
+                status.textContent =
+                    'Bitte einen Nachrichtentext eingeben.'
+
+                activeEditor.editing
+                    .view
+                    .focus()
+
+                return
+            }
+
+            sendButton.disabled =
+                true
+
+            cancelButton.disabled =
+                true
+
+            sendButton.textContent =
+                'Wird gesendet …'
+
+            status.textContent =
+                'Antwort wird versendet …'
+
+            try {
+                const result =
+                    await sendReply(
+                        message,
+                        to,
+                        subject,
+                        html
+                    )
+
+                sendButton.textContent =
+                    'Gesendet'
+
+                status.textContent =
+                    `Antwort an ${result.recipient} wurde erfolgreich gesendet.`
+
+                /*
+                * Senden bleibt nach Erfolg deaktiviert,
+                * damit dieselbe Antwort nicht versehentlich
+                * doppelt verschickt wird.
+                */
+                sendButton.disabled =
+                    true
+
+                cancelButton.disabled =
+                    false
+
+                cancelButton.textContent =
+                    'Zurück zur Nachricht'
+            } catch (error) {
+                console.error(
+                    'SharedMail: Antwort konnte nicht gesendet werden.',
+                    error
+                )
+
+                status.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : 'Die Antwort konnte nicht gesendet werden.'
+
+                sendButton.textContent =
+                    'Erneut senden'
+
+                sendButton.disabled =
+                    false
+
+                cancelButton.disabled =
+                    false
             }
         }
     )
