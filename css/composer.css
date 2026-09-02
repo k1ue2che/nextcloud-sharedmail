@@ -2,14 +2,26 @@
     flex: 0 0 auto;
 }
 
+
+/*
+ * Composer
+ */
 .sharedmail-composer {
+    display: block;
     width: 100%;
-    max-width: 1100px;
+    max-width: none;
+    min-width: 0;
+
     padding: 20px;
     box-sizing: border-box;
 }
 
+
+/*
+ * Überschrift
+ */
 .sharedmail-composer-header {
+    width: 100%;
     margin-bottom: 18px;
 }
 
@@ -18,9 +30,17 @@
     font-size: 22px;
 }
 
+
+/*
+ * Empfänger / Betreff
+ */
 .sharedmail-composer-fields {
     display: flex;
     flex-direction: column;
+
+    width: 100%;
+    min-width: 0;
+
     gap: 8px;
     margin-bottom: 14px;
 }
@@ -28,6 +48,10 @@
 .sharedmail-composer-field {
     display: grid;
     grid-template-columns: 70px minmax(0, 1fr);
+
+    width: 100%;
+    min-width: 0;
+
     align-items: center;
     gap: 10px;
 }
@@ -37,40 +61,167 @@
 }
 
 .sharedmail-composer-input {
+    display: block;
+
     width: 100%;
     min-width: 0;
+    max-width: none;
+
     box-sizing: border-box;
 }
 
+
+/*
+ * CKEditor Wrapper
+ *
+ * Die !important-Regeln sind hier absichtlich
+ * gesetzt, weil Nextcloud und CKEditor teilweise
+ * globale Editor-/Content-Regeln mitbringen.
+ */
 .sharedmail-composer-editor-wrapper {
-    margin-top: 8px;
-}
+    display: block;
 
-.sharedmail-composer .ck-editor {
     width: 100%;
+    max-width: none;
+    min-width: 0;
+
+    margin-top: 8px;
+    box-sizing: border-box;
 }
 
-.sharedmail-composer .ck-editor__editable {
-    min-height: 320px;
+
+.sharedmail-composer-editor-wrapper > .sharedmail-composer-editor {
+    display: block;
+
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+
+    box-sizing: border-box;
+}
+
+
+/*
+ * Gesamter CKEditor.
+ */
+.sharedmail-composer-editor-wrapper .ck.ck-editor {
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/*
+ * Toolbar ebenfalls über volle Breite.
+ */
+.sharedmail-composer-editor-wrapper .ck.ck-toolbar {
+    width: 100% !important;
+    max-width: none !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/*
+ * Das war im Screenshot der problematische Bereich:
+ * .ck-editor__main war effektiv nur ca. 130 px breit.
+ */
+.sharedmail-composer-editor-wrapper .ck-editor__main {
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/*
+ * Eigentliche editierbare Textfläche.
+ */
+.sharedmail-composer-editor-wrapper .ck-editor__editable,
+.sharedmail-composer-editor-wrapper .ck-editor__editable_inline,
+.sharedmail-composer-editor-wrapper .ck.ck-content {
+    display: block !important;
+
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/*
+ * Schreibfläche.
+ */
+.sharedmail-composer-editor-wrapper .ck-editor__editable_inline {
+    min-height: 360px !important;
     max-height: 65vh;
+
+    padding: 16px 20px !important;
+
     overflow-y: auto;
 }
 
+
+/*
+ * Der Cursor soll überall in der Schreibfläche
+ * erwartbar erscheinen.
+ */
+.sharedmail-composer-editor-wrapper
+.ck-editor__editable_inline[contenteditable="true"] {
+    cursor: text;
+}
+
+
+/*
+ * Antwort-Zitat optisch etwas zurücknehmen.
+ */
 .sharedmail-composer .ck-content blockquote {
     opacity: 0.78;
 }
 
+
+/*
+ * Absatzdarstellung nicht durch andere
+ * Nextcloud-Regeln einengen lassen.
+ */
+.sharedmail-composer .ck-content p,
+.sharedmail-composer .ck-content blockquote {
+    max-width: none;
+}
+
+
+/*
+ * Status unter dem Editor.
+ */
 .sharedmail-composer-status {
     min-height: 22px;
+
     margin-top: 12px;
+
     font-size: 13px;
     opacity: 0.75;
 }
 
+
+/*
+ * Footer / Buttons
+ */
 .sharedmail-composer-footer {
     display: flex;
+
+    width: 100%;
+
     justify-content: flex-end;
     align-items: center;
+
     gap: 10px;
     margin-top: 14px;
 }
@@ -79,6 +230,10 @@
     min-width: 100px;
 }
 
+
+/*
+ * Mobil
+ */
 @media (max-width: 700px) {
     .sharedmail-composer {
         padding: 12px;
@@ -89,8 +244,9 @@
         gap: 4px;
     }
 
-    .sharedmail-composer .ck-editor__editable {
-        min-height: 240px;
+    .sharedmail-composer-editor-wrapper
+    .ck-editor__editable_inline {
+        min-height: 240px !important;
     }
 
     .sharedmail-composer-footer {
