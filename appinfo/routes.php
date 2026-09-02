@@ -65,6 +65,12 @@ return [
         ],
 
         [
+            'name' => 'attachment#view',
+            'url' => '/api/mailboxes/{id}/messages/{uid}/attachment/view',
+            'verb' => 'GET',
+        ],
+
+        [
             'name' => 'attachment#download',
             'url' => '/api/mailboxes/{id}/messages/{uid}/attachment',
             'verb' => 'GET',

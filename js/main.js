@@ -807,6 +807,46 @@ ${html || ''}
             + encodeURIComponent(mimeId)
     }
 
+    function getAttachmentViewUrl(
+        mailboxId,
+        folder,
+        uid,
+        mimeId
+    ) {
+        return OC.generateUrl(
+            `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/attachment/view`
+        )
+            + '?folder='
+            + encodeURIComponent(folder)
+            + '&mimeId='
+            + encodeURIComponent(mimeId)
+    }
+
+
+    function isInlineViewableAttachment(
+        attachment
+    ) {
+        const contentType =
+            String(
+                attachment?.contentType
+                || ''
+            )
+                .trim()
+                .toLowerCase()
+
+        return [
+            'application/pdf',
+
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+            'image/bmp',
+            'image/avif',
+        ].includes(
+            contentType
+        )
+    }
 
     function renderMessageViewer(message) {
         if (!messageArea) {
@@ -1136,6 +1176,43 @@ ${html || ''}
                     actions.className =
                         'sharedmail-attachment-actions'
 
+                    if (
+                        isInlineViewableAttachment(
+                            attachment
+                        )
+                    ) {
+                        const open =
+                            document.createElement('a')
+
+                        open.className =
+                            'sharedmail-attachment-open'
+
+                        open.textContent =
+                            'Öffnen'
+
+                        open.href =
+                            getAttachmentViewUrl(
+                                activeMailboxId,
+                                message.folder
+                                    || activeFolderName
+                                    || 'INBOX',
+                                message.uid,
+                                attachment.mimeId
+                            )
+
+                        /*
+                        * Separater Tab.
+                        */
+                        open.target =
+                            '_blank'
+
+                        open.rel =
+                            'noopener noreferrer'
+
+                        actions.appendChild(
+                            open
+                        )
+                    }
 
                     const download =
                         document.createElement('a')
@@ -1186,9 +1263,12 @@ ${html || ''}
                     item.addEventListener(
                         'click',
                         (event) => {
-                            if (
+                           if (
                                 event.target.closest(
                                     '.sharedmail-attachment-download'
+                                )
+                                || event.target.closest(
+                                    '.sharedmail-attachment-open'
                                 )
                             ) {
                                 return
