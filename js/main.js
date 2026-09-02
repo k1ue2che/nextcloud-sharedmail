@@ -157,9 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    /*
-     * Anzeige im "Verschieben nach"-Dropdown.
-     */
     function getMoveFolderLabel(folder) {
         const label =
             folder.label
@@ -351,10 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${size} B`
         }
 
-        if (
-            size
-            < 1024 * 1024
-        ) {
+        if (size < 1024 * 1024) {
             return `${(size / 1024).toFixed(1)} KB`
         }
 
@@ -461,18 +455,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /*
-     * Persönlich als gelesen markieren.
-     *
-     * IMAP-\Seen wird NICHT verändert.
+     * Gemeinsamer POST für persönlichen Lesestatus.
      */
-    async function markMessageRead(
+    async function setMessageReadState(
         mailboxId,
         folder,
-        uid
+        uid,
+        isRead
     ) {
+        const action =
+            isRead
+                ? 'read'
+                : 'unread'
+
         const url =
             OC.generateUrl(
-                `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/read`
+                `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/${action}`
             )
             + '?folder='
             + encodeURIComponent(folder)
@@ -531,68 +529,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    /*
-     * Bereits vorbereitet für später:
-     * "Als ungelesen markieren".
-     */
+    async function markMessageRead(
+        mailboxId,
+        folder,
+        uid
+    ) {
+        return setMessageReadState(
+            mailboxId,
+            folder,
+            uid,
+            true
+        )
+    }
+
+
     async function markMessageUnread(
         mailboxId,
         folder,
         uid
     ) {
-        const url =
-            OC.generateUrl(
-                `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/unread`
-            )
-            + '?folder='
-            + encodeURIComponent(folder)
-
-        const headers = {
-            Accept: 'application/json',
-        }
-
-        const requestToken =
-            getRequestToken()
-
-        if (requestToken !== '') {
-            headers.requesttoken =
-                requestToken
-        }
-
-        const response =
-            await fetch(
-                url,
-                {
-                    method: 'POST',
-                    headers,
-                }
-            )
-
-        const responseText =
-            await response.text()
-
-        let result = {}
-
-        if (responseText !== '') {
-            try {
-                result =
-                    JSON.parse(responseText)
-            } catch (error) {
-                throw new Error(
-                    'Der Lesestatus konnte nicht gespeichert werden.'
-                )
-            }
-        }
-
-        if (!response.ok) {
-            throw new Error(
-                result.message
-                || result.error
-                || 'Der Lesestatus konnte nicht gespeichert werden.'
-            )
-        }
-
-        return result
+        return setMessageReadState(
+            mailboxId,
+            folder,
+            uid,
+            false
+        )
     }
 
 
@@ -658,8 +619,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!response.ok) {
             throw new Error(
-                result.message
-                || result.details
+                result.details
+                || result.message
                 || result.error
                 || 'Die Nachricht konnte nicht verschoben werden.'
             )
@@ -975,6 +936,9 @@ ${html || ''}
         viewer.appendChild(meta)
 
 
+        /*
+         * Statuszeile.
+         */
         const status =
             document.createElement('div')
 
@@ -982,42 +946,49 @@ ${html || ''}
             'sharedmail-viewer-status'
 
 
-        if (!message.seen) {
-            const unread =
-                document.createElement('span')
+        function renderViewerStatus() {
+            status.textContent = ''
 
-            unread.textContent =
-                '● Ungelesen'
+            if (!message.seen) {
+                const unread =
+                    document.createElement('span')
 
-            status.appendChild(unread)
+                unread.textContent =
+                    '● Ungelesen'
+
+                status.appendChild(unread)
+            }
+
+
+            if (message.flagged) {
+                const flagged =
+                    document.createElement('span')
+
+                flagged.textContent =
+                    '★ Markiert'
+
+                status.appendChild(flagged)
+            }
+
+
+            if (message.answered) {
+                const answered =
+                    document.createElement('span')
+
+                answered.textContent =
+                    '↩ Beantwortet'
+
+                status.appendChild(answered)
+            }
+
+            status.hidden =
+                status.children.length === 0
         }
 
 
-        if (message.flagged) {
-            const flagged =
-                document.createElement('span')
+        renderViewerStatus()
 
-            flagged.textContent =
-                '★ Markiert'
-
-            status.appendChild(flagged)
-        }
-
-
-        if (message.answered) {
-            const answered =
-                document.createElement('span')
-
-            answered.textContent =
-                '↩ Beantwortet'
-
-            status.appendChild(answered)
-        }
-
-
-        if (status.children.length > 0) {
-            viewer.appendChild(status)
-        }
+        viewer.appendChild(status)
 
 
         const body =
@@ -1162,13 +1133,170 @@ ${html || ''}
 
 
         /*
-         * Aktionen
+         * Aktionen.
          */
         const footer =
             document.createElement('div')
 
         footer.className =
             'sharedmail-viewer-footer'
+
+
+        const sourceFolder =
+            message.folder
+            || activeFolderName
+            || ''
+
+        const messageUid =
+            Number(message.uid || 0)
+
+
+        /*
+         * Persönlicher gelesen/ungelesen-Status.
+         */
+        const readStateArea =
+            document.createElement('div')
+
+        readStateArea.className =
+            'sharedmail-viewer-read-state'
+
+
+        const readStateButton =
+            document.createElement('button')
+
+        readStateButton.type =
+            'button'
+
+        readStateButton.className =
+            'sharedmail-read-state-button'
+
+
+        const readStateStatus =
+            document.createElement('span')
+
+        readStateStatus.className =
+            'sharedmail-read-state-status'
+
+
+        function updateReadStateButton() {
+            readStateButton.textContent =
+                message.seen
+                    ? 'Als ungelesen markieren'
+                    : 'Als gelesen markieren'
+
+            readStateButton.title =
+                message.seen
+                    ? 'Nur für mich als ungelesen markieren'
+                    : 'Nur für mich als gelesen markieren'
+        }
+
+
+        updateReadStateButton()
+
+
+        readStateButton.addEventListener(
+            'click',
+            async () => {
+                if (
+                    !activeMailboxId
+                    || sourceFolder === ''
+                    || messageUid <= 0
+                ) {
+                    return
+                }
+
+                const requestedMailboxId =
+                    activeMailboxId
+
+                const requestedMailboxButton =
+                    activeMailboxButton
+
+                const newReadState =
+                    !message.seen
+
+
+                readStateButton.disabled =
+                    true
+
+                readStateStatus.textContent =
+                    newReadState
+                        ? 'Wird als gelesen markiert …'
+                        : 'Wird als ungelesen markiert …'
+
+
+                try {
+                    if (newReadState) {
+                        await markMessageRead(
+                            requestedMailboxId,
+                            sourceFolder,
+                            messageUid
+                        )
+                    } else {
+                        await markMessageUnread(
+                            requestedMailboxId,
+                            sourceFolder,
+                            messageUid
+                        )
+                    }
+
+
+                    message.seen =
+                        newReadState
+
+                    renderViewerStatus()
+                    updateReadStateButton()
+
+
+                    readStateStatus.textContent =
+                        newReadState
+                            ? 'Als gelesen markiert.'
+                            : 'Als ungelesen markiert.'
+
+
+                    /*
+                     * Persönliche Ordnerzähler und
+                     * Nachrichtenliste aktualisieren.
+                     *
+                     * Wir bleiben dabei im selben Ordner.
+                     */
+                    if (
+                        activeMailboxId
+                        === requestedMailboxId
+                        && requestedMailboxButton
+                    ) {
+                        await loadFolders(
+                            requestedMailboxButton,
+                            sourceFolder
+                        )
+                    }
+                } catch (error) {
+                    console.error(
+                        'SharedMail: Lesestatus konnte nicht geändert werden.',
+                        error
+                    )
+
+                    readStateStatus.textContent =
+                        error?.message
+                        || 'Der Lesestatus konnte nicht geändert werden.'
+
+                    readStateButton.disabled =
+                        false
+                }
+            }
+        )
+
+
+        readStateArea.appendChild(
+            readStateButton
+        )
+
+        readStateArea.appendChild(
+            readStateStatus
+        )
+
+        footer.appendChild(
+            readStateArea
+        )
 
 
         /*
@@ -1204,14 +1332,6 @@ ${html || ''}
             placeholder
         )
 
-
-        const sourceFolder =
-            message.folder
-            || activeFolderName
-            || ''
-
-        const messageUid =
-            Number(message.uid || 0)
 
         const moveTargets =
             activeFolders.filter(
@@ -1264,9 +1384,7 @@ ${html || ''}
             'sharedmail-move-status'
 
 
-        if (
-            moveTargets.length === 0
-        ) {
+        if (moveTargets.length === 0) {
             moveSelect.disabled =
                 true
 
@@ -1340,11 +1458,6 @@ ${html || ''}
                         'Nachricht wurde verschoben.'
 
 
-                    /*
-                     * Wurde während des Requests
-                     * zu einem anderen Postfach gewechselt,
-                     * dort nichts mehr verändern.
-                     */
                     if (
                         activeMailboxId
                         !== requestedMailboxId
@@ -1353,19 +1466,6 @@ ${html || ''}
                     }
 
 
-                    /*
-                     * Ordner komplett neu laden.
-                     *
-                     * Dadurch aktualisieren sich:
-                     *
-                     * - INBOX-Gesamtzahl
-                     * - Zielordner-Gesamtzahl
-                     * - persönliche Ungelesen-Zähler
-                     * - aktuelle Nachrichtenliste
-                     *
-                     * Anschließend wieder den
-                     * bisherigen Quellordner öffnen.
-                     */
                     if (requestedMailboxButton) {
                         await loadFolders(
                             requestedMailboxButton,
@@ -1413,7 +1513,7 @@ ${html || ''}
 
 
         /*
-         * Zurück
+         * Zurück.
          */
         const back =
             document.createElement('button')
@@ -1453,10 +1553,8 @@ ${html || ''}
     /*
      * Einzelne Nachricht öffnen.
      *
-     * 1. Mailbody laden
-     * 2. IMAP bleibt unverändert
-     * 3. persönlichen Read-State setzen
-     * 4. Mail darstellen
+     * Öffnen setzt ausschließlich den
+     * persönlichen Read-State.
      */
     async function loadMessage(
         folder,
@@ -1586,6 +1684,11 @@ ${html || ''}
                 result.message
 
 
+            /*
+             * Beim Öffnen persönlich gelesen setzen.
+             *
+             * Kein IMAP-\Seen.
+             */
             if (
                 message
                 && !message.seen
@@ -1749,9 +1852,7 @@ ${html || ''}
                     'sharedmail-message-row'
 
                 row.dataset.uid =
-                    String(
-                        message.uid
-                    )
+                    String(message.uid)
 
                 row.dataset.folderName =
                     folder.name
@@ -1787,14 +1888,10 @@ ${html || ''}
                     'sharedmail-message-sender'
 
                 sender.textContent =
-                    getSenderText(
-                        message
-                    )
+                    getSenderText(message)
 
 
-                if (
-                    message.from?.email
-                ) {
+                if (message.from?.email) {
                     sender.title =
                         message.from.email
                 }
@@ -1873,9 +1970,7 @@ ${html || ''}
                     'sharedmail-message-date'
 
                 date.textContent =
-                    formatMessageDate(
-                        message
-                    )
+                    formatMessageDate(message)
 
 
                 row.appendChild(
@@ -2128,15 +2223,11 @@ ${html || ''}
 
 
         if (
-            !Array.isArray(
-                folders
-            )
+            !Array.isArray(folders)
             || folders.length === 0
         ) {
             const empty =
-                document.createElement(
-                    'div'
-                )
+                document.createElement('div')
 
             empty.className =
                 'sharedmail-folder-empty'
@@ -2153,17 +2244,12 @@ ${html || ''}
 
 
         const tree =
-            buildFolderTree(
-                folders
-            )
+            buildFolderTree(folders)
 
 
         let inboxEntry = null
-        let firstSelectableEntry =
-            null
-
-        let preferredEntry =
-            null
+        let firstSelectableEntry = null
+        let preferredEntry = null
 
 
         function renderNode(
@@ -2175,18 +2261,14 @@ ${html || ''}
 
 
             const wrapper =
-                document.createElement(
-                    'div'
-                )
+                document.createElement('div')
 
             wrapper.className =
                 'sharedmail-folder-node'
 
 
             const row =
-                document.createElement(
-                    'div'
-                )
+                document.createElement('div')
 
             row.className =
                 'sharedmail-folder-row'
@@ -2204,9 +2286,7 @@ ${html || ''}
                 node.children.length > 0
             ) {
                 toggle =
-                    document.createElement(
-                        'button'
-                    )
+                    document.createElement('button')
 
                 toggle.type =
                     'button'
@@ -2227,9 +2307,7 @@ ${html || ''}
                 )
             } else {
                 const placeholder =
-                    document.createElement(
-                        'span'
-                    )
+                    document.createElement('span')
 
                 placeholder.className =
                     'sharedmail-folder-toggle-placeholder'
@@ -2241,9 +2319,7 @@ ${html || ''}
 
 
             const button =
-                document.createElement(
-                    'button'
-                )
+                document.createElement('button')
 
             button.type =
                 'button'
@@ -2266,23 +2342,17 @@ ${html || ''}
 
 
             const icon =
-                document.createElement(
-                    'span'
-                )
+                document.createElement('span')
 
             icon.className =
                 'sharedmail-folder-icon'
 
             icon.textContent =
-                getFolderIcon(
-                    folder
-                )
+                getFolderIcon(folder)
 
 
             const label =
-                document.createElement(
-                    'span'
-                )
+                document.createElement('span')
 
             label.className =
                 'sharedmail-folder-label'
@@ -2293,9 +2363,7 @@ ${html || ''}
 
 
             const counters =
-                document.createElement(
-                    'span'
-                )
+                document.createElement('span')
 
             counters.className =
                 'sharedmail-folder-counters'
@@ -2303,22 +2371,16 @@ ${html || ''}
 
             if (
                 folder.unseen !== null
-                && Number(
-                    folder.unseen
-                ) > 0
+                && Number(folder.unseen) > 0
             ) {
                 const unseen =
-                    document.createElement(
-                        'strong'
-                    )
+                    document.createElement('strong')
 
                 unseen.className =
                     'sharedmail-folder-unseen'
 
                 unseen.textContent =
-                    String(
-                        folder.unseen
-                    )
+                    String(folder.unseen)
 
                 counters.appendChild(
                     unseen
@@ -2330,17 +2392,13 @@ ${html || ''}
                 folder.messages !== null
             ) {
                 const messages =
-                    document.createElement(
-                        'span'
-                    )
+                    document.createElement('span')
 
                 messages.className =
                     'sharedmail-folder-total'
 
                 messages.textContent =
-                    String(
-                        folder.messages
-                    )
+                    String(folder.messages)
 
                 counters.appendChild(
                     messages
@@ -2348,26 +2406,13 @@ ${html || ''}
             }
 
 
-            button.appendChild(
-                icon
-            )
-
-            button.appendChild(
-                label
-            )
-
-            button.appendChild(
-                counters
-            )
+            button.appendChild(icon)
+            button.appendChild(label)
+            button.appendChild(counters)
 
 
-            row.appendChild(
-                button
-            )
-
-            wrapper.appendChild(
-                row
-            )
+            row.appendChild(button)
+            wrapper.appendChild(row)
 
 
             let childrenContainer =
@@ -2378,9 +2423,7 @@ ${html || ''}
                 node.children.length > 0
             ) {
                 childrenContainer =
-                    document.createElement(
-                        'div'
-                    )
+                    document.createElement('div')
 
                 childrenContainer.className =
                     'sharedmail-folder-children'
@@ -2435,9 +2478,7 @@ ${html || ''}
                 }
 
 
-                if (
-                    !firstSelectableEntry
-                ) {
+                if (!firstSelectableEntry) {
                     firstSelectableEntry =
                         entry
                 }
@@ -2454,11 +2495,9 @@ ${html || ''}
 
 
                 if (
-                    folder.specialUse
-                        === 'inbox'
+                    folder.specialUse === 'inbox'
                     || folder.name
-                        .toUpperCase()
-                        === 'INBOX'
+                        .toUpperCase() === 'INBOX'
                 ) {
                     inboxEntry =
                         entry
@@ -2511,11 +2550,9 @@ ${html || ''}
 
 
     /*
-     * preferredFolderName:
-     *
-     * Wird z.B. nach einem Move benutzt,
-     * damit wir nach dem Aktualisieren der
-     * Ordnerzähler im bisherigen Ordner bleiben.
+     * preferredFolderName wird nach Statusänderung
+     * oder Move verwendet, damit wir im bisherigen
+     * Ordner bleiben.
      */
     async function loadFolders(
         mailboxButton,
@@ -2614,9 +2651,7 @@ ${html || ''}
                 ''
 
             const info =
-                document.createElement(
-                    'p'
-                )
+                document.createElement('p')
 
             info.textContent =
                 'Postfach wird geladen …'
