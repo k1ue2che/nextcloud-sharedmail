@@ -9,7 +9,7 @@
         "dev": "webpack --mode=development --watch"
     },
     "dependencies": {
-        "ckeditor5": "^47.6.2-alpha.0"
+        "ckeditor5": "47.6.2"
     },
     "devDependencies": {
         "css-loader": "^7.1.4",
