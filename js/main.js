@@ -1716,6 +1716,17 @@ ${html || ''}
         viewer.appendChild(footer)
 
         messageArea.appendChild(viewer)
+
+        if (
+            window.SharedMailReplyComposer
+            && typeof window.SharedMailReplyComposer.attach
+                === 'function'
+        ) {
+            window.SharedMailReplyComposer.attach(
+                viewer,
+                message
+            )
+        }
     }
 
 

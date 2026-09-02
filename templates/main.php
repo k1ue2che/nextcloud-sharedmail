@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 /** @var array $_ */
 
+script('sharedmail', 'composer-editor');
 script('sharedmail', 'main');
+
 style('sharedmail', 'main');
+style('sharedmail', 'composer');
 
 $mailboxes = $_['mailboxes'] ?? [];
 ?>

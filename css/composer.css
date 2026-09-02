@@ -1,0 +1,103 @@
+.sharedmail-reply-button {
+    flex: 0 0 auto;
+}
+
+.sharedmail-composer {
+    width: 100%;
+    max-width: 1100px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.sharedmail-composer-header {
+    margin-bottom: 18px;
+}
+
+.sharedmail-composer-header h2 {
+    margin: 0;
+    font-size: 22px;
+}
+
+.sharedmail-composer-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.sharedmail-composer-field {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.sharedmail-composer-field > span {
+    font-weight: 600;
+}
+
+.sharedmail-composer-input {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.sharedmail-composer-editor-wrapper {
+    margin-top: 8px;
+}
+
+.sharedmail-composer .ck-editor {
+    width: 100%;
+}
+
+.sharedmail-composer .ck-editor__editable {
+    min-height: 320px;
+    max-height: 65vh;
+    overflow-y: auto;
+}
+
+.sharedmail-composer .ck-content blockquote {
+    opacity: 0.78;
+}
+
+.sharedmail-composer-status {
+    min-height: 22px;
+    margin-top: 12px;
+    font-size: 13px;
+    opacity: 0.75;
+}
+
+.sharedmail-composer-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.sharedmail-composer-send {
+    min-width: 100px;
+}
+
+@media (max-width: 700px) {
+    .sharedmail-composer {
+        padding: 12px;
+    }
+
+    .sharedmail-composer-field {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .sharedmail-composer .ck-editor__editable {
+        min-height: 240px;
+    }
+
+    .sharedmail-composer-footer {
+        justify-content: stretch;
+    }
+
+    .sharedmail-composer-footer button {
+        flex: 1;
+    }
+}

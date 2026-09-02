@@ -1,0 +1,20 @@
+{
+    "name": "nextcloud-sharedmail",
+    "version": "0.2.22",
+    "private": true,
+    "description": "Shared group mail client for Nextcloud",
+    "license": "AGPL-3.0-or-later",
+    "scripts": {
+        "build": "webpack --mode=production",
+        "dev": "webpack --mode=development --watch"
+    },
+    "dependencies": {
+        "ckeditor5": "^47.6.2-alpha.0"
+    },
+    "devDependencies": {
+        "css-loader": "^7.1.4",
+        "style-loader": "^4.0.0",
+        "webpack": "^5.109.2",
+        "webpack-cli": "^7.2.2"
+    }
+}
