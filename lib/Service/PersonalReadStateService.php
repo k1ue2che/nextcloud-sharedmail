@@ -42,18 +42,9 @@ class PersonalReadStateService
             );
     }
 
+
     /**
      * Alle persönlichen Overrides eines Ordners.
-     *
-     * Rückgabe:
-     *
-     * [
-     *     UID => true,
-     *     UID => false,
-     * ]
-     *
-     * true  = persönlich gelesen
-     * false = persönlich ungelesen
      *
      * @return array<int, bool>
      */
@@ -94,6 +85,7 @@ class PersonalReadStateService
         return $states;
     }
 
+
     public function resolveIsRead(
         int $mailboxId,
         string $folder,
@@ -123,6 +115,7 @@ class PersonalReadStateService
 
         return (bool)$state->getIsRead();
     }
+
 
     /**
      * @param array<int, array<string, mixed>> $messages
@@ -185,6 +178,7 @@ class PersonalReadStateService
         return $messages;
     }
 
+
     public function markRead(
         int $mailboxId,
         string $folder,
@@ -198,6 +192,7 @@ class PersonalReadStateService
         );
     }
 
+
     public function markUnread(
         int $mailboxId,
         string $folder,
@@ -210,6 +205,7 @@ class PersonalReadStateService
             false
         );
     }
+
 
     private function setState(
         int $mailboxId,
@@ -248,6 +244,9 @@ class PersonalReadStateService
                     $uid
                 );
 
+        /*
+         * Noch kein persönlicher Override vorhanden.
+         */
         if ($state === null) {
             $state =
                 new ReadState();
@@ -276,10 +275,16 @@ class PersonalReadStateService
                 $now
             );
 
+            /*
+             * read_at stammt aus dem alten Schema
+             * und ist NOT NULL.
+             *
+             * Deshalb muss auch ein erstmalig
+             * erzeugter "ungelesen"-Override
+             * einen gültigen Timestamp bekommen.
+             */
             $state->setReadAt(
-                $isRead
-                    ? $now
-                    : null
+                $now
             );
 
             $this
@@ -291,6 +296,10 @@ class PersonalReadStateService
             return true;
         }
 
+
+        /*
+         * Vorhandenen persönlichen Override ändern.
+         */
         $state->setIsRead(
             $isRead
         );
@@ -299,11 +308,20 @@ class PersonalReadStateService
             $now
         );
 
-        $state->setReadAt(
-            $isRead
-                ? $now
-                : null
-        );
+
+        /*
+         * Nur beim Markieren als gelesen
+         * den letzten Lesezeitpunkt aktualisieren.
+         *
+         * Beim Markieren als ungelesen bleibt
+         * read_at unverändert.
+         */
+        if ($isRead) {
+            $state->setReadAt(
+                $now
+            );
+        }
+
 
         $this
             ->readStateMapper
