@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 script('sharedmail', 'composer-editor');
 script('sharedmail', 'main');
+script('sharedmail', 'new-message');
 
 style('sharedmail', 'main');
 style('sharedmail', 'composer');

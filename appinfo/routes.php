@@ -87,5 +87,11 @@ return [
             'url' => '/api/mailboxes/{id}/messages/{uid}',
             'verb' => 'GET',
         ],
+
+        [
+            'name' => 'compose#send',
+            'url' => '/api/mailboxes/{id}/compose',
+            'verb' => 'POST',
+        ],
     ],
 ];

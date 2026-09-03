@@ -287,3 +287,19 @@
     color: #666666 !important;
     opacity: 1 !important;
 }
+.sharedmail-main-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.sharedmail-new-message-button {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.sharedmail-composer-input[readonly] {
+    opacity: 0.75;
+    cursor: default;
+}
