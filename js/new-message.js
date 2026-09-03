@@ -236,9 +236,22 @@ document.addEventListener(
                 !response.ok
                 || !data?.success
             ) {
+                console.error(
+                    'SharedMail Compose API Fehler:',
+                    data
+                )
+
+                const details =
+                    data?.errorDetails
+                        ? ` ${data.errorDetails}`
+                        : ''
+
                 throw new Error(
-                    data?.message
-                    || 'Die Nachricht konnte nicht gesendet werden.'
+                    (
+                        data?.message
+                        || 'Die Nachricht konnte nicht gesendet werden.'
+                    )
+                    + details
                 )
             }
 
