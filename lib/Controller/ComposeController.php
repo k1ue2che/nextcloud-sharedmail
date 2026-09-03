@@ -69,7 +69,7 @@ class ComposeController extends Controller
                         $html
                     );
 
-            rreturn new JSONResponse([
+            return new JSONResponse([
                 'success' =>
                     true,
 
