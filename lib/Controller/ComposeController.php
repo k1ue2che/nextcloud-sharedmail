@@ -102,28 +102,14 @@ class ComposeController extends Controller
                 ],
                 400
             );
-        } catch (Throwable $e) {
-            /*
-             * NUR TEMPORÄR ZUM DEBUGGEN.
-             *
-             * Sobald wir den Fehler gefunden haben,
-             * wird dieser technische Text wieder entfernt.
-             */
+        } catch (Throwable) {
             return new JSONResponse(
                 [
                     'success' =>
                         false,
 
                     'message' =>
-                        'DEBUG: '
-                        . $e::class
-                        . ': '
-                        . $e->getMessage()
-                        . ' ['
-                        . basename($e->getFile())
-                        . ':'
-                        . $e->getLine()
-                        . ']',
+                        'Die Nachricht konnte nicht gesendet werden.',
                 ],
                 500
             );
