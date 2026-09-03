@@ -104,7 +104,7 @@ class ComposeController extends Controller
                 ],
                 400
             );
-        } catch (Throwable) {
+        } catch (Throwable $e) {
             return new JSONResponse(
                 [
                     'success' =>
@@ -112,6 +112,22 @@ class ComposeController extends Controller
 
                     'message' =>
                         'Die Nachricht konnte nicht gesendet werden.',
+
+                    /*
+                    * TEMPORÄR für Entwicklung/Debugging.
+                    * Nach erfolgreicher Reparatur wieder entfernen.
+                    */
+                    'errorType' =>
+                        $e::class,
+
+                    'errorDetails' =>
+                        $e->getMessage(),
+
+                    'errorFile' =>
+                        $e->getFile(),
+
+                    'errorLine' =>
+                        $e->getLine(),
                 ],
                 500
             );
