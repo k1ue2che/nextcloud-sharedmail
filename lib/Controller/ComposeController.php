@@ -47,9 +47,7 @@ class ComposeController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' =>
-                            false,
-
+                        'success' => false,
                         'message' =>
                             'Kein Zugriff auf dieses Postfach.',
                     ],
@@ -105,29 +103,27 @@ class ComposeController extends Controller
                 400
             );
         } catch (Throwable $e) {
+            /*
+             * NUR TEMPORÄR ZUM DEBUGGEN.
+             *
+             * Sobald wir den Fehler gefunden haben,
+             * wird dieser technische Text wieder entfernt.
+             */
             return new JSONResponse(
                 [
                     'success' =>
                         false,
 
                     'message' =>
-                        'Die Nachricht konnte nicht gesendet werden.',
-
-                    /*
-                    * TEMPORÄR für Entwicklung/Debugging.
-                    * Nach erfolgreicher Reparatur wieder entfernen.
-                    */
-                    'errorType' =>
-                        $e::class,
-
-                    'errorDetails' =>
-                        $e->getMessage(),
-
-                    'errorFile' =>
-                        $e->getFile(),
-
-                    'errorLine' =>
-                        $e->getLine(),
+                        'DEBUG: '
+                        . $e::class
+                        . ': '
+                        . $e->getMessage()
+                        . ' ['
+                        . basename($e->getFile())
+                        . ':'
+                        . $e->getLine()
+                        . ']',
                 ],
                 500
             );
