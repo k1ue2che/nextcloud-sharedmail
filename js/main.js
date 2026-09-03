@@ -2957,4 +2957,43 @@ ${html || ''}
     loadFolders(
         mailboxButtons[0]
     )
+    /*
+ * Kleine öffentliche UI-Schnittstelle für
+ * Composer und weitere Shared-Mail-Module.
+ */
+window.SharedMailUI =
+    Object.freeze({
+        async reloadCurrentFolder() {
+            /*
+             * Ordner ebenfalls neu laden:
+             *
+             * - Sent-Zähler aktualisiert sich
+             * - INBOX-Zähler aktualisiert sich
+             * - \Answered kann neu eingelesen werden
+             * - anschließend wird der aktuelle
+             *   Ordner wieder angezeigt
+             */
+            if (
+                activeMailboxButton
+                && activeFolderName
+            ) {
+                await loadFolders(
+                    activeMailboxButton,
+                    activeFolderName
+                )
+
+                return
+            }
+
+            if (
+                activeMailboxId > 0
+                && activeFolderName
+            ) {
+                await loadMessages(
+                    activeMailboxId,
+                    activeFolderName
+                )
+            }
+        },
+    })
 })

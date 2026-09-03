@@ -823,12 +823,44 @@ async function openReplyComposer(
                         html
                     )
 
-                sendButton.textContent =
-                    'Gesendet'
+                if (result.warning) {
+                    console.warn(
+                        'SharedMail:',
+                        result.warning
+                    )
+                }
 
-                status.textContent =
-                    `Antwort an ${result.recipient} wurde erfolgreich gesendet.`
+                /*
+                * Editor zuerst sauber zerstören.
+                */
+                await destroyActiveEditor()
 
+
+                /*
+                * Composer entfernen.
+                */
+                if (
+                    composer.parentElement
+                ) {
+                    composer.remove()
+                }
+
+
+                /*
+                * Danach komplette aktuelle Mailboxansicht
+                * einschließlich Ordnerzählern neu laden.
+                *
+                * Ergebnis:
+                * Benutzer landet wieder auf der Mailübersicht.
+                */
+                if (
+                    window.SharedMailUI
+                    && typeof window.SharedMailUI.reloadCurrentFolder
+                        === 'function'
+                ) {
+                    await window.SharedMailUI
+                        .reloadCurrentFolder()
+                }
                 /*
                 * Senden bleibt nach Erfolg deaktiviert,
                 * damit dieselbe Antwort nicht versehentlich

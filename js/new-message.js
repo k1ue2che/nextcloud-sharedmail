@@ -584,17 +584,28 @@ document.addEventListener(
                                 }
                             )
 
-                        status.textContent =
-                            `Nachricht an ${result.recipients.join(', ')} wurde erfolgreich gesendet.`
+                        if (result.warning) {
+                            console.warn(
+                                'SharedMail:',
+                                result.warning
+                            )
+                        }
 
-                        sendButton.textContent =
-                            'Gesendet'
+                        await destroyEditor()
 
-                        cancelButton.disabled =
-                            false
+                        messageArea.replaceChildren()
 
-                        cancelButton.textContent =
-                            'Zurück'
+                        savedContent =
+                            null
+
+                        if (
+                            window.SharedMailUI
+                            && typeof window.SharedMailUI.reloadCurrentFolder
+                                === 'function'
+                        ) {
+                            await window.SharedMailUI
+                                .reloadCurrentFolder()
+                        }
 
                         /*
                          * Nach erfolgreichem Versand bleibt

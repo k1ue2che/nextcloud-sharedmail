@@ -18,6 +18,7 @@ class ReplySendService
     public function __construct(
         private readonly CredentialService $credentialService,
         private readonly ReplyContextService $replyContextService,
+        private readonly SentMessageService $sentMessageService,
     ) {
     }
 
@@ -291,6 +292,19 @@ class ReplySendService
             $recipient
         );
 
+        $rawMessage =
+            $mail->getRaw();
+
+        if (is_resource($rawMessage)) {
+            $rawMessage =
+                stream_get_contents(
+                    $rawMessage
+                );
+        }
+
+        $rawMessage =
+            (string)$rawMessage;
+
         /*
          * Jetzt wird tatsächlich gesendet.
          */
@@ -298,12 +312,65 @@ class ReplySendService
             $transport
         );
 
+        /*
+        * Gesendete Antwort im IMAP-Sent ablegen.
+        */
+        $sentResult =
+            $this
+                ->sentMessageService
+                ->appendToSent(
+                    $mailbox,
+                    $rawMessage
+                );
+
+
+        /*
+        * Originalmail als beantwortet markieren.
+        */
+        $answeredMarked =
+            $this
+                ->sentMessageService
+                ->markAnswered(
+                    $mailbox,
+                    $folder,
+                    $uid
+                );
+                
+        $warnings = [];
+
+        if (!$sentResult['success']) {
+            $warnings[] =
+                $sentResult['message'];
+        }
+
+        if (!$answeredMarked) {
+            $warnings[] =
+                'Die Originalmail konnte nicht als beantwortet markiert werden.';
+        }
+
         return [
             'messageId' =>
                 $newMessageId,
 
             'recipient' =>
                 $recipient,
+
+            'sentSaved' =>
+                $sentResult['success'],
+
+            'sentFolder' =>
+                $sentResult['folder'],
+
+            'answeredMarked' =>
+                $answeredMarked,
+
+            'warning' =>
+                $warnings !== []
+                    ? implode(
+                        ' ',
+                        $warnings
+                    )
+                    : null,
         ];
     }
 

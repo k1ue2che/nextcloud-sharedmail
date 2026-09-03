@@ -69,7 +69,7 @@ class ComposeController extends Controller
                         $html
                     );
 
-            return new JSONResponse([
+            rreturn new JSONResponse([
                 'success' =>
                     true,
 
@@ -81,6 +81,15 @@ class ComposeController extends Controller
 
                 'recipients' =>
                     $result['recipients'],
+
+                'sentSaved' =>
+                    $result['sentSaved'],
+
+                'sentFolder' =>
+                    $result['sentFolder'],
+
+                'warning' =>
+                    $result['warning'],
             ]);
         } catch (
             InvalidArgumentException $e

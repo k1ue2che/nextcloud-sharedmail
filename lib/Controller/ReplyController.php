@@ -47,7 +47,8 @@ class ReplyController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
 
                         'message' =>
                             'Kein Zugriff auf dieses Postfach.',
@@ -80,6 +81,18 @@ class ReplyController extends Controller
 
                 'recipient' =>
                     $result['recipient'],
+
+                'sentSaved' =>
+                    $result['sentSaved'],
+
+                'sentFolder' =>
+                    $result['sentFolder'],
+
+                'answeredMarked' =>
+                    $result['answeredMarked'],
+
+                'warning' =>
+                    $result['warning'],
             ]);
         } catch (
             InvalidArgumentException $e
@@ -96,8 +109,8 @@ class ReplyController extends Controller
             );
         } catch (Throwable) {
             /*
-             * Absichtlich keine technischen SMTP-
-             * oder Passwortdetails an den Browser.
+             * Absichtlich keine technischen SMTP-,
+             * IMAP- oder Passwortdetails an den Browser.
              */
             return new JSONResponse(
                 [

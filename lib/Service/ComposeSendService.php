@@ -16,13 +16,17 @@ class ComposeSendService
 
     public function __construct(
         private readonly CredentialService $credentialService,
+        private readonly SentMessageService $sentMessageService,
     ) {
     }
 
     /**
      * @return array{
      *     messageId: string,
-     *     recipients: string[]
+     *     recipients: string[],
+     *     sentSaved: bool,
+     *     sentFolder: string|null,
+     *     warning: string|null
      * }
      */
     public function send(
@@ -242,9 +246,48 @@ class ComposeSendService
             );
         }
 
+        /*
+        * Die vollständige RFC822-Mail erzeugen.
+        *
+        * Genau diese Nachricht soll anschließend auch
+        * im IMAP-Sent-Ordner liegen.
+        */
+        $rawMessage =
+            $mail->getRaw();
+
+        if (is_resource($rawMessage)) {
+            $rawMessage =
+                stream_get_contents(
+                    $rawMessage
+                );
+        }
+
+        $rawMessage =
+            (string)$rawMessage;
+
+
+        /*
+        * Tatsächlicher SMTP-Versand.
+        */
         $mail->send(
             $transport
         );
+
+
+        /*
+        * SMTP war erfolgreich.
+        *
+        * Ein Fehler beim IMAP-APPEND darf deshalb
+        * NICHT mehr den gesamten Versand als
+        * fehlgeschlagen melden.
+        */
+        $sentResult =
+            $this
+                ->sentMessageService
+                ->appendToSent(
+                    $mailbox,
+                    $rawMessage
+                );
 
         return [
             'messageId' =>
@@ -252,6 +295,17 @@ class ComposeSendService
 
             'recipients' =>
                 $allRecipients,
+
+            'sentSaved' =>
+                $sentResult['success'],
+
+            'sentFolder' =>
+                $sentResult['folder'],
+
+            'warning' =>
+                $sentResult['success']
+                    ? null
+                    : $sentResult['message'],
         ];
     }
 
