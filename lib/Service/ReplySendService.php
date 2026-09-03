@@ -6,14 +6,13 @@ namespace OCA\SharedMail\Service;
 
 use Horde_Mail_Transport_Smtphorde;
 use Horde_Mime_Mail;
-use OCA\SharedMail\Db\Mailbox;
 use InvalidArgumentException;
+use OCA\SharedMail\Db\Mailbox;
 use RuntimeException;
 
 class ReplySendService
 {
-    private const MAX_HTML_BYTES =
-        2_000_000;
+    private const MAX_HTML_BYTES = 2_000_000;
 
     public function __construct(
         private readonly CredentialService $credentialService,
@@ -25,7 +24,11 @@ class ReplySendService
     /**
      * @return array{
      *     messageId: string,
-     *     recipient: string
+     *     recipient: string,
+     *     sentSaved: bool,
+     *     sentFolder: string|null,
+     *     answeredMarked: bool,
+     *     warning: string|null
      * }
      */
     public function sendReply(
@@ -37,7 +40,9 @@ class ReplySendService
         string $html,
     ): array {
         $folder =
-            trim($folder);
+            trim(
+                $folder
+            );
 
         if ($folder === '') {
             $folder =
@@ -77,7 +82,9 @@ class ReplySendService
         }
 
         $html =
-            trim($html);
+            trim(
+                $html
+            );
 
         if ($html === '') {
             throw new InvalidArgumentException(
@@ -94,12 +101,6 @@ class ReplySendService
             );
         }
 
-        /*
-         * CKEditor liefert kontrolliertes HTML.
-         *
-         * Trotzdem entfernen wir serverseitig Dinge,
-         * die in einer E-Mail nichts verloren haben.
-         */
         $html =
             $this->sanitizeHtml(
                 $html
@@ -120,7 +121,7 @@ class ReplySendService
         }
 
         /*
-         * Originale Thread-Informationen holen.
+         * Thread-Informationen der Originalmail holen.
          */
         $context =
             $this
@@ -148,16 +149,11 @@ class ReplySendService
             );
 
         /*
-         * SMTP-Zugangsdaten.
+         * SMTP-Konfiguration.
          */
         $smtpHost =
             trim(
                 $mailbox->getSmtpHost()
-            );
-
-        $smtpUsername =
-            trim(
-                $mailbox->getSmtpUsername()
             );
 
         if ($smtpHost === '') {
@@ -167,14 +163,12 @@ class ReplySendService
         }
 
         $smtpPassword =
-            $this->credentialService->decrypt(
-                (string)$mailbox->getSmtpPassword()
-            );
+            $this
+                ->credentialService
+                ->decrypt(
+                    (string)$mailbox->getSmtpPassword()
+                );
 
-        /*
-         * Transport wie beim bereits funktionierenden
-         * SMTP-Verbindungstest.
-         */
         $transport =
             new Horde_Mail_Transport_Smtphorde([
                 'host' =>
@@ -189,7 +183,7 @@ class ReplySendService
                     ),
 
                 'username' =>
-                    $smtpUsername,
+                    $mailbox->getSmtpUsername(),
 
                 'password' =>
                     $smtpPassword,
@@ -212,7 +206,7 @@ class ReplySendService
             new Horde_Mime_Mail();
 
         /*
-         * Standardheader.
+         * Standard-Header.
          */
         $mail->addHeader(
             'Date',
@@ -224,10 +218,6 @@ class ReplySendService
             $newMessageId
         );
 
-        /*
-         * Als Absender wird ausdrücklich das
-         * gemeinsame Postfach verwendet.
-         */
         $mail->addHeader(
             'From',
             $mailbox->getEmail()
@@ -256,19 +246,12 @@ class ReplySendService
         }
 
         /*
-         * Plaintext-Fallback.
+         * Plaintext-Version.
          */
         $mail->setBody(
             $plainText
         );
 
-        /*
-         * Horde_Mime_Mail unterstützt HTML.
-         *
-         * Wir prüfen method_exists trotzdem, damit ein
-         * zukünftiges Library-Problem einen verständlichen
-         * Fehler statt eines PHP-Fatal-Errors erzeugt.
-         */
         if (
             !method_exists(
                 $mail,
@@ -280,18 +263,33 @@ class ReplySendService
             );
         }
 
+        /*
+         * HTML-Version.
+         */
         $mail->setHtmlBody(
             $html
         );
 
         /*
-         * addRecipients kümmert sich um den eigentlichen
          * SMTP-Empfänger.
          */
         $mail->addRecipients(
             $recipient
         );
 
+        /*
+         * ZUERST SMTP senden.
+         *
+         * Horde erzeugt dabei den MIME-Base-Part.
+         */
+        $mail->send(
+            $transport
+        );
+
+        /*
+         * Erst NACH erfolgreichem Versand
+         * die komplette RFC822-Mail holen.
+         */
         $rawMessage =
             $mail->getRaw();
 
@@ -306,15 +304,8 @@ class ReplySendService
             (string)$rawMessage;
 
         /*
-         * Jetzt wird tatsächlich gesendet.
+         * Gesendete Antwort in IMAP-Sent speichern.
          */
-        $mail->send(
-            $transport
-        );
-
-        /*
-        * Gesendete Antwort im IMAP-Sent ablegen.
-        */
         $sentResult =
             $this
                 ->sentMessageService
@@ -323,10 +314,9 @@ class ReplySendService
                     $rawMessage
                 );
 
-
         /*
-        * Originalmail als beantwortet markieren.
-        */
+         * Originalnachricht mit \Answered markieren.
+         */
         $answeredMarked =
             $this
                 ->sentMessageService
@@ -335,7 +325,7 @@ class ReplySendService
                     $folder,
                     $uid
                 );
-                
+
         $warnings = [];
 
         if (!$sentResult['success']) {
@@ -378,7 +368,9 @@ class ReplySendService
         string $value,
     ): string {
         $value =
-            trim($value);
+            trim(
+                $value
+            );
 
         if ($value === '') {
             return '';
@@ -434,11 +426,7 @@ class ReplySendService
         string $html,
     ): string {
         /*
-         * Die eigentliche Nachricht ist kein vollständiges
-         * HTML-Dokument, sondern das CKEditor-Fragment.
-         *
-         * Skripte, Styles, Iframes und ähnliche Elemente
-         * werden niemals versendet.
+         * Gefährliche HTML-Elemente entfernen.
          */
         $html =
             preg_replace(
@@ -447,6 +435,9 @@ class ReplySendService
                 $html
             ) ?? $html;
 
+        /*
+         * Einzelne / selbstschließende Elemente.
+         */
         $html =
             preg_replace(
                 '#<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*/?>#is',
@@ -455,7 +446,7 @@ class ReplySendService
             ) ?? $html;
 
         /*
-         * JavaScript-Eventhandler entfernen.
+         * Eventhandler mit Anführungszeichen.
          */
         $html =
             preg_replace(
@@ -464,6 +455,9 @@ class ReplySendService
                 $html
             ) ?? $html;
 
+        /*
+         * Eventhandler ohne Anführungszeichen.
+         */
         $html =
             preg_replace(
                 '/\s+on[a-z]+\s*=\s*[^\s>]+/isu',
@@ -472,7 +466,7 @@ class ReplySendService
             ) ?? $html;
 
         /*
-         * javascript:-Links entfernen.
+         * javascript:-Links entschärfen.
          */
         $html =
             preg_replace(
@@ -490,7 +484,7 @@ class ReplySendService
         string $html,
     ): string {
         /*
-         * Zeilenstruktur vor strip_tags erhalten.
+         * Struktur vor strip_tags erhalten.
          */
         $text =
             preg_replace(
@@ -565,7 +559,9 @@ class ReplySendService
         string $value,
     ): string {
         $value =
-            trim($value);
+            trim(
+                $value
+            );
 
         if ($value === '') {
             return '';
@@ -616,8 +612,7 @@ class ReplySendService
         }
 
         /*
-         * References kann theoretisch sehr lang werden.
-         * Für unseren Client reichen die letzten 20 IDs.
+         * References nicht unbegrenzt wachsen lassen.
          */
         if (
             count($ids)
@@ -647,21 +642,21 @@ class ReplySendService
         $domain =
             'localhost';
 
-        $atPosition =
+        $position =
             strrpos(
                 $email,
                 '@'
             );
 
         if (
-            $atPosition !== false
-            && $atPosition
+            $position !== false
+            && $position
                 < strlen($email) - 1
         ) {
             $domain =
                 substr(
                     $email,
-                    $atPosition + 1
+                    $position + 1
                 );
         }
 

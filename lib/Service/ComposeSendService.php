@@ -125,9 +125,11 @@ class ComposeSendService
         }
 
         $smtpPassword =
-            $this->credentialService->decrypt(
-                (string)$mailbox->getSmtpPassword()
-            );
+            $this
+                ->credentialService
+                ->decrypt(
+                    (string)$mailbox->getSmtpPassword()
+                );
 
         $transport =
             new Horde_Mail_Transport_Smtphorde([
@@ -170,6 +172,9 @@ class ComposeSendService
         $mail =
             new Horde_Mime_Mail();
 
+        /*
+         * Standard-Header.
+         */
         $mail->addHeader(
             'Date',
             date('r')
@@ -193,7 +198,7 @@ class ComposeSendService
         }
 
         /*
-         * Sichtbare Empfängerheader.
+         * Sichtbare Empfänger.
          */
         $mail->addHeader(
             'To',
@@ -214,8 +219,7 @@ class ComposeSendService
         }
 
         /*
-         * BCC wird ausdrücklich NICHT als Header
-         * in die Nachricht geschrieben.
+         * BCC wird bewusst nicht als Header gesetzt.
          */
 
         $mail->setBody(
@@ -238,7 +242,8 @@ class ComposeSendService
         );
 
         /*
-         * SMTP-Empfänger inklusive BCC.
+         * SMTP-Empfänger:
+         * To + CC + BCC.
          */
         foreach ($allRecipients as $recipient) {
             $mail->addRecipients(
@@ -247,11 +252,18 @@ class ComposeSendService
         }
 
         /*
-        * Die vollständige RFC822-Mail erzeugen.
-        *
-        * Genau diese Nachricht soll anschließend auch
-        * im IMAP-Sent-Ordner liegen.
-        */
+         * ZUERST SMTP senden.
+         *
+         * Horde baut dabei den MIME-Base-Part auf.
+         */
+        $mail->send(
+            $transport
+        );
+
+        /*
+         * Erst NACH send() kann die komplette
+         * RFC822-Nachricht abgefragt werden.
+         */
         $rawMessage =
             $mail->getRaw();
 
@@ -265,22 +277,11 @@ class ComposeSendService
         $rawMessage =
             (string)$rawMessage;
 
-
         /*
-        * Tatsächlicher SMTP-Versand.
-        */
-        $mail->send(
-            $transport
-        );
-
-
-        /*
-        * SMTP war erfolgreich.
-        *
-        * Ein Fehler beim IMAP-APPEND darf deshalb
-        * NICHT mehr den gesamten Versand als
-        * fehlgeschlagen melden.
-        */
+         * SMTP war erfolgreich.
+         *
+         * Jetzt Kopie im IMAP-Sent speichern.
+         */
         $sentResult =
             $this
                 ->sentMessageService
@@ -325,8 +326,8 @@ class ComposeSendService
         }
 
         /*
-         * Bis wir in 0.2.30 echte Kontakt-Chips
-         * haben, akzeptieren wir Komma und Semikolon.
+         * Bis zum späteren Adressbuch:
+         * Komma und Semikolon unterstützen.
          */
         $parts =
             preg_split(
@@ -379,6 +380,20 @@ class ComposeSendService
     private function extractEmailAddress(
         string $value,
     ): string {
+        $value =
+            trim(
+                $value
+            );
+
+        if ($value === '') {
+            return '';
+        }
+
+        /*
+         * Beispiel:
+         *
+         * Max Mustermann <max@example.com>
+         */
         if (
             preg_match(
                 '/<([^<>]+)>/',
@@ -391,14 +406,15 @@ class ComposeSendService
             );
         }
 
-        return trim(
-            $value
-        );
+        return $value;
     }
 
     private function sanitizeHeaderValue(
         string $value,
     ): string {
+        /*
+         * Header-Injection verhindern.
+         */
         $value =
             str_replace(
                 [
@@ -422,6 +438,9 @@ class ComposeSendService
     private function sanitizeHtml(
         string $html,
     ): string {
+        /*
+         * Gefährliche Elemente entfernen.
+         */
         $html =
             preg_replace(
                 '#<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*>.*?</\1>#is',
@@ -429,6 +448,9 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
+        /*
+         * Auch einzelne / selbstschließende Elemente entfernen.
+         */
         $html =
             preg_replace(
                 '#<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*/?>#is',
@@ -436,6 +458,11 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
+        /*
+         * JavaScript-Eventhandler entfernen.
+         *
+         * z. B. onclick="..."
+         */
         $html =
             preg_replace(
                 '/\s+on[a-z]+\s*=\s*(["\']).*?\1/isu',
@@ -443,6 +470,9 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
+        /*
+         * Eventhandler ohne Anführungszeichen.
+         */
         $html =
             preg_replace(
                 '/\s+on[a-z]+\s*=\s*[^\s>]+/isu',
@@ -450,6 +480,9 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
+        /*
+         * javascript:-Links entschärfen.
+         */
         $html =
             preg_replace(
                 '/href\s*=\s*(["\'])\s*javascript:[^"\']*\1/isu',
@@ -465,6 +498,9 @@ class ComposeSendService
     private function htmlToPlainText(
         string $html,
     ): string {
+        /*
+         * Zeilenumbrüche vor strip_tags erhalten.
+         */
         $text =
             preg_replace(
                 '#<br\s*/?>#i',
@@ -514,6 +550,20 @@ class ComposeSendService
                 "\n",
                 $text
             );
+
+        $text =
+            preg_replace(
+                "/[ \t]+\n/u",
+                "\n",
+                $text
+            ) ?? $text;
+
+        $text =
+            preg_replace(
+                "/\n{4,}/u",
+                "\n\n\n",
+                $text
+            ) ?? $text;
 
         return trim(
             $text
