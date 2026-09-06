@@ -88,6 +88,15 @@ return [
             'verb' => 'GET',
         ],
 
+        /*
+         * Entwurf speichern.
+         */
+        [
+            'name' => 'draft#save',
+            'url' => '/api/mailboxes/{id}/drafts',
+            'verb' => 'POST',
+        ],
+
         [
             'name' => 'compose#send',
             'url' => '/api/mailboxes/{id}/compose',
