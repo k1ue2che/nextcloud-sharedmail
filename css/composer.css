@@ -8,11 +8,13 @@
  */
 .sharedmail-composer {
     display: block;
+
     width: 100%;
     max-width: none;
     min-width: 0;
 
     padding: 20px;
+
     box-sizing: border-box;
 }
 
@@ -47,7 +49,10 @@
 
 .sharedmail-composer-field {
     display: grid;
-    grid-template-columns: 70px minmax(0, 1fr);
+
+    grid-template-columns:
+        70px
+        minmax(0, 1fr);
 
     width: 100%;
     min-width: 0;
@@ -70,6 +75,11 @@
     box-sizing: border-box;
 }
 
+.sharedmail-composer-input[readonly] {
+    opacity: 0.75;
+    cursor: default;
+}
+
 
 /*
  * CKEditor Wrapper
@@ -86,11 +96,12 @@
     min-width: 0;
 
     margin-top: 8px;
+
     box-sizing: border-box;
 }
 
-
-.sharedmail-composer-editor-wrapper > .sharedmail-composer-editor {
+.sharedmail-composer-editor-wrapper
+> .sharedmail-composer-editor {
     display: block;
 
     width: 100%;
@@ -102,9 +113,10 @@
 
 
 /*
- * Gesamter CKEditor.
+ * Gesamter CKEditor
  */
-.sharedmail-composer-editor-wrapper .ck.ck-editor {
+.sharedmail-composer-editor-wrapper
+.ck.ck-editor {
     display: block !important;
 
     width: 100% !important;
@@ -116,9 +128,10 @@
 
 
 /*
- * Toolbar ebenfalls über volle Breite.
+ * Toolbar ebenfalls über volle Breite
  */
-.sharedmail-composer-editor-wrapper .ck.ck-toolbar {
+.sharedmail-composer-editor-wrapper
+.ck.ck-toolbar {
     width: 100% !important;
     max-width: none !important;
 
@@ -127,10 +140,10 @@
 
 
 /*
- * Das war im Screenshot der problematische Bereich:
- * .ck-editor__main war effektiv nur ca. 130 px breit.
+ * CKEditor-Hauptbereich
  */
-.sharedmail-composer-editor-wrapper .ck-editor__main {
+.sharedmail-composer-editor-wrapper
+.ck-editor__main {
     display: block !important;
 
     width: 100% !important;
@@ -142,11 +155,14 @@
 
 
 /*
- * Eigentliche editierbare Textfläche.
+ * Eigentliche editierbare Textfläche
  */
-.sharedmail-composer-editor-wrapper .ck-editor__editable,
-.sharedmail-composer-editor-wrapper .ck-editor__editable_inline,
-.sharedmail-composer-editor-wrapper .ck.ck-content {
+.sharedmail-composer-editor-wrapper
+.ck-editor__editable,
+.sharedmail-composer-editor-wrapper
+.ck-editor__editable_inline,
+.sharedmail-composer-editor-wrapper
+.ck.ck-content {
     display: block !important;
 
     width: 100% !important;
@@ -158,9 +174,10 @@
 
 
 /*
- * Schreibfläche.
+ * Schreibfläche
  */
-.sharedmail-composer-editor-wrapper .ck-editor__editable_inline {
+.sharedmail-composer-editor-wrapper
+.ck-editor__editable_inline {
     min-height: 360px !important;
     max-height: 65vh;
 
@@ -171,8 +188,7 @@
 
 
 /*
- * Der Cursor soll überall in der Schreibfläche
- * erwartbar erscheinen.
+ * Cursor in der Schreibfläche
  */
 .sharedmail-composer-editor-wrapper
 .ck-editor__editable_inline[contenteditable="true"] {
@@ -181,25 +197,231 @@
 
 
 /*
- * Antwort-Zitat optisch etwas zurücknehmen.
+ * Antwort-Zitat
  */
-.sharedmail-composer .ck-content blockquote {
+.sharedmail-composer
+.ck-content blockquote {
     opacity: 0.78;
 }
 
 
 /*
  * Absatzdarstellung nicht durch andere
- * Nextcloud-Regeln einengen lassen.
+ * Nextcloud-Regeln einengen lassen
  */
-.sharedmail-composer .ck-content p,
-.sharedmail-composer .ck-content blockquote {
+.sharedmail-composer
+.ck-content p,
+.sharedmail-composer
+.ck-content blockquote {
     max-width: none;
 }
 
 
 /*
- * Status unter dem Editor.
+ * CKEditor bewusst als helle
+ * Mail-Schreibfläche darstellen.
+ *
+ * Dadurch bleiben Text und Cursor auch im
+ * Nextcloud-Dark-Mode eindeutig lesbar.
+ */
+.sharedmail-composer
+.ck.ck-editor__editable_inline {
+    background: #ffffff !important;
+    color: #202020 !important;
+
+    caret-color: #202020 !important;
+}
+
+.sharedmail-composer
+.ck.ck-editor__editable_inline p,
+.sharedmail-composer
+.ck.ck-editor__editable_inline li,
+.sharedmail-composer
+.ck.ck-editor__editable_inline blockquote {
+    color: #202020 !important;
+}
+
+.sharedmail-composer
+.ck.ck-editor__editable_inline a {
+    color: #00679e !important;
+}
+
+.sharedmail-composer
+.ck.ck-editor__editable_inline blockquote {
+    color: #666666 !important;
+    opacity: 1 !important;
+}
+
+
+/*
+ * Anhänge
+ */
+.sharedmail-composer-attachments {
+    width: 100%;
+    min-width: 0;
+
+    margin-top: 14px;
+    padding: 12px;
+
+    border:
+        1px solid
+        var(
+            --color-border,
+            rgba(127, 127, 127, 0.35)
+        );
+
+    border-radius:
+        var(
+            --border-radius-large,
+            8px
+        );
+
+    background:
+        var(
+            --color-background-hover,
+            rgba(127, 127, 127, 0.08)
+        );
+
+    box-sizing: border-box;
+}
+
+
+/*
+ * Kopfzeile des Anhangbereichs
+ */
+.sharedmail-composer-attachment-toolbar {
+    display: flex;
+
+    width: 100%;
+    min-width: 0;
+
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 10px;
+}
+
+
+/*
+ * Datei auswählen
+ */
+.sharedmail-composer-attachment-button {
+    flex: 0 0 auto;
+
+    white-space: nowrap;
+}
+
+
+/*
+ * "Keine Anhänge" bzw.
+ * "2 Dateien · 3.4 MB"
+ */
+.sharedmail-composer-attachment-summary {
+    min-width: 0;
+
+    font-size: 13px;
+
+    color:
+        var(
+            --color-text-maxcontrast,
+            currentColor
+        );
+
+    opacity: 0.8;
+}
+
+
+/*
+ * Liste der ausgewählten Dateien
+ */
+.sharedmail-composer-attachment-list {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    min-width: 0;
+
+    gap: 6px;
+    margin-top: 10px;
+}
+
+
+/*
+ * Eine Datei
+ */
+.sharedmail-composer-attachment-item {
+    display: flex;
+
+    width: 100%;
+    min-width: 0;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 8px 10px;
+
+    border:
+        1px solid
+        var(
+            --color-border,
+            rgba(127, 127, 127, 0.25)
+        );
+
+    border-radius:
+        var(
+            --border-radius,
+            6px
+        );
+
+    background:
+        var(
+            --color-main-background,
+            transparent
+        );
+
+    box-sizing: border-box;
+}
+
+
+/*
+ * Dateiname + Größe
+ */
+.sharedmail-composer-attachment-info {
+    flex: 1 1 auto;
+
+    min-width: 0;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+
+/*
+ * Einzelnen Anhang entfernen
+ */
+.sharedmail-composer-attachment-remove {
+    flex: 0 0 auto;
+
+    min-height: 32px;
+
+    white-space: nowrap;
+}
+
+
+/*
+ * Deaktivierte Anhangsauswahl während Versand
+ */
+.sharedmail-composer-attachment-button:disabled,
+.sharedmail-composer-attachment-remove:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+
+/*
+ * Status unter Editor / Anhängen
  */
 .sharedmail-composer-status {
     min-height: 22px;
@@ -232,6 +454,24 @@
 
 
 /*
+ * Hauptkopf / Neue-Mail-Button
+ */
+.sharedmail-main-header {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+}
+
+.sharedmail-new-message-button {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+
+/*
  * Mobil
  */
 @media (max-width: 700px) {
@@ -249,6 +489,24 @@
         min-height: 240px !important;
     }
 
+    .sharedmail-composer-attachment-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sharedmail-composer-attachment-button {
+        width: 100%;
+    }
+
+    .sharedmail-composer-attachment-item {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sharedmail-composer-attachment-remove {
+        width: 100%;
+    }
+
     .sharedmail-composer-footer {
         justify-content: stretch;
     }
@@ -256,50 +514,4 @@
     .sharedmail-composer-footer button {
         flex: 1;
     }
-}
-/*
- * CKEditor bewusst als helle Mail-Schreibfläche darstellen.
- * Verhindert falsche Nextcloud-Dark-Mode-Farben.
- */
-.sharedmail-composer
-.ck.ck-editor__editable_inline {
-    background: #ffffff !important;
-    color: #202020 !important;
-    caret-color: #202020 !important;
-}
-
-.sharedmail-composer
-.ck.ck-editor__editable_inline p,
-.sharedmail-composer
-.ck.ck-editor__editable_inline li,
-.sharedmail-composer
-.ck.ck-editor__editable_inline blockquote {
-    color: #202020 !important;
-}
-
-.sharedmail-composer
-.ck.ck-editor__editable_inline a {
-    color: #00679e !important;
-}
-
-.sharedmail-composer
-.ck.ck-editor__editable_inline blockquote {
-    color: #666666 !important;
-    opacity: 1 !important;
-}
-.sharedmail-main-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.sharedmail-new-message-button {
-    flex: 0 0 auto;
-    margin-left: auto;
-}
-
-.sharedmail-composer-input[readonly] {
-    opacity: 0.75;
-    cursor: default;
 }

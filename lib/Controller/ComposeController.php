@@ -6,6 +6,7 @@ namespace OCA\SharedMail\Controller;
 
 use InvalidArgumentException;
 use OCA\SharedMail\AppInfo\Application;
+use OCA\SharedMail\Service\AttachmentUploadService;
 use OCA\SharedMail\Service\ComposeSendService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCP\AppFramework\Controller;
@@ -20,6 +21,7 @@ class ComposeController extends Controller
         IRequest $request,
         private readonly MailboxAccessService $mailboxAccessService,
         private readonly ComposeSendService $composeSendService,
+        private readonly AttachmentUploadService $attachmentUploadService,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -47,13 +49,22 @@ class ComposeController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Kein Zugriff auf dieses Postfach.',
                     ],
                     403
                 );
             }
+
+            $attachments =
+                $this
+                    ->attachmentUploadService
+                    ->getUploadedAttachments(
+                        $this->request
+                    );
 
             $result =
                 $this
@@ -64,7 +75,8 @@ class ComposeController extends Controller
                         $cc,
                         $bcc,
                         $subject,
-                        $html
+                        $html,
+                        $attachments
                     );
 
             return new JSONResponse([

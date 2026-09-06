@@ -6,6 +6,7 @@ namespace OCA\SharedMail\Service;
 
 use Horde_Mail_Transport_Smtphorde;
 use Horde_Mime_Mail;
+use Horde_Mime_Part;
 use InvalidArgumentException;
 use OCA\SharedMail\Db\Mailbox;
 use RuntimeException;
@@ -22,6 +23,13 @@ class ReplySendService
     }
 
     /**
+     * @param array<int, array{
+     *     name: string,
+     *     type: string,
+     *     size: int,
+     *     content: string
+     * }> $attachments
+     *
      * @return array{
      *     messageId: string,
      *     recipient: string,
@@ -38,6 +46,7 @@ class ReplySendService
         string $to,
         string $subject,
         string $html,
+        array $attachments = [],
     ): array {
         $folder =
             trim(
@@ -121,7 +130,7 @@ class ReplySendService
         }
 
         /*
-         * Thread-Informationen der Originalmail holen.
+         * Threading-Kontext.
          */
         $context =
             $this
@@ -148,9 +157,6 @@ class ReplySendService
                 $mailbox
             );
 
-        /*
-         * SMTP-Konfiguration.
-         */
         $smtpHost =
             trim(
                 $mailbox->getSmtpHost()
@@ -205,9 +211,6 @@ class ReplySendService
         $mail =
             new Horde_Mime_Mail();
 
-        /*
-         * Standard-Header.
-         */
         $mail->addHeader(
             'Date',
             date('r')
@@ -228,9 +231,6 @@ class ReplySendService
             $subject
         );
 
-        /*
-         * Threading.
-         */
         if ($originalMessageId !== '') {
             $mail->addHeader(
                 'In-Reply-To',
@@ -245,9 +245,6 @@ class ReplySendService
             );
         }
 
-        /*
-         * Plaintext-Version.
-         */
         $mail->setBody(
             $plainText
         );
@@ -263,32 +260,31 @@ class ReplySendService
             );
         }
 
-        /*
-         * HTML-Version.
-         */
         $mail->setHtmlBody(
             $html
         );
 
         /*
-         * SMTP-Empfänger.
+         * Optionale Anhänge.
          */
+        $this->addAttachments(
+            $mail,
+            $attachments
+        );
+
         $mail->addRecipients(
             $recipient
         );
 
         /*
-         * ZUERST SMTP senden.
-         *
-         * Horde erzeugt dabei den MIME-Base-Part.
+         * SMTP.
          */
         $mail->send(
             $transport
         );
 
         /*
-         * Erst NACH erfolgreichem Versand
-         * die komplette RFC822-Mail holen.
+         * Exakt gesendete MIME-Mail für Sent.
          */
         $rawMessage =
             $mail->getRaw();
@@ -303,9 +299,6 @@ class ReplySendService
         $rawMessage =
             (string)$rawMessage;
 
-        /*
-         * Gesendete Antwort in IMAP-Sent speichern.
-         */
         $sentResult =
             $this
                 ->sentMessageService
@@ -315,7 +308,7 @@ class ReplySendService
                 );
 
         /*
-         * Originalnachricht mit \Answered markieren.
+         * Original als beantwortet markieren.
          */
         $answeredMarked =
             $this
@@ -364,6 +357,111 @@ class ReplySendService
         ];
     }
 
+    /**
+     * @param array<int, array{
+     *     name: string,
+     *     type: string,
+     *     size: int,
+     *     content: string
+     * }> $attachments
+     */
+    private function addAttachments(
+        Horde_Mime_Mail $mail,
+        array $attachments,
+    ): void {
+        if ($attachments === []) {
+            return;
+        }
+
+        if (
+            !method_exists(
+                $mail,
+                'addMimePart'
+            )
+        ) {
+            throw new RuntimeException(
+                'Die installierte Horde-MIME-Version unterstützt keine Anhänge.'
+            );
+        }
+
+        foreach ($attachments as $attachment) {
+            $name =
+                trim(
+                    (string)(
+                        $attachment['name']
+                        ?? ''
+                    )
+                );
+
+            $type =
+                strtolower(
+                    trim(
+                        (string)(
+                            $attachment['type']
+                            ?? ''
+                        )
+                    )
+                );
+
+            $content =
+                $attachment['content']
+                ?? null;
+
+            if ($name === '') {
+                throw new InvalidArgumentException(
+                    'Ein Anhang besitzt keinen gültigen Dateinamen.'
+                );
+            }
+
+            if (!is_string($content)) {
+                throw new InvalidArgumentException(
+                    'Ein Anhang enthält keine gültigen Dateidaten.'
+                );
+            }
+
+            if (
+                preg_match(
+                    '#^[a-z0-9.+-]+/[a-z0-9.+-]+$#i',
+                    $type
+                ) !== 1
+            ) {
+                $type =
+                    'application/octet-stream';
+            }
+
+            $part =
+                new Horde_Mime_Part();
+
+            $part->setType(
+                $type
+            );
+
+            $part->setContents(
+                $content
+            );
+
+            $part->setName(
+                $name
+            );
+
+            $part->setDisposition(
+                'attachment'
+            );
+
+            $part->setTransferEncoding(
+                'base64',
+                [
+                    'send' =>
+                        true,
+                ]
+            );
+
+            $mail->addMimePart(
+                $part
+            );
+        }
+    }
+
     private function extractEmailAddress(
         string $value,
     ): string {
@@ -376,11 +474,6 @@ class ReplySendService
             return '';
         }
 
-        /*
-         * Beispiel:
-         *
-         * Christine Hunger <christine@example.de>
-         */
         if (
             preg_match(
                 '/<([^<>]+)>/',
@@ -399,9 +492,6 @@ class ReplySendService
     private function sanitizeHeaderValue(
         string $value,
     ): string {
-        /*
-         * Header-Injection verhindern.
-         */
         $value =
             str_replace(
                 [
@@ -425,9 +515,6 @@ class ReplySendService
     private function sanitizeHtml(
         string $html,
     ): string {
-        /*
-         * Gefährliche HTML-Elemente entfernen.
-         */
         $html =
             preg_replace(
                 '#<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*>.*?</\1>#is',
@@ -435,9 +522,6 @@ class ReplySendService
                 $html
             ) ?? $html;
 
-        /*
-         * Einzelne / selbstschließende Elemente.
-         */
         $html =
             preg_replace(
                 '#<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*/?>#is',
@@ -445,9 +529,6 @@ class ReplySendService
                 $html
             ) ?? $html;
 
-        /*
-         * Eventhandler mit Anführungszeichen.
-         */
         $html =
             preg_replace(
                 '/\s+on[a-z]+\s*=\s*(["\']).*?\1/isu',
@@ -455,9 +536,6 @@ class ReplySendService
                 $html
             ) ?? $html;
 
-        /*
-         * Eventhandler ohne Anführungszeichen.
-         */
         $html =
             preg_replace(
                 '/\s+on[a-z]+\s*=\s*[^\s>]+/isu',
@@ -465,9 +543,6 @@ class ReplySendService
                 $html
             ) ?? $html;
 
-        /*
-         * javascript:-Links entschärfen.
-         */
         $html =
             preg_replace(
                 '/href\s*=\s*(["\'])\s*javascript:[^"\']*\1/isu',
@@ -483,9 +558,6 @@ class ReplySendService
     private function htmlToPlainText(
         string $html,
     ): string {
-        /*
-         * Struktur vor strip_tags erhalten.
-         */
         $text =
             preg_replace(
                 '#<br\s*/?>#i',
@@ -611,9 +683,6 @@ class ReplySendService
                 $originalMessageId;
         }
 
-        /*
-         * References nicht unbegrenzt wachsen lassen.
-         */
         if (
             count($ids)
             > 20

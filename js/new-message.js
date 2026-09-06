@@ -18,6 +18,10 @@ document.addEventListener(
             return
         }
 
+        const MAX_ATTACHMENTS = 10
+        const MAX_FILE_BYTES = 10 * 1024 * 1024
+        const MAX_TOTAL_BYTES = 25 * 1024 * 1024
+
         let activeEditor = null
         let savedContent = null
 
@@ -80,6 +84,148 @@ document.addEventListener(
                         || ''
                     ),
             }
+        }
+
+
+        function formatFileSize(bytes) {
+            const value =
+                Number(
+                    bytes
+                    || 0
+                )
+
+            if (value < 1024) {
+                return `${value} B`
+            }
+
+            if (value < 1024 * 1024) {
+                return `${(
+                    value / 1024
+                ).toFixed(1)} KB`
+            }
+
+            return `${(
+                value
+                / 1024
+                / 1024
+            ).toFixed(1)} MB`
+        }
+
+
+        function getTotalAttachmentSize(
+            attachments
+        ) {
+            return attachments.reduce(
+                (
+                    total,
+                    file
+                ) =>
+                    total
+                    + Number(
+                        file?.size
+                        || 0
+                    ),
+                0
+            )
+        }
+
+
+        function getFileIdentity(
+            file
+        ) {
+            return [
+                file.name,
+                file.size,
+                file.lastModified,
+            ].join(':')
+        }
+
+
+        function validateAttachmentSelection(
+            currentAttachments,
+            newFiles
+        ) {
+            const attachments =
+                [
+                    ...currentAttachments,
+                ]
+
+            const existingIds =
+                new Set(
+                    attachments.map(
+                        getFileIdentity
+                    )
+                )
+
+            for (const file of newFiles) {
+                if (
+                    !(file instanceof File)
+                ) {
+                    continue
+                }
+
+                if (
+                    file.size
+                    > MAX_FILE_BYTES
+                ) {
+                    throw new Error(
+                        `Der Anhang "${file.name}" ist größer als 10 MB.`
+                    )
+                }
+
+                if (file.size <= 0) {
+                    throw new Error(
+                        `Der Anhang "${file.name}" ist leer.`
+                    )
+                }
+
+                const identity =
+                    getFileIdentity(
+                        file
+                    )
+
+                /*
+                 * Dieselbe Datei nicht versehentlich
+                 * mehrfach hinzufügen.
+                 */
+                if (
+                    existingIds.has(
+                        identity
+                    )
+                ) {
+                    continue
+                }
+
+                attachments.push(
+                    file
+                )
+
+                existingIds.add(
+                    identity
+                )
+            }
+
+            if (
+                attachments.length
+                > MAX_ATTACHMENTS
+            ) {
+                throw new Error(
+                    `Es können maximal ${MAX_ATTACHMENTS} Anhänge versendet werden.`
+                )
+            }
+
+            if (
+                getTotalAttachmentSize(
+                    attachments
+                )
+                > MAX_TOTAL_BYTES
+            ) {
+                throw new Error(
+                    'Die Anhänge dürfen zusammen maximal 25 MB groß sein.'
+                )
+            }
+
+            return attachments
         }
 
 
@@ -189,12 +335,49 @@ document.addEventListener(
 
         async function sendMessage(
             mailbox,
-            payload
+            payload,
+            attachments
         ) {
             const url =
                 OC.generateUrl(
                     `/apps/sharedmail/api/mailboxes/${mailbox.id}/compose`
                 )
+
+            const formData =
+                new FormData()
+
+            formData.append(
+                'to',
+                payload.to
+            )
+
+            formData.append(
+                'cc',
+                payload.cc
+            )
+
+            formData.append(
+                'bcc',
+                payload.bcc
+            )
+
+            formData.append(
+                'subject',
+                payload.subject
+            )
+
+            formData.append(
+                'html',
+                payload.html
+            )
+
+            for (const file of attachments) {
+                formData.append(
+                    'attachments[]',
+                    file,
+                    file.name
+                )
+            }
 
             const response =
                 await fetch(
@@ -204,9 +387,12 @@ document.addEventListener(
                             'POST',
 
                         headers: {
-                            'Content-Type':
-                                'application/json',
-
+                            /*
+                             * Content-Type NICHT selbst setzen.
+                             *
+                             * Der Browser erzeugt inklusive
+                             * Boundary automatisch multipart/form-data.
+                             */
                             'Accept':
                                 'application/json',
 
@@ -215,9 +401,7 @@ document.addEventListener(
                         },
 
                         body:
-                            JSON.stringify(
-                                payload
-                            ),
+                            formData,
                     }
                 )
 
@@ -241,17 +425,9 @@ document.addEventListener(
                     data
                 )
 
-                const details =
-                    data?.errorDetails
-                        ? ` ${data.errorDetails}`
-                        : ''
-
                 throw new Error(
-                    (
-                        data?.message
-                        || 'Die Nachricht konnte nicht gesendet werden.'
-                    )
-                    + details
+                    data?.message
+                    || 'Die Nachricht konnte nicht gesendet werden.'
                 )
             }
 
@@ -276,6 +452,9 @@ document.addEventListener(
             }
 
             saveCurrentView()
+
+            let attachments = []
+
 
             const composer =
                 document.createElement(
@@ -414,6 +593,100 @@ document.addEventListener(
             )
 
 
+            /*
+             * Anhänge.
+             */
+            const attachmentArea =
+                document.createElement(
+                    'div'
+                )
+
+            attachmentArea.className =
+                'sharedmail-composer-attachments'
+
+
+            const attachmentToolbar =
+                document.createElement(
+                    'div'
+                )
+
+            attachmentToolbar.className =
+                'sharedmail-composer-attachment-toolbar'
+
+
+            const attachmentButton =
+                document.createElement(
+                    'button'
+                )
+
+            attachmentButton.type =
+                'button'
+
+            attachmentButton.className =
+                'sharedmail-composer-attachment-button'
+
+            attachmentButton.textContent =
+                '📎 Datei anhängen'
+
+
+            const attachmentInput =
+                document.createElement(
+                    'input'
+                )
+
+            attachmentInput.type =
+                'file'
+
+            attachmentInput.multiple =
+                true
+
+            attachmentInput.hidden =
+                true
+
+
+            const attachmentSummary =
+                document.createElement(
+                    'span'
+                )
+
+            attachmentSummary.className =
+                'sharedmail-composer-attachment-summary'
+
+
+            const attachmentList =
+                document.createElement(
+                    'div'
+                )
+
+            attachmentList.className =
+                'sharedmail-composer-attachment-list'
+
+
+            attachmentToolbar.appendChild(
+                attachmentButton
+            )
+
+            attachmentToolbar.appendChild(
+                attachmentSummary
+            )
+
+            attachmentToolbar.appendChild(
+                attachmentInput
+            )
+
+            attachmentArea.appendChild(
+                attachmentToolbar
+            )
+
+            attachmentArea.appendChild(
+                attachmentList
+            )
+
+            composer.appendChild(
+                attachmentArea
+            )
+
+
             const status =
                 document.createElement(
                     'div'
@@ -482,6 +755,156 @@ document.addEventListener(
             messageArea.appendChild(
                 composer
             )
+
+
+            function renderAttachments() {
+                attachmentList.replaceChildren()
+
+                const totalBytes =
+                    getTotalAttachmentSize(
+                        attachments
+                    )
+
+                if (attachments.length === 0) {
+                    attachmentSummary.textContent =
+                        'Keine Anhänge'
+
+                    return
+                }
+
+                attachmentSummary.textContent =
+                    `${attachments.length} Datei${
+                        attachments.length === 1
+                            ? ''
+                            : 'en'
+                    } · ${formatFileSize(totalBytes)}`
+
+
+                attachments.forEach(
+                    (
+                        file,
+                        index
+                    ) => {
+                        const item =
+                            document.createElement(
+                                'div'
+                            )
+
+                        item.className =
+                            'sharedmail-composer-attachment-item'
+
+
+                        const info =
+                            document.createElement(
+                                'span'
+                            )
+
+                        info.className =
+                            'sharedmail-composer-attachment-info'
+
+                        info.textContent =
+                            `${file.name} · ${formatFileSize(file.size)}`
+
+
+                        const removeButton =
+                            document.createElement(
+                                'button'
+                            )
+
+                        removeButton.type =
+                            'button'
+
+                        removeButton.className =
+                            'sharedmail-composer-attachment-remove'
+
+                        removeButton.textContent =
+                            'Entfernen'
+
+                        removeButton.title =
+                            `${file.name} entfernen`
+
+
+                        removeButton.addEventListener(
+                            'click',
+                            () => {
+                                attachments =
+                                    attachments.filter(
+                                        (
+                                            currentFile,
+                                            currentIndex
+                                        ) =>
+                                            currentIndex
+                                            !== index
+                                    )
+
+                                status.textContent =
+                                    ''
+
+                                renderAttachments()
+                            }
+                        )
+
+
+                        item.appendChild(
+                            info
+                        )
+
+                        item.appendChild(
+                            removeButton
+                        )
+
+                        attachmentList.appendChild(
+                            item
+                        )
+                    }
+                )
+            }
+
+
+            attachmentButton.addEventListener(
+                'click',
+                () => {
+                    attachmentInput.click()
+                }
+            )
+
+
+            attachmentInput.addEventListener(
+                'change',
+                () => {
+                    try {
+                        attachments =
+                            validateAttachmentSelection(
+                                attachments,
+                                Array.from(
+                                    attachmentInput.files
+                                    || []
+                                )
+                            )
+
+                        status.textContent =
+                            ''
+
+                        renderAttachments()
+                    } catch (error) {
+                        status.textContent =
+                            error instanceof Error
+                                ? error.message
+                                : 'Der Anhang konnte nicht hinzugefügt werden.'
+                    } finally {
+                        /*
+                         * Input zurücksetzen, damit dieselbe
+                         * Datei nach dem Entfernen erneut
+                         * ausgewählt werden kann.
+                         */
+                        attachmentInput.value =
+                            ''
+                    }
+                }
+            )
+
+
+            renderAttachments()
 
 
             try {
@@ -562,11 +985,20 @@ document.addEventListener(
                     cancelButton.disabled =
                         true
 
+                    attachmentButton.disabled =
+                        true
+
                     sendButton.textContent =
                         'Wird gesendet …'
 
                     status.textContent =
-                        'Nachricht wird versendet …'
+                        attachments.length > 0
+                            ? `Nachricht mit ${attachments.length} Anhang${
+                                attachments.length === 1
+                                    ? ''
+                                    : 'ängen'
+                            } wird versendet …`
+                            : 'Nachricht wird versendet …'
 
                     try {
                         const result =
@@ -594,7 +1026,8 @@ document.addEventListener(
                                         ).trim(),
 
                                     html,
-                                }
+                                },
+                                attachments
                             )
 
                         if (result.warning) {
@@ -611,6 +1044,9 @@ document.addEventListener(
                         savedContent =
                             null
 
+                        attachments =
+                            []
+
                         if (
                             window.SharedMailUI
                             && typeof window.SharedMailUI.reloadCurrentFolder
@@ -620,11 +1056,6 @@ document.addEventListener(
                                 .reloadCurrentFolder()
                         }
 
-                        /*
-                         * Nach erfolgreichem Versand bleibt
-                         * Senden deaktiviert, damit nicht
-                         * versehentlich doppelt gesendet wird.
-                         */
                         sendButton.disabled =
                             true
                     } catch (error) {
@@ -645,6 +1076,9 @@ document.addEventListener(
                             false
 
                         cancelButton.disabled =
+                            false
+
+                        attachmentButton.disabled =
                             false
                     }
                 }

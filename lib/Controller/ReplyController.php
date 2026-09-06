@@ -6,6 +6,7 @@ namespace OCA\SharedMail\Controller;
 
 use InvalidArgumentException;
 use OCA\SharedMail\AppInfo\Application;
+use OCA\SharedMail\Service\AttachmentUploadService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\ReplySendService;
 use OCP\AppFramework\Controller;
@@ -20,6 +21,7 @@ class ReplyController extends Controller
         IRequest $request,
         private readonly MailboxAccessService $mailboxAccessService,
         private readonly ReplySendService $replySendService,
+        private readonly AttachmentUploadService $attachmentUploadService,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -57,6 +59,13 @@ class ReplyController extends Controller
                 );
             }
 
+            $attachments =
+                $this
+                    ->attachmentUploadService
+                    ->getUploadedAttachments(
+                        $this->request
+                    );
+
             $result =
                 $this
                     ->replySendService
@@ -66,7 +75,8 @@ class ReplyController extends Controller
                         $uid,
                         $to,
                         $subject,
-                        $html
+                        $html,
+                        $attachments
                     );
 
             return new JSONResponse([
@@ -108,10 +118,6 @@ class ReplyController extends Controller
                 400
             );
         } catch (Throwable) {
-            /*
-             * Absichtlich keine technischen SMTP-,
-             * IMAP- oder Passwortdetails an den Browser.
-             */
             return new JSONResponse(
                 [
                     'success' =>

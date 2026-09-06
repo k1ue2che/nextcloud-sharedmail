@@ -6,6 +6,7 @@ namespace OCA\SharedMail\Service;
 
 use Horde_Mail_Transport_Smtphorde;
 use Horde_Mime_Mail;
+use Horde_Mime_Part;
 use InvalidArgumentException;
 use OCA\SharedMail\Db\Mailbox;
 use RuntimeException;
@@ -21,6 +22,13 @@ class ComposeSendService
     }
 
     /**
+     * @param array<int, array{
+     *     name: string,
+     *     type: string,
+     *     size: int,
+     *     content: string
+     * }> $attachments
+     *
      * @return array{
      *     messageId: string,
      *     recipients: string[],
@@ -36,6 +44,7 @@ class ComposeSendService
         string $bcc,
         string $subject,
         string $html,
+        array $attachments = [],
     ): array {
         $toRecipients =
             $this->parseRecipients(
@@ -173,7 +182,7 @@ class ComposeSendService
             new Horde_Mime_Mail();
 
         /*
-         * Standard-Header.
+         * Standardheader.
          */
         $mail->addHeader(
             'Date',
@@ -219,7 +228,9 @@ class ComposeSendService
         }
 
         /*
-         * BCC wird bewusst nicht als Header gesetzt.
+         * Kein Bcc-Header:
+         * BCC-Empfänger dürfen nicht in der
+         * gespeicherten Nachricht sichtbar sein.
          */
 
         $mail->setBody(
@@ -242,6 +253,14 @@ class ComposeSendService
         );
 
         /*
+         * Anhänge hinzufügen.
+         */
+        $this->addAttachments(
+            $mail,
+            $attachments
+        );
+
+        /*
          * SMTP-Empfänger:
          * To + CC + BCC.
          */
@@ -252,17 +271,18 @@ class ComposeSendService
         }
 
         /*
-         * ZUERST SMTP senden.
+         * Zuerst senden.
          *
-         * Horde baut dabei den MIME-Base-Part auf.
+         * Horde erzeugt beim send() den vollständigen
+         * MIME-Base-Part.
          */
         $mail->send(
             $transport
         );
 
         /*
-         * Erst NACH send() kann die komplette
-         * RFC822-Nachricht abgefragt werden.
+         * Anschließend exakt diese RFC822-Mail
+         * für Sent auslesen.
          */
         $rawMessage =
             $mail->getRaw();
@@ -277,11 +297,6 @@ class ComposeSendService
         $rawMessage =
             (string)$rawMessage;
 
-        /*
-         * SMTP war erfolgreich.
-         *
-         * Jetzt Kopie im IMAP-Sent speichern.
-         */
         $sentResult =
             $this
                 ->sentMessageService
@@ -311,6 +326,118 @@ class ComposeSendService
     }
 
     /**
+     * @param array<int, array{
+     *     name: string,
+     *     type: string,
+     *     size: int,
+     *     content: string
+     * }> $attachments
+     */
+    private function addAttachments(
+        Horde_Mime_Mail $mail,
+        array $attachments,
+    ): void {
+        if ($attachments === []) {
+            return;
+        }
+
+        if (
+            !method_exists(
+                $mail,
+                'addMimePart'
+            )
+        ) {
+            throw new RuntimeException(
+                'Die installierte Horde-MIME-Version unterstützt keine Anhänge.'
+            );
+        }
+
+        foreach ($attachments as $attachment) {
+            $name =
+                trim(
+                    (string)(
+                        $attachment['name']
+                        ?? ''
+                    )
+                );
+
+            $type =
+                strtolower(
+                    trim(
+                        (string)(
+                            $attachment['type']
+                            ?? ''
+                        )
+                    )
+                );
+
+            $content =
+                $attachment['content']
+                ?? null;
+
+            if ($name === '') {
+                throw new InvalidArgumentException(
+                    'Ein Anhang besitzt keinen gültigen Dateinamen.'
+                );
+            }
+
+            if (!is_string($content)) {
+                throw new InvalidArgumentException(
+                    'Ein Anhang enthält keine gültigen Dateidaten.'
+                );
+            }
+
+            if (
+                preg_match(
+                    '#^[a-z0-9.+-]+/[a-z0-9.+-]+$#i',
+                    $type
+                ) !== 1
+            ) {
+                $type =
+                    'application/octet-stream';
+            }
+
+            $part =
+                new Horde_Mime_Part();
+
+            $part->setType(
+                $type
+            );
+
+            $part->setContents(
+                $content
+            );
+
+            /*
+             * Dateiname und Content-Disposition.
+             */
+            $part->setName(
+                $name
+            );
+
+            $part->setDisposition(
+                'attachment'
+            );
+
+            /*
+             * Binärdaten und auch Textanhänge einheitlich
+             * transportfest als Base64 versenden.
+             */
+            $part->setTransferEncoding(
+                'base64',
+                [
+                    'send' =>
+                        true,
+                ]
+            );
+
+            $mail->addMimePart(
+                $part
+            );
+        }
+    }
+
+    /**
      * @return string[]
      */
     private function parseRecipients(
@@ -325,10 +452,6 @@ class ComposeSendService
             return [];
         }
 
-        /*
-         * Bis zum späteren Adressbuch:
-         * Komma und Semikolon unterstützen.
-         */
         $parts =
             preg_split(
                 '/[;,]+/',
@@ -389,11 +512,6 @@ class ComposeSendService
             return '';
         }
 
-        /*
-         * Beispiel:
-         *
-         * Max Mustermann <max@example.com>
-         */
         if (
             preg_match(
                 '/<([^<>]+)>/',
@@ -412,9 +530,6 @@ class ComposeSendService
     private function sanitizeHeaderValue(
         string $value,
     ): string {
-        /*
-         * Header-Injection verhindern.
-         */
         $value =
             str_replace(
                 [
@@ -438,9 +553,6 @@ class ComposeSendService
     private function sanitizeHtml(
         string $html,
     ): string {
-        /*
-         * Gefährliche Elemente entfernen.
-         */
         $html =
             preg_replace(
                 '#<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*>.*?</\1>#is',
@@ -448,9 +560,6 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
-        /*
-         * Auch einzelne / selbstschließende Elemente entfernen.
-         */
         $html =
             preg_replace(
                 '#<(script|style|iframe|object|embed|form|input|button|textarea|select)\b[^>]*/?>#is',
@@ -458,11 +567,6 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
-        /*
-         * JavaScript-Eventhandler entfernen.
-         *
-         * z. B. onclick="..."
-         */
         $html =
             preg_replace(
                 '/\s+on[a-z]+\s*=\s*(["\']).*?\1/isu',
@@ -470,9 +574,6 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
-        /*
-         * Eventhandler ohne Anführungszeichen.
-         */
         $html =
             preg_replace(
                 '/\s+on[a-z]+\s*=\s*[^\s>]+/isu',
@@ -480,9 +581,6 @@ class ComposeSendService
                 $html
             ) ?? $html;
 
-        /*
-         * javascript:-Links entschärfen.
-         */
         $html =
             preg_replace(
                 '/href\s*=\s*(["\'])\s*javascript:[^"\']*\1/isu',
@@ -498,9 +596,6 @@ class ComposeSendService
     private function htmlToPlainText(
         string $html,
     ): string {
-        /*
-         * Zeilenumbrüche vor strip_tags erhalten.
-         */
         $text =
             preg_replace(
                 '#<br\s*/?>#i',

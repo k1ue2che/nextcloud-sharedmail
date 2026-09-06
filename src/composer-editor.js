@@ -14,7 +14,12 @@ import {
 import 'ckeditor5/ckeditor5.css'
 
 
+const MAX_ATTACHMENTS = 10
+const MAX_FILE_BYTES = 10 * 1024 * 1024
+const MAX_TOTAL_BYTES = 25 * 1024 * 1024
+
 let activeEditor = null
+
 
 function getRequestToken() {
     return (
@@ -50,11 +55,150 @@ function getActiveMailboxId() {
 }
 
 
+function formatFileSize(bytes) {
+    const value =
+        Number(
+            bytes
+            || 0
+        )
+
+    if (value < 1024) {
+        return `${value} B`
+    }
+
+    if (value < 1024 * 1024) {
+        return `${(
+            value / 1024
+        ).toFixed(1)} KB`
+    }
+
+    return `${(
+        value
+        / 1024
+        / 1024
+    ).toFixed(1)} MB`
+}
+
+
+function getTotalAttachmentSize(
+    attachments
+) {
+    return attachments.reduce(
+        (
+            total,
+            file
+        ) =>
+            total
+            + Number(
+                file?.size
+                || 0
+            ),
+        0
+    )
+}
+
+
+function getFileIdentity(
+    file
+) {
+    return [
+        file.name,
+        file.size,
+        file.lastModified,
+    ].join(':')
+}
+
+
+function validateAttachmentSelection(
+    currentAttachments,
+    newFiles
+) {
+    const attachments =
+        [
+            ...currentAttachments,
+        ]
+
+    const existingIds =
+        new Set(
+            attachments.map(
+                getFileIdentity
+            )
+        )
+
+    for (const file of newFiles) {
+        if (
+            !(file instanceof File)
+        ) {
+            continue
+        }
+
+        if (
+            file.size
+            > MAX_FILE_BYTES
+        ) {
+            throw new Error(
+                `Der Anhang "${file.name}" ist größer als 10 MB.`
+            )
+        }
+
+        if (file.size <= 0) {
+            throw new Error(
+                `Der Anhang "${file.name}" ist leer.`
+            )
+        }
+
+        const identity =
+            getFileIdentity(
+                file
+            )
+
+        if (
+            existingIds.has(
+                identity
+            )
+        ) {
+            continue
+        }
+
+        attachments.push(
+            file
+        )
+
+        existingIds.add(
+            identity
+        )
+    }
+
+    if (
+        attachments.length
+        > MAX_ATTACHMENTS
+    ) {
+        throw new Error(
+            `Es können maximal ${MAX_ATTACHMENTS} Anhänge versendet werden.`
+        )
+    }
+
+    if (
+        getTotalAttachmentSize(
+            attachments
+        )
+        > MAX_TOTAL_BYTES
+    ) {
+        throw new Error(
+            'Die Anhänge dürfen zusammen maximal 25 MB groß sein.'
+        )
+    }
+
+    return attachments
+}
+
+
 async function sendReply(
     message,
     to,
     subject,
-    html
+    html,
+    attachments
 ) {
     const mailboxId =
         getActiveMailboxId()
@@ -85,6 +229,37 @@ async function sendReply(
             `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/reply`
         )
 
+    const formData =
+        new FormData()
+
+    formData.append(
+        'folder',
+        folder
+    )
+
+    formData.append(
+        'to',
+        to
+    )
+
+    formData.append(
+        'subject',
+        subject
+    )
+
+    formData.append(
+        'html',
+        html
+    )
+
+    for (const file of attachments) {
+        formData.append(
+            'attachments[]',
+            file,
+            file.name
+        )
+    }
+
     const response =
         await fetch(
             url,
@@ -93,9 +268,10 @@ async function sendReply(
                     'POST',
 
                 headers: {
-                    'Content-Type':
-                        'application/json',
-
+                    /*
+                     * multipart/form-data inklusive Boundary
+                     * setzt der Browser selbst.
+                     */
                     'Accept':
                         'application/json',
 
@@ -104,12 +280,7 @@ async function sendReply(
                 },
 
                 body:
-                    JSON.stringify({
-                        folder,
-                        to,
-                        subject,
-                        html,
-                    }),
+                    formData,
             }
         )
 
@@ -128,6 +299,11 @@ async function sendReply(
         !response.ok
         || !data?.success
     ) {
+        console.error(
+            'SharedMail Reply API Fehler:',
+            data
+        )
+
         throw new Error(
             data?.message
             || 'Die Antwort konnte nicht gesendet werden.'
@@ -136,6 +312,7 @@ async function sendReply(
 
     return data
 }
+
 
 /*
  * Allgemeiner CKEditor-Wrapper.
@@ -260,10 +437,6 @@ function getReplySubject(subject) {
         return 'Re:'
     }
 
-    /*
-     * Bereits vorhandenes Re: nicht
-     * immer wieder vervielfachen.
-     */
     if (
         /^re\s*:/i.test(
             value
@@ -318,14 +491,6 @@ function getMessageDate(message) {
 }
 
 
-/*
- * HTML-Mails werden für das Zitat zunächst
- * in reinen Text umgewandelt.
- *
- * Wir übernehmen bewusst NICHT ungeprüft
- * das HTML einer fremden E-Mail in unseren
- * eigenen Editor.
- */
 function getOriginalMessageText(message) {
     const content =
         String(
@@ -460,29 +625,34 @@ async function openReplyComposer(
     const originalViewer =
         viewer
 
+    let attachments = []
+
 
     /*
-     * Composer-Grundelement.
+     * Composer.
      */
     const composer =
-        document.createElement('div')
+        document.createElement(
+            'div'
+        )
 
     composer.className =
         'sharedmail-composer'
 
 
-    /*
-     * Kopf.
-     */
     const header =
-        document.createElement('div')
+        document.createElement(
+            'div'
+        )
 
     header.className =
         'sharedmail-composer-header'
 
 
     const heading =
-        document.createElement('h2')
+        document.createElement(
+            'h2'
+        )
 
     heading.textContent =
         'Antwort verfassen'
@@ -498,31 +668,39 @@ async function openReplyComposer(
 
 
     /*
-     * Empfänger.
+     * Felder.
      */
     const fields =
-        document.createElement('div')
+        document.createElement(
+            'div'
+        )
 
     fields.className =
         'sharedmail-composer-fields'
 
 
     const toRow =
-        document.createElement('label')
+        document.createElement(
+            'label'
+        )
 
     toRow.className =
         'sharedmail-composer-field'
 
 
     const toLabel =
-        document.createElement('span')
+        document.createElement(
+            'span'
+        )
 
     toLabel.textContent =
         'An'
 
 
     const toInput =
-        document.createElement('input')
+        document.createElement(
+            'input'
+        )
 
     toInput.type =
         'text'
@@ -548,25 +726,28 @@ async function openReplyComposer(
     )
 
 
-    /*
-     * Betreff.
-     */
     const subjectRow =
-        document.createElement('label')
+        document.createElement(
+            'label'
+        )
 
     subjectRow.className =
         'sharedmail-composer-field'
 
 
     const subjectLabel =
-        document.createElement('span')
+        document.createElement(
+            'span'
+        )
 
     subjectLabel.textContent =
         'Betreff'
 
 
     const subjectInput =
-        document.createElement('input')
+        document.createElement(
+            'input'
+        )
 
     subjectInput.type =
         'text'
@@ -606,14 +787,18 @@ async function openReplyComposer(
      * Editor.
      */
     const editorWrapper =
-        document.createElement('div')
+        document.createElement(
+            'div'
+        )
 
     editorWrapper.className =
         'sharedmail-composer-editor-wrapper'
 
 
     const editorElement =
-        document.createElement('div')
+        document.createElement(
+            'div'
+        )
 
     editorElement.className =
         'sharedmail-composer-editor'
@@ -629,16 +814,109 @@ async function openReplyComposer(
 
 
     /*
-     * Statusbereich.
+     * Anhänge.
+     */
+    const attachmentArea =
+        document.createElement(
+            'div'
+        )
+
+    attachmentArea.className =
+        'sharedmail-composer-attachments'
+
+
+    const attachmentToolbar =
+        document.createElement(
+            'div'
+        )
+
+    attachmentToolbar.className =
+        'sharedmail-composer-attachment-toolbar'
+
+
+    const attachmentButton =
+        document.createElement(
+            'button'
+        )
+
+    attachmentButton.type =
+        'button'
+
+    attachmentButton.className =
+        'sharedmail-composer-attachment-button'
+
+    attachmentButton.textContent =
+        '📎 Datei anhängen'
+
+
+    const attachmentInput =
+        document.createElement(
+            'input'
+        )
+
+    attachmentInput.type =
+        'file'
+
+    attachmentInput.multiple =
+        true
+
+    attachmentInput.hidden =
+        true
+
+
+    const attachmentSummary =
+        document.createElement(
+            'span'
+        )
+
+    attachmentSummary.className =
+        'sharedmail-composer-attachment-summary'
+
+
+    const attachmentList =
+        document.createElement(
+            'div'
+        )
+
+    attachmentList.className =
+        'sharedmail-composer-attachment-list'
+
+
+    attachmentToolbar.appendChild(
+        attachmentButton
+    )
+
+    attachmentToolbar.appendChild(
+        attachmentSummary
+    )
+
+    attachmentToolbar.appendChild(
+        attachmentInput
+    )
+
+    attachmentArea.appendChild(
+        attachmentToolbar
+    )
+
+    attachmentArea.appendChild(
+        attachmentList
+    )
+
+    composer.appendChild(
+        attachmentArea
+    )
+
+
+    /*
+     * Status.
      */
     const status =
-        document.createElement('div')
+        document.createElement(
+            'div'
+        )
 
     status.className =
         'sharedmail-composer-status'
-
-    status.textContent =
-        ''
 
     composer.appendChild(
         status
@@ -646,17 +924,21 @@ async function openReplyComposer(
 
 
     /*
-     * Buttons.
+     * Footer.
      */
     const footer =
-        document.createElement('div')
+        document.createElement(
+            'div'
+        )
 
     footer.className =
         'sharedmail-composer-footer'
 
 
     const cancelButton =
-        document.createElement('button')
+        document.createElement(
+            'button'
+        )
 
     cancelButton.type =
         'button'
@@ -669,7 +951,9 @@ async function openReplyComposer(
 
 
     const sendButton =
-        document.createElement('button')
+        document.createElement(
+            'button'
+        )
 
     sendButton.type =
         'button'
@@ -679,7 +963,7 @@ async function openReplyComposer(
 
     sendButton.textContent =
         'Senden'
-   
+
     sendButton.disabled =
         false
 
@@ -700,13 +984,155 @@ async function openReplyComposer(
     )
 
 
-    /*
-     * Viewer durch Composer ersetzen.
-     */
     container.replaceChild(
         composer,
         originalViewer
     )
+
+
+    function renderAttachments() {
+        attachmentList.replaceChildren()
+
+        const totalBytes =
+            getTotalAttachmentSize(
+                attachments
+            )
+
+        if (attachments.length === 0) {
+            attachmentSummary.textContent =
+                'Keine Anhänge'
+
+            return
+        }
+
+        attachmentSummary.textContent =
+            `${attachments.length} Datei${
+                attachments.length === 1
+                    ? ''
+                    : 'en'
+            } · ${formatFileSize(totalBytes)}`
+
+
+        attachments.forEach(
+            (
+                file,
+                index
+            ) => {
+                const item =
+                    document.createElement(
+                        'div'
+                    )
+
+                item.className =
+                    'sharedmail-composer-attachment-item'
+
+
+                const info =
+                    document.createElement(
+                        'span'
+                    )
+
+                info.className =
+                    'sharedmail-composer-attachment-info'
+
+                info.textContent =
+                    `${file.name} · ${formatFileSize(file.size)}`
+
+
+                const removeButton =
+                    document.createElement(
+                        'button'
+                    )
+
+                removeButton.type =
+                    'button'
+
+                removeButton.className =
+                    'sharedmail-composer-attachment-remove'
+
+                removeButton.textContent =
+                    'Entfernen'
+
+                removeButton.title =
+                    `${file.name} entfernen`
+
+
+                removeButton.addEventListener(
+                    'click',
+                    () => {
+                        attachments =
+                            attachments.filter(
+                                (
+                                    currentFile,
+                                    currentIndex
+                                ) =>
+                                    currentIndex
+                                    !== index
+                            )
+
+                        status.textContent =
+                            ''
+
+                        renderAttachments()
+                    }
+                )
+
+
+                item.appendChild(
+                    info
+                )
+
+                item.appendChild(
+                    removeButton
+                )
+
+                attachmentList.appendChild(
+                    item
+                )
+            }
+        )
+    }
+
+
+    attachmentButton.addEventListener(
+        'click',
+        () => {
+            attachmentInput.click()
+        }
+    )
+
+
+    attachmentInput.addEventListener(
+        'change',
+        () => {
+            try {
+                attachments =
+                    validateAttachmentSelection(
+                        attachments,
+                        Array.from(
+                            attachmentInput.files
+                            || []
+                        )
+                    )
+
+                status.textContent =
+                    ''
+
+                renderAttachments()
+            } catch (error) {
+                status.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : 'Der Anhang konnte nicht hinzugefügt werden.'
+            } finally {
+                attachmentInput.value =
+                    ''
+            }
+        }
+    )
+
+
+    renderAttachments()
 
 
     try {
@@ -735,6 +1161,9 @@ async function openReplyComposer(
         async () => {
             await destroyActiveEditor()
 
+            attachments =
+                []
+
             if (
                 composer.parentElement
             ) {
@@ -753,6 +1182,7 @@ async function openReplyComposer(
             }
         }
     )
+
 
     sendButton.addEventListener(
         'click',
@@ -795,7 +1225,8 @@ async function openReplyComposer(
                 status.textContent =
                     'Bitte einen Nachrichtentext eingeben.'
 
-                activeEditor.editing
+                activeEditor
+                    .editing
                     .view
                     .focus()
 
@@ -808,11 +1239,20 @@ async function openReplyComposer(
             cancelButton.disabled =
                 true
 
+            attachmentButton.disabled =
+                true
+
             sendButton.textContent =
                 'Wird gesendet …'
 
             status.textContent =
-                'Antwort wird versendet …'
+                attachments.length > 0
+                    ? `Antwort mit ${attachments.length} Anhang${
+                        attachments.length === 1
+                            ? ''
+                            : 'ängen'
+                    } wird versendet …`
+                    : 'Antwort wird versendet …'
 
             try {
                 const result =
@@ -820,7 +1260,8 @@ async function openReplyComposer(
                         message,
                         to,
                         subject,
-                        html
+                        html,
+                        attachments
                     )
 
                 if (result.warning) {
@@ -830,29 +1271,17 @@ async function openReplyComposer(
                     )
                 }
 
-                /*
-                * Editor zuerst sauber zerstören.
-                */
                 await destroyActiveEditor()
 
+                attachments =
+                    []
 
-                /*
-                * Composer entfernen.
-                */
                 if (
                     composer.parentElement
                 ) {
                     composer.remove()
                 }
 
-
-                /*
-                * Danach komplette aktuelle Mailboxansicht
-                * einschließlich Ordnerzählern neu laden.
-                *
-                * Ergebnis:
-                * Benutzer landet wieder auf der Mailübersicht.
-                */
                 if (
                     window.SharedMailUI
                     && typeof window.SharedMailUI.reloadCurrentFolder
@@ -861,19 +1290,9 @@ async function openReplyComposer(
                     await window.SharedMailUI
                         .reloadCurrentFolder()
                 }
-                /*
-                * Senden bleibt nach Erfolg deaktiviert,
-                * damit dieselbe Antwort nicht versehentlich
-                * doppelt verschickt wird.
-                */
+
                 sendButton.disabled =
                     true
-
-                cancelButton.disabled =
-                    false
-
-                cancelButton.textContent =
-                    'Zurück zur Nachricht'
             } catch (error) {
                 console.error(
                     'SharedMail: Antwort konnte nicht gesendet werden.',
@@ -892,6 +1311,9 @@ async function openReplyComposer(
                     false
 
                 cancelButton.disabled =
+                    false
+
+                attachmentButton.disabled =
                     false
             }
         }
@@ -930,7 +1352,9 @@ function attachReplyButton(
 
 
     const replyButton =
-        document.createElement('button')
+        document.createElement(
+            'button'
+        )
 
     replyButton.type =
         'button'
@@ -954,9 +1378,6 @@ function attachReplyButton(
     )
 
 
-    /*
-     * Antworten ganz vorne in der Aktionsleiste.
-     */
     footer.insertBefore(
         replyButton,
         footer.firstChild
