@@ -34,7 +34,9 @@ class DraftMessageService
      * @return array{
      *     folder: string,
      *     uid: int|null,
-     *     messageId: string
+     *     messageId: string,
+     *     replaced: bool,
+     *     warning: string|null
      * }
      */
     public function saveDraft(
@@ -47,6 +49,7 @@ class DraftMessageService
         array $attachments = [],
         string $sourceFolder = '',
         int $sourceUid = 0,
+        int $replaceDraftUid = 0,
     ): array {
         $to =
             $this->sanitizeDraftField(
@@ -77,6 +80,10 @@ class DraftMessageService
             $sourceUid = 0;
         }
 
+        if ($replaceDraftUid < 0) {
+            $replaceDraftUid = 0;
+        }
+
         $html =
             trim(
                 $html
@@ -99,8 +106,7 @@ class DraftMessageService
         }
 
         /*
-         * Einen vollständig leeren Entwurf brauchen
-         * wir nicht im IMAP-Postfach anzulegen.
+         * Vollständig leere Drafts werden nicht angelegt.
          */
         if (
             $to === ''
@@ -154,11 +160,14 @@ class DraftMessageService
             $client->login();
 
             /*
-             * RFC-konformer Draft:
+             * WICHTIG:
              *
-             * \Draft = Nachricht ist ein Entwurf
-             * \Seen  = eigener Entwurf gilt nicht als
-             *          ungelesene eingegangene Nachricht
+             * Zuerst die neue Draft-Version anlegen.
+             *
+             * Erst wenn das erfolgreich war, darf eine
+             * eventuell vorhandene alte Version entfernt
+             * werden. So verlieren wir bei einem IMAP-
+             * Fehler niemals den bisherigen Entwurf.
              */
             $appendedIds =
                 $client->append(
@@ -176,22 +185,62 @@ class DraftMessageService
                     ]
                 );
 
+            $newDraftUid =
+                $this->extractFirstUid(
+                    $appendedIds
+                );
+
+            $replaced =
+                false;
+
+            $warning =
+                null;
+
             /*
-             * Horde liefert ein Horde_Imap_Client_Ids-
-             * Objekt zurück. Bei UIDPLUS enthält es
-             * die tatsächlich erzeugte UID.
+             * Existierenden Draft ersetzen.
+             *
+             * Wir akzeptieren absichtlich KEINEN
+             * Ordnernamen vom Browser.
+             *
+             * Die alte UID wird ausschließlich aus dem
+             * von uns selbst ermittelten Drafts-Ordner
+             * gelöscht. Dadurch kann dieser Endpunkt nicht
+             * missbraucht werden, um über eine manipulierte
+             * folder-Angabe z.B. eine INBOX-Mail zu löschen.
              */
-            $draftUid = null;
+            if ($replaceDraftUid > 0) {
+                /*
+                 * Falls der IMAP-Server keine neue UID
+                 * zurückliefern konnte, löschen wir sicherheits-
+                 * halber den alten Draft NICHT.
+                 */
+                if ($newDraftUid === null) {
+                    $warning =
+                        'Der neue Entwurf wurde gespeichert, die alte Version konnte aber nicht sicher ersetzt werden.';
+                } elseif (
+                    $newDraftUid
+                    !== $replaceDraftUid
+                ) {
+                    try {
+                        $this->deleteDraftByUid(
+                            $client,
+                            $draftFolder,
+                            $replaceDraftUid
+                        );
 
-            foreach ($appendedIds as $appendedId) {
-                $candidate =
-                    (int)$appendedId;
-
-                if ($candidate > 0) {
-                    $draftUid =
-                        $candidate;
-
-                    break;
+                        $replaced =
+                            true;
+                    } catch (Throwable) {
+                        /*
+                         * Der neue Draft existiert bereits.
+                         *
+                         * Daher niemals den gesamten
+                         * Speichervorgang als fehlgeschlagen
+                         * melden.
+                         */
+                        $warning =
+                            'Der neue Entwurf wurde gespeichert, die vorherige Version konnte aber nicht entfernt werden.';
+                    }
                 }
             }
 
@@ -200,11 +249,19 @@ class DraftMessageService
                     $draftFolder,
 
                 'uid' =>
-                    $draftUid,
+                    $newDraftUid,
 
                 'messageId' =>
                     $messageId,
+
+                'replaced' =>
+                    $replaced,
+
+                'warning' =>
+                    $warning,
             ];
+        } catch (RuntimeException $e) {
+            throw $e;
         } catch (Throwable) {
             throw new RuntimeException(
                 'Der Entwurf konnte nicht im IMAP-Postfach gespeichert werden.'
@@ -216,6 +273,59 @@ class DraftMessageService
                 // Verbindung wird ohnehin beendet.
             }
         }
+    }
+
+    /**
+     * Löscht genau eine Draft-UID.
+     *
+     * Horde kann mit delete=true die Nachricht zunächst
+     * mit \Deleted markieren und anschließend gezielt
+     * expungen.
+     */
+    private function deleteDraftByUid(
+        Horde_Imap_Client_Socket $client,
+        string $draftFolder,
+        int $uid,
+    ): void {
+        if ($uid <= 0) {
+            return;
+        }
+
+        $ids =
+            $client->getIdsOb(
+                $uid,
+                false
+            );
+
+        $client->expunge(
+            $draftFolder,
+            [
+                'ids' =>
+                    $ids,
+
+                'delete' =>
+                    true,
+            ]
+        );
+    }
+
+    private function extractFirstUid(
+        mixed $ids,
+    ): ?int {
+        if (!is_iterable($ids)) {
+            return null;
+        }
+
+        foreach ($ids as $id) {
+            $uid =
+                (int)$id;
+
+            if ($uid > 0) {
+                return $uid;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -241,9 +351,6 @@ class DraftMessageService
         $mail =
             new Horde_Mime_Mail();
 
-        /*
-         * Normale Mail-Header.
-         */
         $mail->addHeader(
             'Date',
             date('r')
@@ -267,13 +374,11 @@ class DraftMessageService
         }
 
         /*
-         * Wir schreiben nur tatsächlich gültige
-         * Adressen in die normalen RFC-Mailheader.
+         * Normale RFC-Header enthalten nur bereits
+         * gültige Mailadressen.
          *
-         * Ein Draft darf aber z.B. auch gerade
-         * "mirko@" im Empfängerfeld enthalten.
-         * Deshalb speichern wir den Originalzustand
-         * zusätzlich in X-SharedMail-Draft-*.
+         * Unfertige Eingaben werden zusätzlich über
+         * X-SharedMail-Draft-* erhalten.
          */
         $toRecipients =
             $this->extractValidRecipients(
@@ -321,13 +426,7 @@ class DraftMessageService
         }
 
         /*
-         * Interner Zustand des Drafts.
-         *
-         * Base64url verhindert problematische
-         * Sonderzeichen/Zeilenumbrüche in Headern.
-         *
-         * Diese Header benötigen wir später beim
-         * Wiederöffnen des Entwurfs.
+         * Shared-Mail-spezifische Draft-Metadaten.
          */
         $mail->addHeader(
             'X-SharedMail-Draft-Version',
@@ -389,10 +488,6 @@ class DraftMessageService
 
         /*
          * Body.
-         *
-         * Auch bei leerem Editor erzeugen wir einen
-         * Plaintext-Body, damit Horde einen regulären
-         * MIME-Baum aufbauen kann.
          */
         $plainText =
             $html !== ''
@@ -423,8 +518,7 @@ class DraftMessageService
         }
 
         /*
-         * Bereits ausgewählte Anhänge gehören
-         * natürlich ebenfalls in den Entwurf.
+         * Anhänge.
          */
         $this->addAttachments(
             $mail,
@@ -432,9 +526,7 @@ class DraftMessageService
         );
 
         /*
-         * Gültige Adressen für Horde registrieren.
-         *
-         * Der Null-Transport sendet nichts.
+         * Gültige Adressen registrieren.
          */
         $allRecipients =
             array_values(
@@ -454,15 +546,7 @@ class DraftMessageService
         }
 
         /*
-         * Ganz wichtig:
-         *
-         * getRaw() alleine funktioniert bei
-         * Horde_Mime_Mail noch nicht, solange
-         * kein Base-Part aufgebaut wurde.
-         *
-         * Der Null-Transport lässt Horde den
-         * MIME-Baum vollständig erzeugen, ohne
-         * die Mail tatsächlich zu versenden.
+         * MIME-Baum aufbauen, ohne SMTP-Versand.
          */
         $mail->send(
             new Horde_Mail_Transport_Null(),
@@ -470,12 +554,7 @@ class DraftMessageService
         );
 
         /*
-         * Horde behandelt BCC beim "Senden"
-         * bewusst speziell und kann den sichtbaren
-         * Bcc-Header entfernen.
-         *
-         * Bei einem Draft muss BCC aber erhalten
-         * bleiben.
+         * BCC muss bei einem Draft erhalten bleiben.
          */
         if (
             method_exists(
@@ -508,15 +587,12 @@ class DraftMessageService
                 );
         }
 
-        if (!is_string($rawMessage)) {
+        if (
+            !is_string($rawMessage)
+            || $rawMessage === ''
+        ) {
             throw new RuntimeException(
                 'Der Entwurf konnte nicht als MIME-Nachricht erzeugt werden.'
-            );
-        }
-
-        if ($rawMessage === '') {
-            throw new RuntimeException(
-                'Der Entwurf enthält keine MIME-Daten.'
             );
         }
 
@@ -614,13 +690,6 @@ class DraftMessageService
     }
 
     /**
-     * Gültige Adressen für die regulären
-     * Mailheader extrahieren.
-     *
-     * Ungültige/halb eingegebene Werte werden
-     * NICHT verworfen – sie stehen weiterhin in
-     * den X-SharedMail-Draft-* Headern.
-     *
      * @return string[]
      */
     private function extractValidRecipients(
@@ -692,11 +761,6 @@ class DraftMessageService
     private function sanitizeDraftField(
         string $value,
     ): string {
-        /*
-         * Der Feldinhalt darf später exakt wieder
-         * angezeigt werden, aber keine Header-
-         * Zeilen einschleusen.
-         */
         return trim(
             str_replace(
                 [
@@ -859,9 +923,6 @@ class DraftMessageService
                     $mailbox
                 );
 
-        /*
-         * Zuerst SPECIAL-USE.
-         */
         foreach ($folders as $folder) {
             if (
                 strtolower(
@@ -885,10 +946,6 @@ class DraftMessageService
             }
         }
 
-        /*
-         * Fallback für IMAP-Server ohne
-         * SPECIAL-USE.
-         */
         $fallbackNames = [
             'Drafts',
             'Draft',

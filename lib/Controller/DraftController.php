@@ -40,6 +40,7 @@ class DraftController extends Controller
         string $html = '',
         string $sourceFolder = '',
         int $sourceUid = 0,
+        int $draftUid = 0,
     ): JSONResponse {
         try {
             $mailbox =
@@ -81,7 +82,8 @@ class DraftController extends Controller
                         $html,
                         $attachments,
                         $sourceFolder,
-                        $sourceUid
+                        $sourceUid,
+                        $draftUid
                     );
 
             return new JSONResponse([
@@ -89,7 +91,9 @@ class DraftController extends Controller
                     true,
 
                 'message' =>
-                    'Der Entwurf wurde gespeichert.',
+                    $result['replaced']
+                        ? 'Der Entwurf wurde aktualisiert.'
+                        : 'Der Entwurf wurde gespeichert.',
 
                 'draftFolder' =>
                     $result['folder'],
@@ -99,6 +103,12 @@ class DraftController extends Controller
 
                 'messageId' =>
                     $result['messageId'],
+
+                'replaced' =>
+                    $result['replaced'],
+
+                'warning' =>
+                    $result['warning'],
             ]);
         } catch (
             InvalidArgumentException $e
@@ -116,11 +126,6 @@ class DraftController extends Controller
         } catch (
             RuntimeException $e
         ) {
-            /*
-             * DraftMessageService liefert nur
-             * bewusst formulierte Runtime-Meldungen
-             * weiter, keine Horde-Interna.
-             */
             return new JSONResponse(
                 [
                     'success' =>
