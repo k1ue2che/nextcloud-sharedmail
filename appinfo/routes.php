@@ -89,7 +89,17 @@ return [
         ],
 
         /*
-         * Entwurf speichern.
+         * Entwurf vollständig zum Bearbeiten laden.
+         */
+        [
+            'name' => 'draft#get',
+            'url' => '/api/mailboxes/{id}/drafts/{uid}',
+            'verb' => 'GET',
+        ],
+
+        /*
+         * Neuen Entwurf speichern oder vorhandenen
+         * Entwurf ersetzen.
          */
         [
             'name' => 'draft#save',
