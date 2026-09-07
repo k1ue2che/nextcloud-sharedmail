@@ -2,674 +2,202 @@
 
 declare(strict_types=1);
 
-namespace OCA\SharedMail\Service;
+namespace OCA\SharedMail\Controller;
 
-use Horde_Imap_Client_Data_Fetch;
-use Horde_Imap_Client_Fetch_Query;
-use Horde_Imap_Client_Socket;
-use Horde_Mime_Headers;
-use OCA\SharedMail\Db\Mailbox;
+use InvalidArgumentException;
+use OCA\SharedMail\AppInfo\Application;
+use OCA\SharedMail\Service\AttachmentUploadService;
+use OCA\SharedMail\Service\DraftMessageService;
+use OCA\SharedMail\Service\DraftReadService;
+use OCA\SharedMail\Service\MailboxAccessService;
+use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
+use OCP\AppFramework\Http\JSONResponse;
+use OCP\IRequest;
 use RuntimeException;
 use Throwable;
 
-class DraftReadService
+class DraftController extends Controller
 {
     public function __construct(
-        private readonly CredentialService $credentialService,
-        private readonly MailboxImapService $mailboxImapService,
+        IRequest $request,
+        private readonly MailboxAccessService $mailboxAccessService,
+        private readonly DraftMessageService $draftMessageService,
+        private readonly DraftReadService $draftReadService,
+        private readonly AttachmentUploadService $attachmentUploadService,
     ) {
-    }
-
-    /**
-     * @return array{
-     *     uid: int,
-     *     folder: string,
-     *     version: string,
-     *     kind: string,
-     *     to: string,
-     *     cc: string,
-     *     bcc: string,
-     *     subject: string,
-     *     sourceFolder: string,
-     *     sourceUid: int,
-     *     body: array{
-     *         type: string,
-     *         content: string
-     *     },
-     *     attachments: array<int, array<string, mixed>>,
-     *     draft: bool
-     * }
-     */
-    public function getDraft(
-        Mailbox $mailbox,
-        int $uid,
-    ): array {
-        if ($uid <= 0) {
-            throw new RuntimeException(
-                'Ungültige Entwurfs-ID.'
-            );
-        }
-
-        $draftFolder =
-            $this->findDraftFolder(
-                $mailbox
-            );
-
-        if ($draftFolder === null) {
-            throw new RuntimeException(
-                'Es wurde kein IMAP-Ordner für Entwürfe gefunden.'
-            );
-        }
-
-        /*
-         * Body + MIME-Struktur + Anhänge verwenden
-         * weiterhin den bereits funktionierenden
-         * MailboxImapService.
-         */
-        $message =
-            $this
-                ->mailboxImapService
-                ->getMessage(
-                    $mailbox,
-                    $draftFolder,
-                    $uid
-                );
-
-        /*
-         * Zusätzlich brauchen wir die echten Header,
-         * weil dort unsere Shared-Mail-Draft-Metadaten
-         * liegen.
-         */
-        [
-            $headers,
-            $isDraft,
-        ] = $this->loadHeaders(
-            $mailbox,
-            $draftFolder,
-            $uid
+        parent::__construct(
+            Application::APP_ID,
+            $request
         );
-
-        $version =
-            trim(
-                (string)(
-                    $headers->getValue(
-                        'X-SharedMail-Draft-Version'
-                    )
-                    ?? ''
-                )
-            );
-
-        $kind =
-            strtolower(
-                trim(
-                    (string)(
-                        $headers->getValue(
-                            'X-SharedMail-Draft-Kind'
-                        )
-                        ?? ''
-                    )
-                )
-            );
-
-        if ($kind !== 'reply') {
-            $kind = 'compose';
-        }
-
-        /*
-         * Unsere X-Header haben Vorrang.
-         *
-         * Das ist besonders wichtig bei unfertigen
-         * Empfängern wie:
-         *
-         * mirko@
-         *
-         * So etwas steht absichtlich nicht im normalen
-         * RFC-To-Header, soll im Editor aber trotzdem
-         * wieder erscheinen.
-         */
-        $to =
-            $this->decodeDraftHeader(
-                $headers,
-                'X-SharedMail-Draft-To'
-            );
-
-        if ($to === null) {
-            $to =
-                $this->formatAddresses(
-                    $message['to']
-                    ?? []
-                );
-        }
-
-        $cc =
-            $this->decodeDraftHeader(
-                $headers,
-                'X-SharedMail-Draft-Cc'
-            );
-
-        if ($cc === null) {
-            $cc =
-                $this->formatAddresses(
-                    $message['cc']
-                    ?? []
-                );
-        }
-
-        $bcc =
-            $this->decodeDraftHeader(
-                $headers,
-                'X-SharedMail-Draft-Bcc'
-            );
-
-        if ($bcc === null) {
-            /*
-             * Fallback für Drafts, die nicht von
-             * Shared Mail erstellt wurden.
-             */
-            $bcc =
-                trim(
-                    (string)(
-                        $headers->getValue(
-                            'Bcc'
-                        )
-                        ?? ''
-                    )
-                );
-        }
-
-        /*
-         * Subject direkt aus dem Header lesen.
-         *
-         * MailboxImapService verwendet für normale
-         * Anzeige "(Kein Betreff)". Im Editor wollen
-         * wir bei leerem Subject aber wirklich "".
-         */
-        $subjectValue =
-            $headers->getValue(
-                'Subject'
-            );
-
-        $subject =
-            $subjectValue !== null
-                ? trim(
-                    (string)$subjectValue
-                )
-                : '';
-
-        if (
-            $subject === ''
-            && isset($message['subject'])
-            && $message['subject'] !== '(Kein Betreff)'
-        ) {
-            $subject =
-                trim(
-                    (string)$message['subject']
-                );
-        }
-
-        $sourceFolder =
-            $this->decodeDraftHeader(
-                $headers,
-                'X-SharedMail-Draft-Source-Folder'
-            )
-            ?? '';
-
-        $sourceUid =
-            (int)(
-                $headers->getValue(
-                    'X-SharedMail-Draft-Source-Uid'
-                )
-                ?? 0
-            );
-
-        if ($sourceUid < 0) {
-            $sourceUid = 0;
-        }
-
-        return [
-            'uid' =>
-                $uid,
-
-            'folder' =>
-                $draftFolder,
-
-            'version' =>
-                $version,
-
-            'kind' =>
-                $kind,
-
-            'to' =>
-                $to,
-
-            'cc' =>
-                $cc,
-
-            'bcc' =>
-                $bcc,
-
-            'subject' =>
-                $subject,
-
-            'sourceFolder' =>
-                $sourceFolder,
-
-            'sourceUid' =>
-                $sourceUid,
-
-            'body' => [
-                'type' =>
-                    (string)(
-                        $message['body']['type']
-                        ?? 'text'
-                    ),
-
-                'content' =>
-                    (string)(
-                        $message['body']['content']
-                        ?? ''
-                    ),
-            ],
-
-            'attachments' =>
-                is_array(
-                    $message['attachments']
-                    ?? null
-                )
-                    ? $message['attachments']
-                    : [],
-
-            /*
-             * Drafts, die von anderen Mailclients
-             * stammen, können theoretisch im Drafts-
-             * Ordner liegen, ohne dass unser eigener
-             * X-Header existiert.
-             *
-             * Deshalb geben wir zusätzlich den
-             * tatsächlichen IMAP-Flag zurück.
-             */
-            'draft' =>
-                $isDraft,
-        ];
     }
 
-    /**
-     * @return array{
-     *     0: Horde_Mime_Headers,
-     *     1: bool
-     * }
-     */
-    private function loadHeaders(
-        Mailbox $mailbox,
-        string $folder,
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
+    public function get(
+        int $id,
         int $uid,
-    ): array {
-        $client =
-            $this->createClient(
-                $mailbox
-            );
-
+    ): JSONResponse {
         try {
-            $client->login();
-
-            /*
-             * false = UID, nicht Sequenznummer.
-             */
-            $ids =
-                $client->getIdsOb(
-                    $uid,
-                    false
-                );
-
-            $query =
-                new Horde_Imap_Client_Fetch_Query();
-
-            /*
-             * peek=true:
-             * Keine globale \Seen-Änderung.
-             */
-            $query->headerText([
-                'peek' =>
-                    true,
-            ]);
-
-            $query->flags();
-            $query->uid();
-
-            $results =
-                $client->fetch(
-                    $folder,
-                    $query,
+            if ($uid <= 0) {
+                return new JSONResponse(
                     [
-                        'ids' =>
-                            $ids,
-                    ]
-                );
-
-            $message =
-                $results->first();
-
-            if (
-                $message === null
-                || $message === false
-            ) {
-                throw new RuntimeException(
-                    'Der Entwurf wurde nicht gefunden.'
+                        'success' => false,
+                        'message' => 'Ungültige Entwurfs-ID.',
+                    ],
+                    400
                 );
             }
 
-            $headers =
-                $message->getHeaderText(
-                    0,
-                    Horde_Imap_Client_Data_Fetch::HEADER_PARSE
-                );
-
-            if (
-                !$headers
-                instanceof Horde_Mime_Headers
-            ) {
-                throw new RuntimeException(
-                    'Die Header des Entwurfs konnten nicht gelesen werden.'
-                );
-            }
-
-            $flags =
-                array_map(
-                    static fn (
-                        mixed $flag
-                    ): string =>
-                        strtolower(
-                            (string)$flag
-                        ),
-                    $message->getFlags()
-                );
-
-            return [
-                $headers,
-
-                in_array(
-                    '\\draft',
-                    $flags,
-                    true
-                ),
-            ];
-        } finally {
-            try {
-                $client->logout();
-            } catch (Throwable) {
-                // Verbindung wird ohnehin beendet.
-            }
-        }
-    }
-
-    private function decodeDraftHeader(
-        Horde_Mime_Headers $headers,
-        string $name,
-    ): ?string {
-        $encoded =
-            $headers->getValue(
-                $name
-            );
-
-        /*
-         * null bedeutet:
-         * Header existiert überhaupt nicht.
-         *
-         * Das ist wichtig für die Fallbacks.
-         */
-        if ($encoded === null) {
-            return null;
-        }
-
-        $encoded =
-            trim(
-                (string)$encoded
-            );
-
-        if ($encoded === '') {
-            return '';
-        }
-
-        /*
-         * Base64url zurück in normales Base64.
-         */
-        $value =
-            strtr(
-                $encoded,
-                '-_',
-                '+/'
-            );
-
-        $remainder =
-            strlen($value)
-            % 4;
-
-        if ($remainder !== 0) {
-            $value .=
-                str_repeat(
-                    '=',
-                    4 - $remainder
-                );
-        }
-
-        $decoded =
-            base64_decode(
-                $value,
-                true
-            );
-
-        if ($decoded === false) {
-            /*
-             * Kaputter Shared-Mail-Header darf nicht
-             * dazu führen, dass der gesamte Draft
-             * nicht mehr geöffnet werden kann.
-             */
-            return null;
-        }
-
-        return $decoded;
-    }
-
-    /**
-     * @param mixed $addresses
-     */
-    private function formatAddresses(
-        mixed $addresses,
-    ): string {
-        if (
-            !is_array($addresses)
-            && !$addresses instanceof \Traversable
-        ) {
-            return '';
-        }
-
-        $result = [];
-
-        foreach ($addresses as $address) {
-            if (!is_array($address)) {
-                continue;
-            }
-
-            $name =
-                trim(
-                    (string)(
-                        $address['name']
-                        ?? ''
-                    )
-                );
-
-            $email =
-                trim(
-                    (string)(
-                        $address['email']
-                        ?? ''
-                    )
-                );
-
-            if (
-                $name !== ''
-                && $email !== ''
-            ) {
-                $result[] =
-                    $name
-                    . ' <'
-                    . $email
-                    . '>';
-
-                continue;
-            }
-
-            if ($email !== '') {
-                $result[] =
-                    $email;
-
-                continue;
-            }
-
-            if ($name !== '') {
-                $result[] =
-                    $name;
-            }
-        }
-
-        return implode(
-            ', ',
-            $result
-        );
-    }
-
-    private function findDraftFolder(
-        Mailbox $mailbox,
-    ): ?string {
-        $folders =
-            $this
-                ->mailboxImapService
-                ->getFolders(
-                    $mailbox
-                );
-
-        /*
-         * SPECIAL-USE hat Vorrang.
-         */
-        foreach ($folders as $folder) {
-            if (
-                strtolower(
-                    (string)(
-                        $folder['specialUse']
-                        ?? ''
-                    )
-                ) === 'drafts'
-            ) {
-                $name =
-                    trim(
-                        (string)(
-                            $folder['name']
-                            ?? ''
-                        )
+            $mailbox =
+                $this
+                    ->mailboxAccessService
+                    ->getAccessibleMailbox(
+                        $id
                     );
 
-                if ($name !== '') {
-                    return $name;
-                }
-            }
-        }
-
-        /*
-         * Fallback für Server ohne SPECIAL-USE.
-         */
-        $fallbackNames = [
-            'Drafts',
-            'Draft',
-            'Entwürfe',
-            'Entwuerfe',
-            'INBOX/Drafts',
-            'INBOX/Draft',
-            'INBOX/Entwürfe',
-            'INBOX/Entwuerfe',
-        ];
-
-        foreach ($fallbackNames as $fallbackName) {
-            foreach ($folders as $folder) {
-                if (
-                    strcasecmp(
-                        (string)(
-                            $folder['name']
-                            ?? ''
-                        ),
-                        $fallbackName
-                    ) === 0
-                ) {
-                    return (string)$folder['name'];
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private function createClient(
-        Mailbox $mailbox,
-    ): Horde_Imap_Client_Socket {
-        $password =
-            $this
-                ->credentialService
-                ->decrypt(
-                    (string)$mailbox->getImapPassword()
+            if ($mailbox === null) {
+                return new JSONResponse(
+                    [
+                        'success' => false,
+                        'message' => 'Kein Zugriff auf dieses Postfach.',
+                    ],
+                    403
                 );
+            }
 
-        return new Horde_Imap_Client_Socket([
-            'username' =>
-                $mailbox->getImapUsername(),
+            $draft =
+                $this
+                    ->draftReadService
+                    ->getDraft(
+                        $mailbox,
+                        $uid
+                    );
 
-            'password' =>
-                $password,
-
-            'hostspec' =>
-                $mailbox->getImapHost(),
-
-            'port' =>
-                $mailbox->getImapPort(),
-
-            'secure' =>
-                $this->normalizeSecurity(
-                    $mailbox->getImapSecurity()
-                ),
-
-            'timeout' =>
-                20,
-
-            'context' => [
-                'ssl' => [
-                    'verify_peer' =>
-                        true,
-
-                    'verify_peer_name' =>
-                        true,
+            return new JSONResponse([
+                'success' => true,
+                'draft' => $draft,
+            ]);
+        } catch (RuntimeException $e) {
+            return new JSONResponse(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
                 ],
-            ],
-        ]);
+                404
+            );
+        } catch (Throwable) {
+            return new JSONResponse(
+                [
+                    'success' => false,
+                    'message' => 'Der Entwurf konnte nicht geladen werden.',
+                ],
+                500
+            );
+        }
     }
 
-    private function normalizeSecurity(
-        string $security,
-    ): string|false {
-        return match (
-            strtolower(
-                trim($security)
-            )
-        ) {
-            'ssl' =>
-                'ssl',
+    #[NoAdminRequired]
+    public function save(
+        int $id,
+        string $to = '',
+        string $cc = '',
+        string $bcc = '',
+        string $subject = '',
+        string $html = '',
+        string $sourceFolder = '',
+        int $sourceUid = 0,
+        int $draftUid = 0,
+    ): JSONResponse {
+        try {
+            $mailbox =
+                $this
+                    ->mailboxAccessService
+                    ->getAccessibleMailbox(
+                        $id
+                    );
 
-            'tls',
-            'starttls' =>
-                'tls',
+            if ($mailbox === null) {
+                return new JSONResponse(
+                    [
+                        'success' => false,
+                        'message' => 'Kein Zugriff auf dieses Postfach.',
+                    ],
+                    403
+                );
+            }
 
-            'none' =>
-                false,
+            $attachments =
+                $this
+                    ->attachmentUploadService
+                    ->getUploadedAttachments(
+                        $this->request
+                    );
 
-            default =>
-                false,
-        };
+            $result =
+                $this
+                    ->draftMessageService
+                    ->saveDraft(
+                        $mailbox,
+                        $to,
+                        $cc,
+                        $bcc,
+                        $subject,
+                        $html,
+                        $attachments,
+                        $sourceFolder,
+                        $sourceUid,
+                        $draftUid
+                    );
+
+            return new JSONResponse([
+                'success' => true,
+
+                'message' =>
+                    $result['replaced']
+                        ? 'Der Entwurf wurde aktualisiert.'
+                        : 'Der Entwurf wurde gespeichert.',
+
+                'draftFolder' =>
+                    $result['folder'],
+
+                'draftUid' =>
+                    $result['uid'],
+
+                'messageId' =>
+                    $result['messageId'],
+
+                'replaced' =>
+                    $result['replaced'],
+
+                'warning' =>
+                    $result['warning'],
+            ]);
+        } catch (InvalidArgumentException $e) {
+            return new JSONResponse(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                400
+            );
+        } catch (RuntimeException $e) {
+            return new JSONResponse(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                500
+            );
+        } catch (Throwable) {
+            return new JSONResponse(
+                [
+                    'success' => false,
+                    'message' => 'Der Entwurf konnte nicht gespeichert werden.',
+                ],
+                500
+            );
+        }
     }
 }
