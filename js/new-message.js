@@ -184,10 +184,6 @@ document.addEventListener(
                         file
                     )
 
-                /*
-                 * Dieselbe Datei nicht versehentlich
-                 * mehrfach hinzufügen.
-                 */
                 if (
                     existingIds.has(
                         identity
@@ -387,16 +383,10 @@ document.addEventListener(
                             'POST',
 
                         headers: {
-                            /*
-                             * Content-Type NICHT selbst setzen.
-                             *
-                             * Der Browser erzeugt inklusive
-                             * Boundary automatisch multipart/form-data.
-                             */
-                            'Accept':
+                            Accept:
                                 'application/json',
 
-                            'requesttoken':
+                            requesttoken:
                                 getRequestToken(),
                         },
 
@@ -435,6 +425,110 @@ document.addEventListener(
         }
 
 
+        async function saveDraft(
+            mailbox,
+            payload,
+            attachments,
+            draftUid
+        ) {
+            const url =
+                OC.generateUrl(
+                    `/apps/sharedmail/api/mailboxes/${mailbox.id}/drafts`
+                )
+
+            const formData =
+                new FormData()
+
+            formData.append(
+                'to',
+                payload.to
+            )
+
+            formData.append(
+                'cc',
+                payload.cc
+            )
+
+            formData.append(
+                'bcc',
+                payload.bcc
+            )
+
+            formData.append(
+                'subject',
+                payload.subject
+            )
+
+            formData.append(
+                'html',
+                payload.html
+            )
+
+            if (draftUid > 0) {
+                formData.append(
+                    'draftUid',
+                    String(draftUid)
+                )
+            }
+
+            for (const file of attachments) {
+                formData.append(
+                    'attachments[]',
+                    file,
+                    file.name
+                )
+            }
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method:
+                            'POST',
+
+                        headers: {
+                            Accept:
+                                'application/json',
+
+                            requesttoken:
+                                getRequestToken(),
+                        },
+
+                        body:
+                            formData,
+                    }
+                )
+
+            let data = null
+
+            try {
+                data =
+                    await response.json()
+            } catch (error) {
+                throw new Error(
+                    'Der Server hat keine gültige Antwort geliefert.'
+                )
+            }
+
+            if (
+                !response.ok
+                || !data?.success
+            ) {
+                console.error(
+                    'SharedMail Draft API Fehler:',
+                    data
+                )
+
+                throw new Error(
+                    data?.message
+                    || 'Der Entwurf konnte nicht gespeichert werden.'
+                )
+            }
+
+            return data
+        }
+
+
         async function openComposer() {
             const mailbox =
                 getActiveMailbox()
@@ -454,6 +548,7 @@ document.addEventListener(
             saveCurrentView()
 
             let attachments = []
+            let currentDraftUid = 0
 
 
             const composer =
@@ -594,7 +689,7 @@ document.addEventListener(
 
 
             /*
-             * Anhänge.
+             * Anhänge
              */
             const attachmentArea =
                 document.createElement(
@@ -700,6 +795,9 @@ document.addEventListener(
             )
 
 
+            /*
+             * Footer
+             */
             const footer =
                 document.createElement(
                     'div'
@@ -724,6 +822,21 @@ document.addEventListener(
                 'Abbrechen'
 
 
+            const draftButton =
+                document.createElement(
+                    'button'
+                )
+
+            draftButton.type =
+                'button'
+
+            draftButton.className =
+                'sharedmail-composer-draft'
+
+            draftButton.textContent =
+                'Entwurf speichern'
+
+
             const sendButton =
                 document.createElement(
                     'button'
@@ -741,6 +854,10 @@ document.addEventListener(
 
             footer.appendChild(
                 cancelButton
+            )
+
+            footer.appendChild(
+                draftButton
             )
 
             footer.appendChild(
@@ -820,9 +937,6 @@ document.addEventListener(
                         removeButton.textContent =
                             'Entfernen'
 
-                        removeButton.title =
-                            `${file.name} entfernen`
-
 
                         removeButton.addEventListener(
                             'click',
@@ -892,11 +1006,6 @@ document.addEventListener(
                                 ? error.message
                                 : 'Der Anhang konnte nicht hinzugefügt werden.'
                     } finally {
-                        /*
-                         * Input zurücksetzen, damit dieselbe
-                         * Datei nach dem Entfernen erneut
-                         * ausgewählt werden kann.
-                         */
                         attachmentInput.value =
                             ''
                     }
@@ -939,6 +1048,138 @@ document.addEventListener(
             )
 
 
+            /*
+             * Entwurf speichern
+             */
+            draftButton.addEventListener(
+                'click',
+                async () => {
+                    if (!activeEditor) {
+                        status.textContent =
+                            'Der Editor ist noch nicht bereit.'
+
+                        return
+                    }
+
+                    const payload = {
+                        to:
+                            String(
+                                toInput.value
+                                || ''
+                            ).trim(),
+
+                        cc:
+                            String(
+                                ccInput.value
+                                || ''
+                            ).trim(),
+
+                        bcc:
+                            String(
+                                bccInput.value
+                                || ''
+                            ).trim(),
+
+                        subject:
+                            String(
+                                subjectInput.value
+                                || ''
+                            ).trim(),
+
+                        html:
+                            String(
+                                activeEditor.getData()
+                                || ''
+                            ).trim(),
+                    }
+
+                    draftButton.disabled =
+                        true
+
+                    sendButton.disabled =
+                        true
+
+                    cancelButton.disabled =
+                        true
+
+                    attachmentButton.disabled =
+                        true
+
+                    const oldText =
+                        draftButton.textContent
+
+                    draftButton.textContent =
+                        'Wird gespeichert …'
+
+                    status.textContent =
+                        'Entwurf wird gespeichert …'
+
+                    try {
+                        const result =
+                            await saveDraft(
+                                mailbox,
+                                payload,
+                                attachments,
+                                currentDraftUid
+                            )
+
+                        const returnedUid =
+                            Number(
+                                result.draftUid
+                                || 0
+                            )
+
+                        if (returnedUid > 0) {
+                            currentDraftUid =
+                                returnedUid
+                        }
+
+                        if (result.warning) {
+                            console.warn(
+                                'SharedMail:',
+                                result.warning
+                            )
+                        }
+
+                        status.textContent =
+                            result.message
+                            || 'Der Entwurf wurde gespeichert.'
+
+                        draftButton.textContent =
+                            'Entwurf aktualisieren'
+                    } catch (error) {
+                        console.error(
+                            'SharedMail: Entwurf konnte nicht gespeichert werden.',
+                            error
+                        )
+
+                        status.textContent =
+                            error instanceof Error
+                                ? error.message
+                                : 'Der Entwurf konnte nicht gespeichert werden.'
+
+                        draftButton.textContent =
+                            oldText
+                    } finally {
+                        draftButton.disabled =
+                            false
+
+                        sendButton.disabled =
+                            false
+
+                        cancelButton.disabled =
+                            false
+
+                        attachmentButton.disabled =
+                            false
+                    }
+                }
+            )
+
+
+            /*
+             * Mail senden
+             */
             sendButton.addEventListener(
                 'click',
                 async () => {
@@ -982,6 +1223,9 @@ document.addEventListener(
                     sendButton.disabled =
                         true
 
+                    draftButton.disabled =
+                        true
+
                     cancelButton.disabled =
                         true
 
@@ -992,13 +1236,7 @@ document.addEventListener(
                         'Wird gesendet …'
 
                     status.textContent =
-                        attachments.length > 0
-                            ? `Nachricht mit ${attachments.length} Anhang${
-                                attachments.length === 1
-                                    ? ''
-                                    : 'ängen'
-                            } wird versendet …`
-                            : 'Nachricht wird versendet …'
+                        'Nachricht wird versendet …'
 
                     try {
                         const result =
@@ -1047,6 +1285,9 @@ document.addEventListener(
                         attachments =
                             []
 
+                        currentDraftUid =
+                            0
+
                         if (
                             window.SharedMailUI
                             && typeof window.SharedMailUI.reloadCurrentFolder
@@ -1055,9 +1296,6 @@ document.addEventListener(
                             await window.SharedMailUI
                                 .reloadCurrentFolder()
                         }
-
-                        sendButton.disabled =
-                            true
                     } catch (error) {
                         console.error(
                             'SharedMail: Nachricht konnte nicht gesendet werden.',
@@ -1073,6 +1311,9 @@ document.addEventListener(
                             'Erneut senden'
 
                         sendButton.disabled =
+                            false
+
+                        draftButton.disabled =
                             false
 
                         cancelButton.disabled =

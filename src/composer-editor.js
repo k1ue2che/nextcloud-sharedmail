@@ -126,9 +126,7 @@ function validateAttachmentSelection(
         )
 
     for (const file of newFiles) {
-        if (
-            !(file instanceof File)
-        ) {
+        if (!(file instanceof File)) {
             continue
         }
 
@@ -190,6 +188,133 @@ function validateAttachmentSelection(
     }
 
     return attachments
+}
+
+
+async function saveReplyDraft(
+    message,
+    to,
+    subject,
+    html,
+    attachments,
+    draftUid
+) {
+    const mailboxId =
+        getActiveMailboxId()
+
+    const sourceUid =
+        Number(
+            message?.uid
+            || 0
+        )
+
+    const sourceFolder =
+        String(
+            message?.folder
+            || 'INBOX'
+        )
+
+    if (
+        mailboxId <= 0
+        || sourceUid <= 0
+    ) {
+        throw new Error(
+            'Postfach oder Nachricht konnte nicht bestimmt werden.'
+        )
+    }
+
+    const url =
+        OC.generateUrl(
+            `/apps/sharedmail/api/mailboxes/${mailboxId}/drafts`
+        )
+
+    const formData =
+        new FormData()
+
+    formData.append(
+        'to',
+        to
+    )
+
+    formData.append(
+        'cc',
+        ''
+    )
+
+    formData.append(
+        'bcc',
+        ''
+    )
+
+    formData.append(
+        'subject',
+        subject
+    )
+
+    formData.append(
+        'html',
+        html
+    )
+
+    formData.append(
+        'sourceFolder',
+        sourceFolder
+    )
+
+    formData.append(
+        'sourceUid',
+        String(sourceUid)
+    )
+
+    if (draftUid > 0) {
+        formData.append(
+            'draftUid',
+            String(draftUid)
+        )
+    }
+
+    for (const file of attachments) {
+        formData.append(
+            'attachments[]',
+            file,
+            file.name
+        )
+    }
+
+    const response =
+        await fetch(
+            url,
+            {
+                method:
+                    'POST',
+
+                headers: {
+                    Accept:
+                        'application/json',
+
+                    requesttoken:
+                        getRequestToken(),
+                },
+
+                body:
+                    formData,
+            }
+        )
+
+    const data =
+        await response.json()
+
+    if (
+        !response.ok
+        || !data?.success
+    ) {
+        throw new Error(
+            data?.message
+            || 'Der Entwurf konnte nicht gespeichert werden.'
+        )
+    }
+
+    return data
 }
 
 
@@ -268,14 +393,10 @@ async function sendReply(
                     'POST',
 
                 headers: {
-                    /*
-                     * multipart/form-data inklusive Boundary
-                     * setzt der Browser selbst.
-                     */
-                    'Accept':
+                    Accept:
                         'application/json',
 
-                    'requesttoken':
+                    requesttoken:
                         getRequestToken(),
                 },
 
@@ -284,26 +405,13 @@ async function sendReply(
             }
         )
 
-    let data = null
-
-    try {
-        data =
-            await response.json()
-    } catch (error) {
-        throw new Error(
-            'Der Server hat keine gültige Antwort geliefert.'
-        )
-    }
+    const data =
+        await response.json()
 
     if (
         !response.ok
         || !data?.success
     ) {
-        console.error(
-            'SharedMail Reply API Fehler:',
-            data
-        )
-
         throw new Error(
             data?.message
             || 'Die Antwort konnte nicht gesendet werden.'
@@ -314,9 +422,6 @@ async function sendReply(
 }
 
 
-/*
- * Allgemeiner CKEditor-Wrapper.
- */
 window.SharedMailEditor = Object.freeze({
     async create(
         element,
@@ -336,12 +441,10 @@ window.SharedMailEditor = Object.freeze({
                 plugins: [
                     Essentials,
                     Paragraph,
-
                     Bold,
                     Italic,
                     Underline,
                     Strikethrough,
-
                     Link,
                     List,
                     BlockQuote,
@@ -351,25 +454,17 @@ window.SharedMailEditor = Object.freeze({
                     items: [
                         'undo',
                         'redo',
-
                         '|',
-
                         'bold',
                         'italic',
                         'underline',
                         'strikethrough',
-
                         '|',
-
                         'link',
-
                         '|',
-
                         'bulletedList',
                         'numberedList',
-
                         '|',
-
                         'blockQuote',
                     ],
 
@@ -537,13 +632,9 @@ function textToParagraphs(text) {
             .replace(/\r/g, '\n')
             .split('\n')
 
-    if (lines.length === 0) {
-        return '<p></p>'
-    }
-
     return lines
         .map(
-            (line) =>
+            line =>
                 line.trim() === ''
                     ? '<p>&nbsp;</p>'
                     : `<p>${escapeHtml(line)}</p>`
@@ -576,9 +667,7 @@ function buildReplyInitialData(message) {
 
     return `
         <p>&nbsp;</p>
-
         <p>${escapeHtml(intro)}</p>
-
         <blockquote>
             ${textToParagraphs(originalText)}
         </blockquote>
@@ -626,11 +715,9 @@ async function openReplyComposer(
         viewer
 
     let attachments = []
+    let currentDraftUid = 0
 
 
-    /*
-     * Composer.
-     */
     const composer =
         document.createElement(
             'div'
@@ -667,9 +754,6 @@ async function openReplyComposer(
     )
 
 
-    /*
-     * Felder.
-     */
     const fields =
         document.createElement(
             'div'
@@ -712,9 +796,6 @@ async function openReplyComposer(
         getAddressText(
             message.from
         )
-
-    toInput.autocomplete =
-        'off'
 
 
     toRow.appendChild(
@@ -783,9 +864,6 @@ async function openReplyComposer(
     )
 
 
-    /*
-     * Editor.
-     */
     const editorWrapper =
         document.createElement(
             'div'
@@ -813,9 +891,6 @@ async function openReplyComposer(
     )
 
 
-    /*
-     * Anhänge.
-     */
     const attachmentArea =
         document.createElement(
             'div'
@@ -825,15 +900,6 @@ async function openReplyComposer(
         'sharedmail-composer-attachments'
 
 
-    const attachmentToolbar =
-        document.createElement(
-            'div'
-        )
-
-    attachmentToolbar.className =
-        'sharedmail-composer-attachment-toolbar'
-
-
     const attachmentButton =
         document.createElement(
             'button'
@@ -841,9 +907,6 @@ async function openReplyComposer(
 
     attachmentButton.type =
         'button'
-
-    attachmentButton.className =
-        'sharedmail-composer-attachment-button'
 
     attachmentButton.textContent =
         '📎 Datei anhängen'
@@ -864,15 +927,6 @@ async function openReplyComposer(
         true
 
 
-    const attachmentSummary =
-        document.createElement(
-            'span'
-        )
-
-    attachmentSummary.className =
-        'sharedmail-composer-attachment-summary'
-
-
     const attachmentList =
         document.createElement(
             'div'
@@ -882,20 +936,12 @@ async function openReplyComposer(
         'sharedmail-composer-attachment-list'
 
 
-    attachmentToolbar.appendChild(
+    attachmentArea.appendChild(
         attachmentButton
     )
 
-    attachmentToolbar.appendChild(
-        attachmentSummary
-    )
-
-    attachmentToolbar.appendChild(
-        attachmentInput
-    )
-
     attachmentArea.appendChild(
-        attachmentToolbar
+        attachmentInput
     )
 
     attachmentArea.appendChild(
@@ -907,9 +953,6 @@ async function openReplyComposer(
     )
 
 
-    /*
-     * Status.
-     */
     const status =
         document.createElement(
             'div'
@@ -923,9 +966,6 @@ async function openReplyComposer(
     )
 
 
-    /*
-     * Footer.
-     */
     const footer =
         document.createElement(
             'div'
@@ -943,11 +983,23 @@ async function openReplyComposer(
     cancelButton.type =
         'button'
 
-    cancelButton.className =
-        'sharedmail-composer-cancel'
-
     cancelButton.textContent =
         'Abbrechen'
+
+
+    const draftButton =
+        document.createElement(
+            'button'
+        )
+
+    draftButton.type =
+        'button'
+
+    draftButton.className =
+        'sharedmail-composer-draft'
+
+    draftButton.textContent =
+        'Entwurf speichern'
 
 
     const sendButton =
@@ -964,15 +1016,13 @@ async function openReplyComposer(
     sendButton.textContent =
         'Senden'
 
-    sendButton.disabled =
-        false
-
-    sendButton.title =
-        'Antwort senden'
-
 
     footer.appendChild(
         cancelButton
+    )
+
+    footer.appendChild(
+        draftButton
     )
 
     footer.appendChild(
@@ -993,26 +1043,6 @@ async function openReplyComposer(
     function renderAttachments() {
         attachmentList.replaceChildren()
 
-        const totalBytes =
-            getTotalAttachmentSize(
-                attachments
-            )
-
-        if (attachments.length === 0) {
-            attachmentSummary.textContent =
-                'Keine Anhänge'
-
-            return
-        }
-
-        attachmentSummary.textContent =
-            `${attachments.length} Datei${
-                attachments.length === 1
-                    ? ''
-                    : 'en'
-            } · ${formatFileSize(totalBytes)}`
-
-
         attachments.forEach(
             (
                 file,
@@ -1032,9 +1062,6 @@ async function openReplyComposer(
                         'span'
                     )
 
-                info.className =
-                    'sharedmail-composer-attachment-info'
-
                 info.textContent =
                     `${file.name} · ${formatFileSize(file.size)}`
 
@@ -1047,14 +1074,8 @@ async function openReplyComposer(
                 removeButton.type =
                     'button'
 
-                removeButton.className =
-                    'sharedmail-composer-attachment-remove'
-
                 removeButton.textContent =
                     'Entfernen'
-
-                removeButton.title =
-                    `${file.name} entfernen`
 
 
                 removeButton.addEventListener(
@@ -1066,12 +1087,8 @@ async function openReplyComposer(
                                     currentFile,
                                     currentIndex
                                 ) =>
-                                    currentIndex
-                                    !== index
+                                    currentIndex !== index
                             )
-
-                        status.textContent =
-                            ''
 
                         renderAttachments()
                     }
@@ -1115,9 +1132,6 @@ async function openReplyComposer(
                         )
                     )
 
-                status.textContent =
-                    ''
-
                 renderAttachments()
             } catch (error) {
                 status.textContent =
@@ -1132,9 +1146,6 @@ async function openReplyComposer(
     )
 
 
-    renderAttachments()
-
-
     try {
         activeEditor =
             await window.SharedMailEditor.create(
@@ -1144,11 +1155,6 @@ async function openReplyComposer(
                 )
             )
     } catch (error) {
-        console.error(
-            'SharedMail: Antworteditor konnte nicht gestartet werden.',
-            error
-        )
-
         status.textContent =
             'Der Antworteditor konnte nicht geladen werden.'
 
@@ -1161,24 +1167,87 @@ async function openReplyComposer(
         async () => {
             await destroyActiveEditor()
 
-            attachments =
-                []
-
-            if (
-                composer.parentElement
-            ) {
+            if (composer.parentElement) {
                 composer.parentElement
                     .replaceChild(
                         originalViewer,
                         composer
                     )
             }
+        }
+    )
 
-            if (
-                typeof options.onCancel
-                === 'function'
-            ) {
-                options.onCancel()
+
+    draftButton.addEventListener(
+        'click',
+        async () => {
+            if (!activeEditor) {
+                return
+            }
+
+            draftButton.disabled =
+                true
+
+            sendButton.disabled =
+                true
+
+            cancelButton.disabled =
+                true
+
+            status.textContent =
+                'Entwurf wird gespeichert …'
+
+            try {
+                const result =
+                    await saveReplyDraft(
+                        message,
+                        String(
+                            toInput.value
+                            || ''
+                        ).trim(),
+                        String(
+                            subjectInput.value
+                            || ''
+                        ).trim(),
+                        String(
+                            activeEditor.getData()
+                            || ''
+                        ).trim(),
+                        attachments,
+                        currentDraftUid
+                    )
+
+                const uid =
+                    Number(
+                        result.draftUid
+                        || 0
+                    )
+
+                if (uid > 0) {
+                    currentDraftUid =
+                        uid
+                }
+
+                status.textContent =
+                    result.message
+                    || 'Der Entwurf wurde gespeichert.'
+
+                draftButton.textContent =
+                    'Entwurf aktualisieren'
+            } catch (error) {
+                status.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : 'Der Entwurf konnte nicht gespeichert werden.'
+            } finally {
+                draftButton.disabled =
+                    false
+
+                sendButton.disabled =
+                    false
+
+                cancelButton.disabled =
+                    false
             }
         }
     )
@@ -1188,9 +1257,6 @@ async function openReplyComposer(
         'click',
         async () => {
             if (!activeEditor) {
-                status.textContent =
-                    'Der Editor ist noch nicht bereit.'
-
                 return
             }
 
@@ -1216,43 +1282,20 @@ async function openReplyComposer(
                 status.textContent =
                     'Bitte einen Empfänger angeben.'
 
-                toInput.focus()
-
-                return
-            }
-
-            if (html === '') {
-                status.textContent =
-                    'Bitte einen Nachrichtentext eingeben.'
-
-                activeEditor
-                    .editing
-                    .view
-                    .focus()
-
                 return
             }
 
             sendButton.disabled =
                 true
 
+            draftButton.disabled =
+                true
+
             cancelButton.disabled =
                 true
 
-            attachmentButton.disabled =
-                true
-
-            sendButton.textContent =
-                'Wird gesendet …'
-
             status.textContent =
-                attachments.length > 0
-                    ? `Antwort mit ${attachments.length} Anhang${
-                        attachments.length === 1
-                            ? ''
-                            : 'ängen'
-                    } wird versendet …`
-                    : 'Antwort wird versendet …'
+                'Antwort wird versendet …'
 
             try {
                 const result =
@@ -1273,12 +1316,10 @@ async function openReplyComposer(
 
                 await destroyActiveEditor()
 
-                attachments =
-                    []
+                currentDraftUid =
+                    0
 
-                if (
-                    composer.parentElement
-                ) {
+                if (composer.parentElement) {
                     composer.remove()
                 }
 
@@ -1290,30 +1331,19 @@ async function openReplyComposer(
                     await window.SharedMailUI
                         .reloadCurrentFolder()
                 }
-
-                sendButton.disabled =
-                    true
             } catch (error) {
-                console.error(
-                    'SharedMail: Antwort konnte nicht gesendet werden.',
-                    error
-                )
-
                 status.textContent =
                     error instanceof Error
                         ? error.message
                         : 'Die Antwort konnte nicht gesendet werden.'
 
-                sendButton.textContent =
-                    'Erneut senden'
-
                 sendButton.disabled =
                     false
 
-                cancelButton.disabled =
+                draftButton.disabled =
                     false
 
-                attachmentButton.disabled =
+                cancelButton.disabled =
                     false
             }
         }
@@ -1349,7 +1379,6 @@ function attachReplyButton(
     if (!footer) {
         return
     }
-
 
     const replyButton =
         document.createElement(
