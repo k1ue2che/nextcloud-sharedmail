@@ -18,26 +18,45 @@ document.addEventListener(
             return
         }
 
+
+        /*
+         * Attachment-Limits müssen mit
+         * AttachmentUploadService übereinstimmen.
+         */
         const MAX_ATTACHMENTS = 10
         const MAX_FILE_BYTES = 10 * 1024 * 1024
         const MAX_TOTAL_BYTES = 25 * 1024 * 1024
 
+
         let activeEditor = null
         let savedContent = null
+        let draftOpenInProgress = false
 
 
         function getRequestToken() {
-            return (
-                window.OC?.requestToken
-                || document
-                    .querySelector(
-                        'head meta[name="requesttoken"]'
-                    )
-                    ?.getAttribute(
+            if (
+                window.OC
+                && typeof OC.requestToken === 'string'
+                && OC.requestToken !== ''
+            ) {
+                return OC.requestToken
+            }
+
+            const meta =
+                document.querySelector(
+                    'head meta[name="requesttoken"]'
+                )
+
+            if (meta) {
+                return (
+                    meta.getAttribute(
                         'content'
                     )
-                || ''
-            )
+                    || ''
+                )
+            }
+
+            return ''
         }
 
 
@@ -63,7 +82,10 @@ document.addEventListener(
                     || 0
                 )
 
-            if (id <= 0) {
+            if (
+                !Number.isInteger(id)
+                || id <= 0
+            ) {
                 return null
             }
 
@@ -87,6 +109,100 @@ document.addEventListener(
         }
 
 
+        function escapeHtml(value) {
+            return String(
+                value
+                ?? ''
+            )
+                .replaceAll(
+                    '&',
+                    '&amp;'
+                )
+                .replaceAll(
+                    '<',
+                    '&lt;'
+                )
+                .replaceAll(
+                    '>',
+                    '&gt;'
+                )
+                .replaceAll(
+                    '"',
+                    '&quot;'
+                )
+                .replaceAll(
+                    "'",
+                    '&#039;'
+                )
+        }
+
+
+        function plainTextToHtml(value) {
+            const text =
+                String(
+                    value
+                    || ''
+                )
+                    .replace(
+                        /\r\n/g,
+                        '\n'
+                    )
+                    .replace(
+                        /\r/g,
+                        '\n'
+                    )
+
+            if (text === '') {
+                return '<p></p>'
+            }
+
+            return text
+                .split('\n')
+                .map(
+                    (line) => {
+                        if (line === '') {
+                            return '<p>&nbsp;</p>'
+                        }
+
+                        return (
+                            '<p>'
+                            + escapeHtml(line)
+                            + '</p>'
+                        )
+                    }
+                )
+                .join('')
+        }
+
+
+        function getDraftInitialHtml(
+            draft
+        ) {
+            const content =
+                String(
+                    draft?.body?.content
+                    || ''
+                )
+
+            if (
+                String(
+                    draft?.body?.type
+                    || ''
+                ).toLowerCase() === 'html'
+            ) {
+                return (
+                    content !== ''
+                        ? content
+                        : '<p></p>'
+                )
+            }
+
+            return plainTextToHtml(
+                content
+            )
+        }
+
+
         function formatFileSize(bytes) {
             const value =
                 Number(
@@ -98,17 +214,25 @@ document.addEventListener(
                 return `${value} B`
             }
 
-            if (value < 1024 * 1024) {
-                return `${(
-                    value / 1024
-                ).toFixed(1)} KB`
+            if (
+                value
+                < 1024 * 1024
+            ) {
+                return `${
+                    (
+                        value
+                        / 1024
+                    ).toFixed(1)
+                } KB`
             }
 
-            return `${(
-                value
-                / 1024
-                / 1024
-            ).toFixed(1)} MB`
+            return `${
+                (
+                    value
+                    / 1024
+                    / 1024
+                ).toFixed(1)
+            } MB`
         }
 
 
@@ -119,12 +243,15 @@ document.addEventListener(
                 (
                     total,
                     file
-                ) =>
-                    total
-                    + Number(
-                        file?.size
-                        || 0
-                    ),
+                ) => {
+                    return (
+                        total
+                        + Number(
+                            file?.size
+                            || 0
+                        )
+                    )
+                },
                 0
             )
         }
@@ -145,10 +272,9 @@ document.addEventListener(
             currentAttachments,
             newFiles
         ) {
-            const attachments =
-                [
-                    ...currentAttachments,
-                ]
+            const attachments = [
+                ...currentAttachments,
+            ]
 
             const existingIds =
                 new Set(
@@ -206,7 +332,7 @@ document.addEventListener(
                 > MAX_ATTACHMENTS
             ) {
                 throw new Error(
-                    `Es können maximal ${MAX_ATTACHMENTS} Anhänge versendet werden.`
+                    `Es können maximal ${MAX_ATTACHMENTS} Anhänge verwendet werden.`
                 )
             }
 
@@ -234,7 +360,7 @@ document.addEventListener(
                 await activeEditor.destroy()
             } catch (error) {
                 console.error(
-                    'SharedMail: Editor konnte nicht beendet werden.',
+                    'SharedMail: Editor konnte nicht sauber beendet werden.',
                     error
                 )
             }
@@ -273,6 +399,26 @@ document.addEventListener(
 
             savedContent =
                 null
+        }
+
+
+        async function reloadPreviousView() {
+            await destroyEditor()
+
+            messageArea.replaceChildren()
+
+            savedContent =
+                null
+
+            if (
+                window.SharedMailUI
+                && typeof window.SharedMailUI
+                    .reloadCurrentFolder
+                    === 'function'
+            ) {
+                await window.SharedMailUI
+                    .reloadCurrentFolder()
+            }
         }
 
 
@@ -329,6 +475,179 @@ document.addEventListener(
         }
 
 
+        async function getDraft(
+            mailbox,
+            uid
+        ) {
+            const url =
+                OC.generateUrl(
+                    `/apps/sharedmail/api/mailboxes/${mailbox.id}/drafts/${uid}`
+                )
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method:
+                            'GET',
+
+                        headers: {
+                            Accept:
+                                'application/json',
+                        },
+                    }
+                )
+
+            let data = null
+
+            try {
+                data =
+                    await response.json()
+            } catch (error) {
+                throw new Error(
+                    'Der Server hat keine gültige Antwort geliefert.'
+                )
+            }
+
+            if (
+                !response.ok
+                || !data?.success
+                || !data?.draft
+            ) {
+                throw new Error(
+                    data?.message
+                    || 'Der Entwurf konnte nicht geladen werden.'
+                )
+            }
+
+            return data.draft
+        }
+
+
+        function getDraftAttachmentUrl(
+            mailbox,
+            draft,
+            attachment
+        ) {
+            return (
+                OC.generateUrl(
+                    `/apps/sharedmail/api/mailboxes/${mailbox.id}/messages/${draft.uid}/attachment`
+                )
+                + '?folder='
+                + encodeURIComponent(
+                    draft.folder
+                    || 'Drafts'
+                )
+                + '&mimeId='
+                + encodeURIComponent(
+                    attachment.mimeId
+                )
+            )
+        }
+
+
+        async function loadDraftAttachments(
+            mailbox,
+            draft
+        ) {
+            const metadata =
+                Array.isArray(
+                    draft?.attachments
+                )
+                    ? draft.attachments
+                    : []
+
+            if (
+                metadata.length
+                === 0
+            ) {
+                return []
+            }
+
+            const files = []
+
+            for (
+                const attachment
+                of metadata
+            ) {
+                const mimeId =
+                    String(
+                        attachment?.mimeId
+                        || ''
+                    )
+
+                if (mimeId === '') {
+                    throw new Error(
+                        'Ein Anhang besitzt keine gültige MIME-ID.'
+                    )
+                }
+
+                const response =
+                    await fetch(
+                        getDraftAttachmentUrl(
+                            mailbox,
+                            draft,
+                            attachment
+                        ),
+                        {
+                            method:
+                                'GET',
+
+                            headers: {
+                                Accept:
+                                    '*/*',
+                            },
+                        }
+                    )
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Der Anhang "${
+                            attachment.name
+                            || 'Anhang'
+                        }" konnte nicht geladen werden.`
+                    )
+                }
+
+                const blob =
+                    await response.blob()
+
+                const name =
+                    String(
+                        attachment.name
+                        || 'Anhang'
+                    )
+
+                const type =
+                    String(
+                        attachment.contentType
+                        || blob.type
+                        || 'application/octet-stream'
+                    )
+
+                files.push(
+                    new File(
+                        [
+                            blob,
+                        ],
+                        name,
+                        {
+                            type,
+
+                            lastModified:
+                                Date.now(),
+                        }
+                    )
+                )
+            }
+
+            return validateAttachmentSelection(
+                [],
+                files
+            )
+        }
+
+
         async function sendMessage(
             mailbox,
             payload,
@@ -367,7 +686,10 @@ document.addEventListener(
                 payload.html
             )
 
-            for (const file of attachments) {
+            for (
+                const file
+                of attachments
+            ) {
                 formData.append(
                     'attachments[]',
                     file,
@@ -425,11 +747,129 @@ document.addEventListener(
         }
 
 
+        async function sendReplyDraft(
+            mailbox,
+            draft,
+            payload,
+            attachments
+        ) {
+            const sourceUid =
+                Number(
+                    draft?.sourceUid
+                    || 0
+                )
+
+            const sourceFolder =
+                String(
+                    draft?.sourceFolder
+                    || ''
+                )
+
+            if (
+                sourceUid <= 0
+                || sourceFolder === ''
+            ) {
+                throw new Error(
+                    'Die Originalnachricht der Antwort konnte nicht bestimmt werden.'
+                )
+            }
+
+            const url =
+                OC.generateUrl(
+                    `/apps/sharedmail/api/mailboxes/${mailbox.id}/messages/${sourceUid}/reply`
+                )
+
+            const formData =
+                new FormData()
+
+            formData.append(
+                'folder',
+                sourceFolder
+            )
+
+            formData.append(
+                'to',
+                payload.to
+            )
+
+            formData.append(
+                'subject',
+                payload.subject
+            )
+
+            formData.append(
+                'html',
+                payload.html
+            )
+
+            for (
+                const file
+                of attachments
+            ) {
+                formData.append(
+                    'attachments[]',
+                    file,
+                    file.name
+                )
+            }
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method:
+                            'POST',
+
+                        headers: {
+                            Accept:
+                                'application/json',
+
+                            requesttoken:
+                                getRequestToken(),
+                        },
+
+                        body:
+                            formData,
+                    }
+                )
+
+            let data = null
+
+            try {
+                data =
+                    await response.json()
+            } catch (error) {
+                throw new Error(
+                    'Der Server hat keine gültige Antwort geliefert.'
+                )
+            }
+
+            if (
+                !response.ok
+                || !data?.success
+            ) {
+                console.error(
+                    'SharedMail Reply API Fehler:',
+                    data
+                )
+
+                throw new Error(
+                    data?.message
+                    || 'Die Antwort konnte nicht gesendet werden.'
+                )
+            }
+
+            return data
+        }
+
+
         async function saveDraft(
             mailbox,
             payload,
             attachments,
-            draftUid
+            draftUid,
+            sourceFolder = '',
+            sourceUid = 0
         ) {
             const url =
                 OC.generateUrl(
@@ -464,14 +904,35 @@ document.addEventListener(
                 payload.html
             )
 
-            if (draftUid > 0) {
+            if (
+                Number(draftUid)
+                > 0
+            ) {
                 formData.append(
                     'draftUid',
                     String(draftUid)
                 )
             }
 
-            for (const file of attachments) {
+            if (
+                sourceFolder !== ''
+                && Number(sourceUid) > 0
+            ) {
+                formData.append(
+                    'sourceFolder',
+                    sourceFolder
+                )
+
+                formData.append(
+                    'sourceUid',
+                    String(sourceUid)
+                )
+            }
+
+            for (
+                const file
+                of attachments
+            ) {
                 formData.append(
                     'attachments[]',
                     file,
@@ -529,7 +990,9 @@ document.addEventListener(
         }
 
 
-        async function openComposer() {
+        async function openComposer(
+            initialDraft = null
+        ) {
             const mailbox =
                 getActiveMailbox()
 
@@ -545,10 +1008,75 @@ document.addEventListener(
                 return
             }
 
+
+            /*
+             * Nicht mehrere New-Mail/Draft-Composer
+             * gleichzeitig öffnen.
+             */
+            if (activeEditor) {
+                return
+            }
+
+
             saveCurrentView()
 
+
+            const isDraft =
+                initialDraft !== null
+                && Number(
+                    initialDraft?.uid
+                    || 0
+                ) > 0
+
+
+            const draftKind =
+                String(
+                    initialDraft?.kind
+                    || 'compose'
+                )
+                    .trim()
+                    .toLowerCase()
+
+
+            const isReplyDraft =
+                isDraft
+                && draftKind === 'reply'
+
+
+            const sourceFolder =
+                String(
+                    initialDraft?.sourceFolder
+                    || ''
+                )
+
+
+            const sourceUid =
+                Number(
+                    initialDraft?.sourceUid
+                    || 0
+                )
+
+
             let attachments = []
-            let currentDraftUid = 0
+
+
+            let currentDraftUid =
+                isDraft
+                    ? Number(
+                        initialDraft.uid
+                    )
+                    : 0
+
+
+            /*
+             * Nach einem erfolgreichen Draft-Update
+             * ist die gespeicherte Nachrichtenliste
+             * veraltet, weil sich die IMAP-UID ändert.
+             *
+             * Dann beim Abbrechen neu laden.
+             */
+            let viewNeedsReload =
+                false
 
 
             const composer =
@@ -574,8 +1102,16 @@ document.addEventListener(
                     'h2'
                 )
 
-            heading.textContent =
-                'Neue Nachricht'
+            if (isReplyDraft) {
+                heading.textContent =
+                    'Antwortentwurf bearbeiten'
+            } else if (isDraft) {
+                heading.textContent =
+                    'Entwurf bearbeiten'
+            } else {
+                heading.textContent =
+                    'Neue Nachricht'
+            }
 
 
             composerHeader.appendChild(
@@ -587,6 +1123,9 @@ document.addEventListener(
             )
 
 
+            /*
+             * Felder
+             */
             const fields =
                 document.createElement(
                     'div'
@@ -611,14 +1150,41 @@ document.addEventListener(
             const toInput =
                 createInput()
 
+            toInput.value =
+                String(
+                    initialDraft?.to
+                    || ''
+                )
+
+
             const ccInput =
                 createInput()
+
+            ccInput.value =
+                String(
+                    initialDraft?.cc
+                    || ''
+                )
+
 
             const bccInput =
                 createInput()
 
+            bccInput.value =
+                String(
+                    initialDraft?.bcc
+                    || ''
+                )
+
+
             const subjectInput =
                 createInput()
+
+            subjectInput.value =
+                String(
+                    initialDraft?.subject
+                    || ''
+                )
 
 
             fields.appendChild(
@@ -635,19 +1201,32 @@ document.addEventListener(
                 )
             )
 
-            fields.appendChild(
-                createField(
-                    'CC',
-                    ccInput
-                )
-            )
 
-            fields.appendChild(
-                createField(
-                    'BCC',
-                    bccInput
+            /*
+             * Reply-Komposer unterstützt aktuell
+             * serverseitig noch kein CC/BCC.
+             *
+             * Deshalb bei Antwortentwürfen nicht
+             * anzeigen, damit kein Feld scheinbar
+             * gespeichert/versendet wird, obwohl
+             * der Reply-Endpunkt es nicht verarbeitet.
+             */
+            if (!isReplyDraft) {
+                fields.appendChild(
+                    createField(
+                        'CC',
+                        ccInput
+                    )
                 )
-            )
+
+                fields.appendChild(
+                    createField(
+                        'BCC',
+                        bccInput
+                    )
+                )
+            }
+
 
             fields.appendChild(
                 createField(
@@ -656,11 +1235,15 @@ document.addEventListener(
                 )
             )
 
+
             composer.appendChild(
                 fields
             )
 
 
+            /*
+             * CKEditor
+             */
             const editorWrapper =
                 document.createElement(
                     'div'
@@ -782,6 +1365,9 @@ document.addEventListener(
             )
 
 
+            /*
+             * Status
+             */
             const status =
                 document.createElement(
                     'div'
@@ -834,7 +1420,9 @@ document.addEventListener(
                 'sharedmail-composer-draft'
 
             draftButton.textContent =
-                'Entwurf speichern'
+                isDraft
+                    ? 'Entwurf aktualisieren'
+                    : 'Entwurf speichern'
 
 
             const sendButton =
@@ -874,6 +1462,23 @@ document.addEventListener(
             )
 
 
+            function setBusy(
+                busy
+            ) {
+                draftButton.disabled =
+                    busy
+
+                sendButton.disabled =
+                    busy
+
+                cancelButton.disabled =
+                    busy
+
+                attachmentButton.disabled =
+                    busy
+            }
+
+
             function renderAttachments() {
                 attachmentList.replaceChildren()
 
@@ -882,7 +1487,10 @@ document.addEventListener(
                         attachments
                     )
 
-                if (attachments.length === 0) {
+                if (
+                    attachments.length
+                    === 0
+                ) {
                     attachmentSummary.textContent =
                         'Keine Anhänge'
 
@@ -946,9 +1554,12 @@ document.addEventListener(
                                         (
                                             currentFile,
                                             currentIndex
-                                        ) =>
-                                            currentIndex
-                                            !== index
+                                        ) => {
+                                            return (
+                                                currentIndex
+                                                !== index
+                                            )
+                                        }
                                     )
 
                                 status.textContent =
@@ -1006,6 +1617,10 @@ document.addEventListener(
                                 ? error.message
                                 : 'Der Anhang konnte nicht hinzugefügt werden.'
                     } finally {
+                        /*
+                         * Gleiche Datei darf nach
+                         * Entfernen erneut ausgewählt werden.
+                         */
                         attachmentInput.value =
                             ''
                     }
@@ -1016,13 +1631,20 @@ document.addEventListener(
             renderAttachments()
 
 
+            /*
+             * Editor starten.
+             */
             try {
                 activeEditor =
                     await window
                         .SharedMailEditor
                         .create(
                             editorElement,
-                            '<p></p>'
+                            isDraft
+                                ? getDraftInitialHtml(
+                                    initialDraft
+                                )
+                                : '<p></p>'
                         )
             } catch (error) {
                 console.error(
@@ -1037,19 +1659,101 @@ document.addEventListener(
             }
 
 
+            /*
+             * Bereits gespeicherte IMAP-Anhänge
+             * des Drafts wieder laden.
+             *
+             * Solange das läuft, darf weder
+             * gespeichert noch gesendet werden.
+             *
+             * Sonst könnten Anhänge verloren gehen.
+             */
+            if (
+                isDraft
+                && Array.isArray(
+                    initialDraft.attachments
+                )
+                && initialDraft
+                    .attachments
+                    .length > 0
+            ) {
+                setBusy(
+                    true
+                )
+
+                status.textContent =
+                    'Anhänge des Entwurfs werden geladen …'
+
+                try {
+                    attachments =
+                        await loadDraftAttachments(
+                            mailbox,
+                            initialDraft
+                        )
+
+                    renderAttachments()
+
+                    status.textContent =
+                        'Entwurf wurde vollständig geladen.'
+
+                    setBusy(
+                        false
+                    )
+                } catch (error) {
+                    console.error(
+                        'SharedMail: Draft-Anhänge konnten nicht geladen werden.',
+                        error
+                    )
+
+                    status.textContent =
+                        error instanceof Error
+                            ? error.message
+                            : 'Die Anhänge des Entwurfs konnten nicht geladen werden.'
+
+                    /*
+                     * Absichtlich deaktiviert lassen.
+                     *
+                     * Ein Speichern ohne die alten
+                     * Anhänge würde diese beim Replace
+                     * aus dem IMAP-Draft entfernen.
+                     */
+                    draftButton.disabled =
+                        true
+
+                    sendButton.disabled =
+                        true
+
+                    attachmentButton.disabled =
+                        true
+
+                    cancelButton.disabled =
+                        false
+                }
+            }
+
+
             toInput.focus()
 
 
+            /*
+             * Abbrechen.
+             */
             cancelButton.addEventListener(
                 'click',
                 async () => {
+                    if (viewNeedsReload) {
+                        await reloadPreviousView()
+
+                        return
+                    }
+
                     await restorePreviousView()
                 }
             )
 
 
             /*
-             * Entwurf speichern
+             * Entwurf speichern / aktualisieren.
              */
             draftButton.addEventListener(
                 'click',
@@ -1061,6 +1765,7 @@ document.addEventListener(
                         return
                     }
 
+
                     const payload = {
                         to:
                             String(
@@ -1069,16 +1774,20 @@ document.addEventListener(
                             ).trim(),
 
                         cc:
-                            String(
-                                ccInput.value
-                                || ''
-                            ).trim(),
+                            isReplyDraft
+                                ? ''
+                                : String(
+                                    ccInput.value
+                                    || ''
+                                ).trim(),
 
                         bcc:
-                            String(
-                                bccInput.value
-                                || ''
-                            ).trim(),
+                            isReplyDraft
+                                ? ''
+                                : String(
+                                    bccInput.value
+                                    || ''
+                                ).trim(),
 
                         subject:
                             String(
@@ -1093,20 +1802,14 @@ document.addEventListener(
                             ).trim(),
                     }
 
-                    draftButton.disabled =
-                        true
 
-                    sendButton.disabled =
-                        true
-
-                    cancelButton.disabled =
-                        true
-
-                    attachmentButton.disabled =
-                        true
-
-                    const oldText =
+                    const oldButtonText =
                         draftButton.textContent
+
+
+                    setBusy(
+                        true
+                    )
 
                     draftButton.textContent =
                         'Wird gespeichert …'
@@ -1114,14 +1817,18 @@ document.addEventListener(
                     status.textContent =
                         'Entwurf wird gespeichert …'
 
+
                     try {
                         const result =
                             await saveDraft(
                                 mailbox,
                                 payload,
                                 attachments,
-                                currentDraftUid
+                                currentDraftUid,
+                                sourceFolder,
+                                sourceUid
                             )
+
 
                         const returnedUid =
                             Number(
@@ -1129,10 +1836,24 @@ document.addEventListener(
                                 || 0
                             )
 
+
                         if (returnedUid > 0) {
+                            /*
+                             * Beim nächsten Speichern
+                             * genau diese neue UID ersetzen.
+                             */
                             currentDraftUid =
                                 returnedUid
                         }
+
+
+                        /*
+                         * Die vorherige Liste enthält
+                         * eventuell noch die alte UID.
+                         */
+                        viewNeedsReload =
+                            true
+
 
                         if (result.warning) {
                             console.warn(
@@ -1141,9 +1862,11 @@ document.addEventListener(
                             )
                         }
 
+
                         status.textContent =
                             result.message
                             || 'Der Entwurf wurde gespeichert.'
+
 
                         draftButton.textContent =
                             'Entwurf aktualisieren'
@@ -1159,26 +1882,18 @@ document.addEventListener(
                                 : 'Der Entwurf konnte nicht gespeichert werden.'
 
                         draftButton.textContent =
-                            oldText
+                            oldButtonText
                     } finally {
-                        draftButton.disabled =
+                        setBusy(
                             false
-
-                        sendButton.disabled =
-                            false
-
-                        cancelButton.disabled =
-                            false
-
-                        attachmentButton.disabled =
-                            false
+                        )
                     }
                 }
             )
 
 
             /*
-             * Mail senden
+             * Nachricht senden.
              */
             sendButton.addEventListener(
                 'click',
@@ -1187,17 +1902,20 @@ document.addEventListener(
                         return
                     }
 
+
                     const html =
                         String(
                             activeEditor.getData()
                             || ''
                         ).trim()
 
+
                     const to =
                         String(
                             toInput.value
                             || ''
                         ).trim()
+
 
                     if (to === '') {
                         status.textContent =
@@ -1207,6 +1925,7 @@ document.addEventListener(
 
                         return
                     }
+
 
                     if (html === '') {
                         status.textContent =
@@ -1220,53 +1939,74 @@ document.addEventListener(
                         return
                     }
 
-                    sendButton.disabled =
-                        true
 
-                    draftButton.disabled =
-                        true
+                    const payload = {
+                        to,
 
-                    cancelButton.disabled =
-                        true
+                        cc:
+                            isReplyDraft
+                                ? ''
+                                : String(
+                                    ccInput.value
+                                    || ''
+                                ).trim(),
 
-                    attachmentButton.disabled =
+                        bcc:
+                            isReplyDraft
+                                ? ''
+                                : String(
+                                    bccInput.value
+                                    || ''
+                                ).trim(),
+
+                        subject:
+                            String(
+                                subjectInput.value
+                                || ''
+                            ).trim(),
+
+                        html,
+                    }
+
+
+                    setBusy(
                         true
+                    )
 
                     sendButton.textContent =
                         'Wird gesendet …'
 
                     status.textContent =
-                        'Nachricht wird versendet …'
+                        isReplyDraft
+                            ? 'Antwort wird versendet …'
+                            : 'Nachricht wird versendet …'
+
 
                     try {
-                        const result =
-                            await sendMessage(
-                                mailbox,
-                                {
-                                    to,
+                        let result = null
 
-                                    cc:
-                                        String(
-                                            ccInput.value
-                                            || ''
-                                        ).trim(),
 
-                                    bcc:
-                                        String(
-                                            bccInput.value
-                                            || ''
-                                        ).trim(),
+                        if (
+                            isReplyDraft
+                            && sourceUid > 0
+                            && sourceFolder !== ''
+                        ) {
+                            result =
+                                await sendReplyDraft(
+                                    mailbox,
+                                    initialDraft,
+                                    payload,
+                                    attachments
+                                )
+                        } else {
+                            result =
+                                await sendMessage(
+                                    mailbox,
+                                    payload,
+                                    attachments
+                                )
+                        }
 
-                                    subject:
-                                        String(
-                                            subjectInput.value
-                                            || ''
-                                        ).trim(),
-
-                                    html,
-                                },
-                                attachments
-                            )
 
                         if (result.warning) {
                             console.warn(
@@ -1275,22 +2015,33 @@ document.addEventListener(
                             )
                         }
 
+
                         await destroyEditor()
 
+
                         messageArea.replaceChildren()
+
 
                         savedContent =
                             null
 
+
                         attachments =
                             []
 
-                        currentDraftUid =
-                            0
 
+                        /*
+                         * Der gespeicherte Draft wird
+                         * momentan nach erfolgreichem
+                         * Versand noch nicht gelöscht.
+                         *
+                         * Das ist der nächste Backend-
+                         * Schritt von 0.2.29.
+                         */
                         if (
                             window.SharedMailUI
-                            && typeof window.SharedMailUI.reloadCurrentFolder
+                            && typeof window.SharedMailUI
+                                .reloadCurrentFolder
                                 === 'function'
                         ) {
                             await window.SharedMailUI
@@ -1310,23 +2061,151 @@ document.addEventListener(
                         sendButton.textContent =
                             'Erneut senden'
 
-                        sendButton.disabled =
+                        setBusy(
                             false
-
-                        draftButton.disabled =
-                            false
-
-                        cancelButton.disabled =
-                            false
-
-                        attachmentButton.disabled =
-                            false
+                        )
                     }
                 }
             )
         }
 
 
+        /*
+         * Vorhandenen IMAP-Draft öffnen.
+         *
+         * Wichtig:
+         * Die Nachrichtenliste bleibt während des
+         * GET-Requests erhalten.
+         *
+         * Erst nachdem der Draft erfolgreich geladen
+         * wurde, ruft openComposer() saveCurrentView()
+         * auf. Dadurch funktioniert "Abbrechen"
+         * zuverlässig.
+         */
+        async function openDraftByUid(
+            uid
+        ) {
+            if (draftOpenInProgress) {
+                return
+            }
+
+
+            const mailbox =
+                getActiveMailbox()
+
+
+            const draftUid =
+                Number(
+                    uid
+                    || 0
+                )
+
+
+            if (
+                !mailbox
+                || !Number.isInteger(
+                    draftUid
+                )
+                || draftUid <= 0
+            ) {
+                return
+            }
+
+
+            draftOpenInProgress =
+                true
+
+
+            const loading =
+                document.createElement(
+                    'div'
+                )
+
+            loading.className =
+                'sharedmail-message-loading'
+
+            loading.textContent =
+                'Entwurf wird geladen …'
+
+
+            /*
+             * Liste nicht ersetzen.
+             *
+             * Loading-Hinweis nur ergänzen.
+             */
+            messageArea.prepend(
+                loading
+            )
+
+
+            try {
+                const draft =
+                    await getDraft(
+                        mailbox,
+                        draftUid
+                    )
+
+
+                loading.remove()
+
+
+                await openComposer(
+                    draft
+                )
+            } catch (error) {
+                loading.remove()
+
+
+                console.error(
+                    'SharedMail: Entwurf konnte nicht geöffnet werden.',
+                    error
+                )
+
+
+                const errorElement =
+                    document.createElement(
+                        'div'
+                    )
+
+                errorElement.className =
+                    'sharedmail-message-error'
+
+                errorElement.textContent =
+                    error instanceof Error
+                        ? error.message
+                        : 'Der Entwurf konnte nicht geöffnet werden.'
+
+
+                messageArea.prepend(
+                    errorElement
+                )
+
+
+                window.setTimeout(
+                    () => {
+                        errorElement.remove()
+                    },
+                    8000
+                )
+            } finally {
+                draftOpenInProgress =
+                    false
+            }
+        }
+
+
+        /*
+         * Öffentliche Schnittstelle für main.js.
+         */
+        window.SharedMailCompose =
+            Object.freeze({
+                openDraftByUid,
+            })
+
+
+        /*
+         * Neue-Mail-Button.
+         */
         const composeButton =
             document.createElement(
                 'button'

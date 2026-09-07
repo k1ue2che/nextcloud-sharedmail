@@ -2177,6 +2177,25 @@ ${html || ''}
                 row.addEventListener(
                     'click',
                     () => {
+                        /*
+                        * Entwürfe nicht im normalen Mailviewer
+                        * öffnen, sondern direkt wieder im
+                        * Composer bearbeiten.
+                        */
+                        if (
+                            message.draft
+                            && window.SharedMailCompose
+                            && typeof window.SharedMailCompose.openDraftByUid
+                                === 'function'
+                        ) {
+                            window.SharedMailCompose
+                                .openDraftByUid(
+                                    message.uid
+                                )
+
+                            return
+                        }
+
                         loadMessage(
                             folder.name,
                             message.uid,
