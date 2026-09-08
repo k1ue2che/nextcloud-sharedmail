@@ -10,6 +10,7 @@ use Horde_Mime_Part;
 use InvalidArgumentException;
 use OCA\SharedMail\Db\Mailbox;
 use RuntimeException;
+use Throwable;
 
 class ComposeSendService
 {
@@ -181,9 +182,6 @@ class ComposeSendService
         $mail =
             new Horde_Mime_Mail();
 
-        /*
-         * Standardheader.
-         */
         $mail->addHeader(
             'Date',
             date('r')
@@ -206,9 +204,6 @@ class ComposeSendService
             );
         }
 
-        /*
-         * Sichtbare Empfänger.
-         */
         $mail->addHeader(
             'To',
             implode(
@@ -228,11 +223,9 @@ class ComposeSendService
         }
 
         /*
-         * Kein Bcc-Header:
-         * BCC-Empfänger dürfen nicht in der
-         * gespeicherten Nachricht sichtbar sein.
+         * BCC wird absichtlich nicht als sichtbarer
+         * Header gespeichert.
          */
-
         $mail->setBody(
             $plainText
         );
@@ -252,18 +245,11 @@ class ComposeSendService
             $html
         );
 
-        /*
-         * Anhänge hinzufügen.
-         */
         $this->addAttachments(
             $mail,
             $attachments
         );
 
-        /*
-         * SMTP-Empfänger:
-         * To + CC + BCC.
-         */
         foreach ($allRecipients as $recipient) {
             $mail->addRecipients(
                 $recipient
@@ -271,39 +257,95 @@ class ComposeSendService
         }
 
         /*
-         * Zuerst senden.
+         * =================================================
+         * ENTSCHEIDENDER PUNKT
+         * =================================================
          *
-         * Horde erzeugt beim send() den vollständigen
-         * MIME-Base-Part.
+         * Wenn diese Methode wirft, wurde die Nachricht
+         * NICHT erfolgreich per SMTP verschickt.
+         *
+         * Wenn diese Methode erfolgreich zurückkommt,
+         * gilt die Nachricht als versendet.
          */
         $mail->send(
             $transport
         );
 
         /*
-         * Anschließend exakt diese RFC822-Mail
-         * für Sent auslesen.
+         * Ab HIER niemals mehr wegen Sent-Fehlern werfen.
+         *
+         * Die Nachricht wurde bereits verschickt.
          */
-        $rawMessage =
-            $mail->getRaw();
+        $sentSaved =
+            false;
 
-        if (is_resource($rawMessage)) {
+        $sentFolder =
+            null;
+
+        $warning =
+            null;
+
+        try {
             $rawMessage =
-                stream_get_contents(
-                    $rawMessage
-                );
+                $mail->getRaw();
+
+            if (is_resource($rawMessage)) {
+                $rawMessage =
+                    stream_get_contents(
+                        $rawMessage
+                    );
+            }
+
+            $rawMessage =
+                (string)$rawMessage;
+
+            if ($rawMessage === '') {
+                $warning =
+                    'Die Nachricht wurde gesendet, konnte aber nicht für den Gesendet-Ordner aufbereitet werden.';
+            } else {
+                $sentResult =
+                    $this
+                        ->sentMessageService
+                        ->appendToSent(
+                            $mailbox,
+                            $rawMessage
+                        );
+
+                $sentSaved =
+                    (bool)(
+                        $sentResult['success']
+                        ?? false
+                    );
+
+                $sentFolder =
+                    $sentResult['folder']
+                    ?? null;
+
+                if (!$sentSaved) {
+                    $warning =
+                        trim(
+                            (string)(
+                                $sentResult['message']
+                                ?? ''
+                            )
+                        );
+
+                    if ($warning === '') {
+                        $warning =
+                            'Die Nachricht wurde gesendet, konnte aber nicht im Gesendet-Ordner gespeichert werden.';
+                    }
+                }
+            }
+        } catch (Throwable) {
+            $sentSaved =
+                false;
+
+            $sentFolder =
+                null;
+
+            $warning =
+                'Die Nachricht wurde gesendet, konnte aber nicht im Gesendet-Ordner gespeichert werden.';
         }
-
-        $rawMessage =
-            (string)$rawMessage;
-
-        $sentResult =
-            $this
-                ->sentMessageService
-                ->appendToSent(
-                    $mailbox,
-                    $rawMessage
-                );
 
         return [
             'messageId' =>
@@ -313,15 +355,13 @@ class ComposeSendService
                 $allRecipients,
 
             'sentSaved' =>
-                $sentResult['success'],
+                $sentSaved,
 
             'sentFolder' =>
-                $sentResult['folder'],
+                $sentFolder,
 
             'warning' =>
-                $sentResult['success']
-                    ? null
-                    : $sentResult['message'],
+                $warning,
         ];
     }
 
@@ -408,9 +448,6 @@ class ComposeSendService
                 $content
             );
 
-            /*
-             * Dateiname und Content-Disposition.
-             */
             $part->setName(
                 $name
             );
@@ -419,10 +456,6 @@ class ComposeSendService
                 'attachment'
             );
 
-            /*
-             * Binärdaten und auch Textanhänge einheitlich
-             * transportfest als Base64 versenden.
-             */
             $part->setTransferEncoding(
                 'base64',
                 [
@@ -722,7 +755,8 @@ class ComposeSendService
             'ssl' =>
                 'ssl',
 
-            'tls' =>
+            'tls',
+            'starttls' =>
                 'tls',
 
             'none' =>

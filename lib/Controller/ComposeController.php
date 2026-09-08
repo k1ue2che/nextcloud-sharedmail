@@ -70,7 +70,10 @@ class ComposeController extends Controller
                     );
 
             /*
-             * Erst senden.
+             * Ab hier findet der eigentliche Versand statt.
+             *
+             * ComposeSendService darf nur dann werfen,
+             * wenn SMTP selbst NICHT erfolgreich war.
              */
             $result =
                 $this
@@ -86,42 +89,77 @@ class ComposeController extends Controller
                     );
 
             /*
-             * SMTP ist an dieser Stelle bereits erfolgreich.
+             * Wenn wir hier angekommen sind, wurde die
+             * Nachricht bereits erfolgreich per SMTP
+             * verschickt.
              *
-             * Deshalb darf ein Fehler beim Draft-Löschen
-             * niemals die gesamte Anfrage als fehlgeschlagen
-             * zurückgeben.
+             * Alles danach ist nur noch Nachbearbeitung.
              */
-            $draftDeleted =
-                false;
-
             $warnings = [];
 
-            if (!empty($result['warning'])) {
+            if (
+                isset($result['warning'])
+                && is_string($result['warning'])
+                && $result['warning'] !== ''
+            ) {
                 $warnings[] =
                     $result['warning'];
             }
 
+            $draftDeleted =
+                false;
+
+            /*
+             * Gespeicherten Draft entfernen.
+             *
+             * WICHTIG:
+             *
+             * Diese Operation darf einen bereits
+             * erfolgreichen Mailversand niemals in
+             * einen HTTP-500-Fehler verwandeln.
+             */
             if ($draftUid > 0) {
-                $draftResult =
-                    $this
-                        ->draftMessageService
-                        ->deleteDraft(
-                            $mailbox,
-                            $draftUid
+                try {
+                    $draftResult =
+                        $this
+                            ->draftMessageService
+                            ->deleteDraft(
+                                $mailbox,
+                                $draftUid
+                            );
+
+                    $draftDeleted =
+                        (bool)(
+                            $draftResult['success']
+                            ?? false
                         );
 
-                $draftDeleted =
-                    $draftResult['success'];
+                    if (!$draftDeleted) {
+                        $draftWarning =
+                            trim(
+                                (string)(
+                                    $draftResult['message']
+                                    ?? ''
+                                )
+                            );
 
-                if (
-                    !$draftResult['success']
-                    && !empty(
-                        $draftResult['message']
-                    )
-                ) {
+                        if ($draftWarning === '') {
+                            $draftWarning =
+                                'Die Nachricht wurde gesendet, der Entwurf konnte aber nicht entfernt werden.';
+                        }
+
+                        $warnings[] =
+                            $draftWarning;
+                    }
+                } catch (Throwable) {
+                    /*
+                     * SMTP war bereits erfolgreich.
+                     *
+                     * Deshalb ausschließlich Warnung,
+                     * niemals success=false.
+                     */
                     $warnings[] =
-                        $draftResult['message'];
+                        'Die Nachricht wurde gesendet, der Entwurf konnte aber nicht entfernt werden.';
                 }
             }
 
@@ -133,16 +171,31 @@ class ComposeController extends Controller
                     'Die Nachricht wurde erfolgreich gesendet.',
 
                 'messageId' =>
-                    $result['messageId'],
+                    (string)(
+                        $result['messageId']
+                        ?? ''
+                    ),
 
                 'recipients' =>
-                    $result['recipients'],
+                    is_array(
+                        $result['recipients']
+                        ?? null
+                    )
+                        ? $result['recipients']
+                        : [],
 
                 'sentSaved' =>
-                    $result['sentSaved'],
+                    (bool)(
+                        $result['sentSaved']
+                        ?? false
+                    ),
 
                 'sentFolder' =>
-                    $result['sentFolder'],
+                    $result['sentFolder']
+                    ?? null,
+
+                'draftUid' =>
+                    $draftUid,
 
                 'draftDeleted' =>
                     $draftDeleted,
@@ -158,6 +211,9 @@ class ComposeController extends Controller
         } catch (
             InvalidArgumentException $e
         ) {
+            /*
+             * Validierungsfehler vor dem SMTP-Versand.
+             */
             return new JSONResponse(
                 [
                     'success' =>
@@ -169,6 +225,11 @@ class ComposeController extends Controller
                 400
             );
         } catch (Throwable) {
+            /*
+             * Dieser Block darf nur noch erreicht werden,
+             * wenn der eigentliche Versand nicht
+             * erfolgreich abgeschlossen wurde.
+             */
             return new JSONResponse(
                 [
                     'success' =>

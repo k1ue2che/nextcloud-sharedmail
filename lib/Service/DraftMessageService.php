@@ -160,14 +160,7 @@ class DraftMessageService
             $client->login();
 
             /*
-             * WICHTIG:
-             *
-             * Zuerst die neue Draft-Version anlegen.
-             *
-             * Erst wenn das erfolgreich war, darf eine
-             * eventuell vorhandene alte Version entfernt
-             * werden. So verlieren wir bei einem IMAP-
-             * Fehler niemals den bisherigen Entwurf.
+             * Zuerst neue Draft-Version speichern.
              */
             $appendedIds =
                 $client->append(
@@ -198,22 +191,8 @@ class DraftMessageService
 
             /*
              * Existierenden Draft ersetzen.
-             *
-             * Wir akzeptieren absichtlich KEINEN
-             * Ordnernamen vom Browser.
-             *
-             * Die alte UID wird ausschließlich aus dem
-             * von uns selbst ermittelten Drafts-Ordner
-             * gelöscht. Dadurch kann dieser Endpunkt nicht
-             * missbraucht werden, um über eine manipulierte
-             * folder-Angabe z.B. eine INBOX-Mail zu löschen.
              */
             if ($replaceDraftUid > 0) {
-                /*
-                 * Falls der IMAP-Server keine neue UID
-                 * zurückliefern konnte, löschen wir sicherheits-
-                 * halber den alten Draft NICHT.
-                 */
                 if ($newDraftUid === null) {
                     $warning =
                         'Der neue Entwurf wurde gespeichert, die alte Version konnte aber nicht sicher ersetzt werden.';
@@ -232,11 +211,8 @@ class DraftMessageService
                             true;
                     } catch (Throwable) {
                         /*
-                         * Der neue Draft existiert bereits.
-                         *
-                         * Daher niemals den gesamten
-                         * Speichervorgang als fehlgeschlagen
-                         * melden.
+                         * Neuer Draft existiert bereits.
+                         * Deshalb Save nicht als Fehler melden.
                          */
                         $warning =
                             'Der neue Entwurf wurde gespeichert, die vorherige Version konnte aber nicht entfernt werden.';
@@ -276,11 +252,132 @@ class DraftMessageService
     }
 
     /**
-     * Löscht genau eine Draft-UID.
+     * Löscht einen gespeicherten Draft nach
+     * erfolgreichem Versand.
      *
-     * Horde kann mit delete=true die Nachricht zunächst
-     * mit \Deleted markieren und anschließend gezielt
-     * expungen.
+     * WICHTIG:
+     *
+     * Diese Methode wirft absichtlich keine Exception
+     * nach außen. Wenn SMTP bereits erfolgreich war,
+     * darf ein Fehler beim Aufräumen des Drafts nicht
+     * dazu führen, dass der Versand als fehlgeschlagen
+     * gemeldet wird.
+     *
+     * @return array{
+     *     success: bool,
+     *     folder: string|null,
+     *     message: string|null
+     * }
+     */
+    public function deleteDraft(
+        Mailbox $mailbox,
+        int $uid,
+    ): array {
+        if ($uid <= 0) {
+            return [
+                'success' =>
+                    false,
+
+                'folder' =>
+                    null,
+
+                'message' =>
+                    'Ungültige Entwurfs-ID.',
+            ];
+        }
+
+        $client =
+            null;
+
+        $draftFolder =
+            null;
+
+        try {
+            /*
+             * Drafts-Ordner ausschließlich serverseitig
+             * bestimmen.
+             *
+             * Der Browser darf keinen beliebigen
+             * IMAP-Ordner zum Löschen angeben.
+             */
+            $draftFolder =
+                $this->findDraftFolder(
+                    $mailbox
+                );
+
+            if ($draftFolder === null) {
+                return [
+                    'success' =>
+                        false,
+
+                    'folder' =>
+                        null,
+
+                    'message' =>
+                        'Die Nachricht wurde gesendet, der Entwurfsordner konnte aber nicht gefunden werden.',
+                ];
+            }
+
+            $client =
+                $this->createClient(
+                    $mailbox
+                );
+
+            $client->login();
+
+            /*
+             * Dieselbe bereits funktionierende
+             * Löschroutine verwenden, die auch beim
+             * Ersetzen eines Drafts benutzt wird.
+             */
+            $this->deleteDraftByUid(
+                $client,
+                $draftFolder,
+                $uid
+            );
+
+            return [
+                'success' =>
+                    true,
+
+                'folder' =>
+                    $draftFolder,
+
+                'message' =>
+                    null,
+            ];
+        } catch (Throwable) {
+            /*
+             * SMTP kann bereits erfolgreich gewesen sein.
+             *
+             * Deshalb niemals Exception weiterwerfen.
+             */
+            return [
+                'success' =>
+                    false,
+
+                'folder' =>
+                    $draftFolder,
+
+                'message' =>
+                    'Die Nachricht wurde gesendet, der Entwurf konnte aber nicht entfernt werden.',
+            ];
+        } finally {
+            if (
+                $client
+                instanceof Horde_Imap_Client_Socket
+            ) {
+                try {
+                    $client->logout();
+                } catch (Throwable) {
+                    // Verbindung wird ohnehin beendet.
+                }
+            }
+        }
+    }
+
+    /**
+     * Löscht genau eine Draft-UID.
      */
     private function deleteDraftByUid(
         Horde_Imap_Client_Socket $client,
@@ -374,11 +471,8 @@ class DraftMessageService
         }
 
         /*
-         * Normale RFC-Header enthalten nur bereits
-         * gültige Mailadressen.
-         *
-         * Unfertige Eingaben werden zusätzlich über
-         * X-SharedMail-Draft-* erhalten.
+         * Normale RFC-Header enthalten nur
+         * bereits gültige Mailadressen.
          */
         $toRecipients =
             $this->extractValidRecipients(
@@ -426,7 +520,7 @@ class DraftMessageService
         }
 
         /*
-         * Shared-Mail-spezifische Draft-Metadaten.
+         * Shared-Mail-Draft-Metadaten.
          */
         $mail->addHeader(
             'X-SharedMail-Draft-Version',
@@ -526,7 +620,7 @@ class DraftMessageService
         );
 
         /*
-         * Gültige Adressen registrieren.
+         * Gültige Empfänger registrieren.
          */
         $allRecipients =
             array_values(
@@ -546,7 +640,7 @@ class DraftMessageService
         }
 
         /*
-         * MIME-Baum aufbauen, ohne SMTP-Versand.
+         * MIME-Baum ohne SMTP-Versand aufbauen.
          */
         $mail->send(
             new Horde_Mail_Transport_Null(),
@@ -554,7 +648,7 @@ class DraftMessageService
         );
 
         /*
-         * BCC muss bei einem Draft erhalten bleiben.
+         * BCC muss im Draft erhalten bleiben.
          */
         if (
             method_exists(
