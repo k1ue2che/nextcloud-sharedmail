@@ -18,21 +18,24 @@ document.addEventListener(
             return
         }
 
-
         /*
-         * Attachment-Limits müssen mit
+         * Attachment-Limits.
+         *
+         * Diese Werte müssen mit
          * AttachmentUploadService übereinstimmen.
          */
         const MAX_ATTACHMENTS = 10
         const MAX_FILE_BYTES = 10 * 1024 * 1024
         const MAX_TOTAL_BYTES = 25 * 1024 * 1024
 
-
         let activeEditor = null
         let savedContent = null
         let draftOpenInProgress = false
 
 
+        /*
+         * Nextcloud CSRF-Token.
+         */
         function getRequestToken() {
             if (
                 window.OC
@@ -77,8 +80,7 @@ document.addEventListener(
 
             const id =
                 Number(
-                    button.dataset
-                        .mailboxId
+                    button.dataset.mailboxId
                     || 0
                 )
 
@@ -94,21 +96,22 @@ document.addEventListener(
 
                 name:
                     String(
-                        button.dataset
-                            .mailboxName
+                        button.dataset.mailboxName
                         || ''
                     ),
 
                 email:
                     String(
-                        button.dataset
-                            .mailboxEmail
+                        button.dataset.mailboxEmail
                         || ''
                     ),
             }
         }
 
 
+        /*
+         * Plaintext für CKEditor in HTML umwandeln.
+         */
         function escapeHtml(value) {
             return String(
                 value
@@ -203,6 +206,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Anhänge.
+         */
         function formatFileSize(bytes) {
             const value =
                 Number(
@@ -351,6 +357,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * CKEditor.
+         */
         async function destroyEditor() {
             if (!activeEditor) {
                 return
@@ -369,6 +378,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Aktuelle Nachrichtenliste zwischenspeichern.
+         */
         function saveCurrentView() {
             const fragment =
                 document.createDocumentFragment()
@@ -422,6 +434,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Eingabefelder.
+         */
         function createField(
             labelText,
             input
@@ -434,7 +449,6 @@ document.addEventListener(
             row.className =
                 'sharedmail-composer-field'
 
-
             const label =
                 document.createElement(
                     'span'
@@ -442,7 +456,6 @@ document.addEventListener(
 
             label.textContent =
                 labelText
-
 
             row.appendChild(
                 label
@@ -475,6 +488,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Draft vom Server laden.
+         */
         async function getDraft(
             mailbox,
             uid
@@ -524,6 +540,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Bereits vorhandenen Draft-Anhang laden.
+         */
         function getDraftAttachmentUrl(
             mailbox,
             draft,
@@ -648,6 +667,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Neue Nachricht senden.
+         */
         async function sendMessage(
             mailbox,
             payload,
@@ -686,9 +708,20 @@ document.addEventListener(
                 payload.html
             )
 
+            /*
+             * WICHTIG:
+             *
+             * Falls diese Mail aus einem gespeicherten
+             * Draft heraus gesendet wird, muss dessen
+             * aktuelle IMAP-UID an den Controller.
+             *
+             * Der Controller löscht den Draft erst
+             * NACH erfolgreichem SMTP-Versand.
+             */
             if (
-                Number(payload.draftUid)
-                > 0
+                Number(
+                    payload.draftUid
+                ) > 0
             ) {
                 formData.append(
                     'draftUid',
@@ -759,6 +792,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Gespeicherten Antwort-Draft senden.
+         */
         async function sendReplyDraft(
             mailbox,
             draft,
@@ -814,9 +850,14 @@ document.addEventListener(
                 payload.html
             )
 
+            /*
+             * Auch Antwort-Drafts müssen nach
+             * erfolgreichem Versand gelöscht werden.
+             */
             if (
-                Number(payload.draftUid)
-                > 0
+                Number(
+                    payload.draftUid
+                ) > 0
             ) {
                 formData.append(
                     'draftUid',
@@ -887,6 +928,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * Draft speichern oder vorhandenen ersetzen.
+         */
         async function saveDraft(
             mailbox,
             payload,
@@ -929,18 +973,23 @@ document.addEventListener(
             )
 
             if (
-                Number(draftUid)
-                > 0
+                Number(
+                    draftUid
+                ) > 0
             ) {
                 formData.append(
                     'draftUid',
-                    String(draftUid)
+                    String(
+                        draftUid
+                    )
                 )
             }
 
             if (
                 sourceFolder !== ''
-                && Number(sourceUid) > 0
+                && Number(
+                    sourceUid
+                ) > 0
             ) {
                 formData.append(
                     'sourceFolder',
@@ -949,7 +998,9 @@ document.addEventListener(
 
                 formData.append(
                     'sourceUid',
-                    String(sourceUid)
+                    String(
+                        sourceUid
+                    )
                 )
             }
 
@@ -1014,6 +1065,15 @@ document.addEventListener(
         }
 
 
+        /*
+         * Composer öffnen.
+         *
+         * initialDraft === null:
+         * neue Nachricht.
+         *
+         * initialDraft !== null:
+         * vorhandenen IMAP-Draft bearbeiten.
+         */
         async function openComposer(
             initialDraft = null
         ) {
@@ -1032,18 +1092,14 @@ document.addEventListener(
                 return
             }
 
-
             /*
-             * Nicht mehrere New-Mail/Draft-Composer
-             * gleichzeitig öffnen.
+             * Nicht mehrere Composer gleichzeitig.
              */
             if (activeEditor) {
                 return
             }
 
-
             saveCurrentView()
-
 
             const isDraft =
                 initialDraft !== null
@@ -1051,7 +1107,6 @@ document.addEventListener(
                     initialDraft?.uid
                     || 0
                 ) > 0
-
 
             const draftKind =
                 String(
@@ -1061,11 +1116,9 @@ document.addEventListener(
                     .trim()
                     .toLowerCase()
 
-
             const isReplyDraft =
                 isDraft
                 && draftKind === 'reply'
-
 
             const sourceFolder =
                 String(
@@ -1073,17 +1126,24 @@ document.addEventListener(
                     || ''
                 )
 
-
             const sourceUid =
                 Number(
                     initialDraft?.sourceUid
                     || 0
                 )
 
-
             let attachments = []
 
-
+            /*
+             * Ganz wichtig:
+             *
+             * Diese Variable enthält immer die
+             * AKTUELLE Draft-UID.
+             *
+             * Beim erneuten Speichern ändert sich
+             * die IMAP-UID. Deshalb wird sie weiter
+             * unten nach jedem Save aktualisiert.
+             */
             let currentDraftUid =
                 isDraft
                     ? Number(
@@ -1091,18 +1151,13 @@ document.addEventListener(
                     )
                     : 0
 
-
-            /*
-             * Nach einem erfolgreichen Draft-Update
-             * ist die gespeicherte Nachrichtenliste
-             * veraltet, weil sich die IMAP-UID ändert.
-             *
-             * Dann beim Abbrechen neu laden.
-             */
             let viewNeedsReload =
                 false
 
 
+            /*
+             * Composer.
+             */
             const composer =
                 document.createElement(
                     'div'
@@ -1137,7 +1192,6 @@ document.addEventListener(
                     'Neue Nachricht'
             }
 
-
             composerHeader.appendChild(
                 heading
             )
@@ -1148,7 +1202,7 @@ document.addEventListener(
 
 
             /*
-             * Felder
+             * Felder.
              */
             const fields =
                 document.createElement(
@@ -1225,15 +1279,9 @@ document.addEventListener(
                 )
             )
 
-
             /*
-             * Reply-Komposer unterstützt aktuell
-             * serverseitig noch kein CC/BCC.
-             *
-             * Deshalb bei Antwortentwürfen nicht
-             * anzeigen, damit kein Feld scheinbar
-             * gespeichert/versendet wird, obwohl
-             * der Reply-Endpunkt es nicht verarbeitet.
+             * Reply-Endpunkt unterstützt derzeit
+             * nur einen Empfänger und kein CC/BCC.
              */
             if (!isReplyDraft) {
                 fields.appendChild(
@@ -1251,7 +1299,6 @@ document.addEventListener(
                 )
             }
 
-
             fields.appendChild(
                 createField(
                     'Betreff',
@@ -1259,14 +1306,13 @@ document.addEventListener(
                 )
             )
 
-
             composer.appendChild(
                 fields
             )
 
 
             /*
-             * CKEditor
+             * CKEditor.
              */
             const editorWrapper =
                 document.createElement(
@@ -1296,7 +1342,7 @@ document.addEventListener(
 
 
             /*
-             * Anhänge
+             * Anhänge.
              */
             const attachmentArea =
                 document.createElement(
@@ -1390,7 +1436,7 @@ document.addEventListener(
 
 
             /*
-             * Status
+             * Status.
              */
             const status =
                 document.createElement(
@@ -1406,7 +1452,7 @@ document.addEventListener(
 
 
             /*
-             * Footer
+             * Footer.
              */
             const footer =
                 document.createElement(
@@ -1480,7 +1526,6 @@ document.addEventListener(
                 footer
             )
 
-
             messageArea.appendChild(
                 composer
             )
@@ -1527,7 +1572,6 @@ document.addEventListener(
                             ? ''
                             : 'en'
                     } · ${formatFileSize(totalBytes)}`
-
 
                 attachments.forEach(
                     (
@@ -1593,7 +1637,6 @@ document.addEventListener(
                             }
                         )
 
-
                         item.appendChild(
                             info
                         )
@@ -1641,10 +1684,6 @@ document.addEventListener(
                                 ? error.message
                                 : 'Der Anhang konnte nicht hinzugefügt werden.'
                     } finally {
-                        /*
-                         * Gleiche Datei darf nach
-                         * Entfernen erneut ausgewählt werden.
-                         */
                         attachmentInput.value =
                             ''
                     }
@@ -1664,6 +1703,7 @@ document.addEventListener(
                         .SharedMailEditor
                         .create(
                             editorElement,
+
                             isDraft
                                 ? getDraftInitialHtml(
                                     initialDraft
@@ -1684,13 +1724,8 @@ document.addEventListener(
 
 
             /*
-             * Bereits gespeicherte IMAP-Anhänge
-             * des Drafts wieder laden.
-             *
-             * Solange das läuft, darf weder
-             * gespeichert noch gesendet werden.
-             *
-             * Sonst könnten Anhänge verloren gehen.
+             * Bereits vorhandene Anhänge eines
+             * Drafts erneut laden.
              */
             if (
                 isDraft
@@ -1735,11 +1770,8 @@ document.addEventListener(
                             : 'Die Anhänge des Entwurfs konnten nicht geladen werden.'
 
                     /*
-                     * Absichtlich deaktiviert lassen.
-                     *
-                     * Ein Speichern ohne die alten
-                     * Anhänge würde diese beim Replace
-                     * aus dem IMAP-Draft entfernen.
+                     * Nicht speichern/senden, solange
+                     * bestehende Anhänge fehlen.
                      */
                     draftButton.disabled =
                         true
@@ -1777,7 +1809,7 @@ document.addEventListener(
 
 
             /*
-             * Entwurf speichern / aktualisieren.
+             * Entwurf speichern bzw. aktualisieren.
              */
             draftButton.addEventListener(
                 'click',
@@ -1824,9 +1856,6 @@ document.addEventListener(
                                 activeEditor.getData()
                                 || ''
                             ).trim(),
-
-                        draftUid:
-                            currentDraftUid,
                     }
 
 
@@ -1866,18 +1895,21 @@ document.addEventListener(
 
                         if (returnedUid > 0) {
                             /*
-                             * Beim nächsten Speichern
-                             * genau diese neue UID ersetzen.
+                             * Sehr wichtig:
+                             *
+                             * Der Server legt beim
+                             * Update einen neuen Draft
+                             * an und entfernt danach den
+                             * alten.
+                             *
+                             * Deshalb ab jetzt die NEUE
+                             * UID verwenden.
                              */
                             currentDraftUid =
                                 returnedUid
                         }
 
 
-                        /*
-                         * Die vorherige Liste enthält
-                         * eventuell noch die alte UID.
-                         */
                         viewNeedsReload =
                             true
 
@@ -1967,6 +1999,15 @@ document.addEventListener(
                     }
 
 
+                    /*
+                     * ENTSCHEIDENDER BLOCK:
+                     *
+                     * Hier muss currentDraftUid
+                     * mitgesendet werden.
+                     *
+                     * Genau das fehlte in deiner
+                     * bisherigen Datei.
+                     */
                     const payload = {
                         to,
 
@@ -1993,6 +2034,9 @@ document.addEventListener(
                             ).trim(),
 
                         html,
+
+                        draftUid:
+                            currentDraftUid,
                     }
 
 
@@ -2035,10 +2079,39 @@ document.addEventListener(
                         }
 
 
+                        /*
+                         * Debug-Hilfe.
+                         *
+                         * Nach erfolgreichem Versand
+                         * können wir hier sehen, ob der
+                         * Server den Draft gelöscht hat.
+                         */
+                        console.log(
+                            'SharedMail Send Result:',
+                            result
+                        )
+
+
                         if (result.warning) {
                             console.warn(
                                 'SharedMail:',
                                 result.warning
+                            )
+                        }
+
+
+                        if (
+                            currentDraftUid > 0
+                            && result.draftDeleted === false
+                        ) {
+                            console.warn(
+                                'SharedMail: Nachricht wurde gesendet, aber der Draft wurde serverseitig nicht gelöscht.',
+                                {
+                                    draftUid:
+                                        currentDraftUid,
+
+                                    result,
+                                }
                             )
                         }
 
@@ -2058,12 +2131,23 @@ document.addEventListener(
 
 
                         /*
-                         * Der gespeicherte Draft wird
-                         * momentan nach erfolgreichem
-                         * Versand noch nicht gelöscht.
+                         * Mail wurde erfolgreich
+                         * versendet.
                          *
-                         * Das ist der nächste Backend-
-                         * Schritt von 0.2.29.
+                         * currentDraftUid kann jetzt
+                         * verworfen werden.
+                         */
+                        currentDraftUid =
+                            0
+
+
+                        /*
+                         * Ordner neu laden.
+                         *
+                         * Dadurch:
+                         * - Draft verschwindet sofort
+                         * - Draft-Zähler aktualisiert sich
+                         * - Sent-Zähler aktualisiert sich
                          */
                         if (
                             window.SharedMailUI
@@ -2099,15 +2183,6 @@ document.addEventListener(
 
         /*
          * Vorhandenen IMAP-Draft öffnen.
-         *
-         * Wichtig:
-         * Die Nachrichtenliste bleibt während des
-         * GET-Requests erhalten.
-         *
-         * Erst nachdem der Draft erfolgreich geladen
-         * wurde, ruft openComposer() saveCurrentView()
-         * auf. Dadurch funktioniert "Abbrechen"
-         * zuverlässig.
          */
         async function openDraftByUid(
             uid
@@ -2156,9 +2231,7 @@ document.addEventListener(
 
 
             /*
-             * Liste nicht ersetzen.
-             *
-             * Loading-Hinweis nur ergänzen.
+             * Liste bleibt sichtbar.
              */
             messageArea.prepend(
                 loading
