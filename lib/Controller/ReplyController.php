@@ -7,6 +7,7 @@ namespace OCA\SharedMail\Controller;
 use InvalidArgumentException;
 use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\AttachmentUploadService;
+use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\ReplySendService;
 use OCP\AppFramework\Controller;
@@ -22,6 +23,7 @@ class ReplyController extends Controller
         private readonly MailboxAccessService $mailboxAccessService,
         private readonly ReplySendService $replySendService,
         private readonly AttachmentUploadService $attachmentUploadService,
+        private readonly DraftMessageService $draftMessageService,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -37,6 +39,7 @@ class ReplyController extends Controller
         string $to = '',
         string $subject = '',
         string $html = '',
+        int $draftUid = 0,
     ): JSONResponse {
         try {
             $mailbox =
@@ -66,6 +69,9 @@ class ReplyController extends Controller
                         $this->request
                     );
 
+            /*
+             * Erst senden.
+             */
             $result =
                 $this
                     ->replySendService
@@ -78,6 +84,43 @@ class ReplyController extends Controller
                         $html,
                         $attachments
                     );
+
+            $draftDeleted =
+                false;
+
+            $warnings = [];
+
+            if (!empty($result['warning'])) {
+                $warnings[] =
+                    $result['warning'];
+            }
+
+            /*
+             * Erst nach erfolgreichem SMTP-Versand
+             * den gespeicherten Antwort-Draft entfernen.
+             */
+            if ($draftUid > 0) {
+                $draftResult =
+                    $this
+                        ->draftMessageService
+                        ->deleteDraft(
+                            $mailbox,
+                            $draftUid
+                        );
+
+                $draftDeleted =
+                    $draftResult['success'];
+
+                if (
+                    !$draftResult['success']
+                    && !empty(
+                        $draftResult['message']
+                    )
+                ) {
+                    $warnings[] =
+                        $draftResult['message'];
+                }
+            }
 
             return new JSONResponse([
                 'success' =>
@@ -101,8 +144,16 @@ class ReplyController extends Controller
                 'answeredMarked' =>
                     $result['answeredMarked'],
 
+                'draftDeleted' =>
+                    $draftDeleted,
+
                 'warning' =>
-                    $result['warning'],
+                    $warnings !== []
+                        ? implode(
+                            ' ',
+                            $warnings
+                        )
+                        : null,
             ]);
         } catch (
             InvalidArgumentException $e

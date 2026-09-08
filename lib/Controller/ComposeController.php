@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\AttachmentUploadService;
 use OCA\SharedMail\Service\ComposeSendService;
+use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -22,6 +23,7 @@ class ComposeController extends Controller
         private readonly MailboxAccessService $mailboxAccessService,
         private readonly ComposeSendService $composeSendService,
         private readonly AttachmentUploadService $attachmentUploadService,
+        private readonly DraftMessageService $draftMessageService,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -37,6 +39,7 @@ class ComposeController extends Controller
         string $bcc = '',
         string $subject = '',
         string $html = '',
+        int $draftUid = 0,
     ): JSONResponse {
         try {
             $mailbox =
@@ -66,6 +69,9 @@ class ComposeController extends Controller
                         $this->request
                     );
 
+            /*
+             * Erst senden.
+             */
             $result =
                 $this
                     ->composeSendService
@@ -78,6 +84,46 @@ class ComposeController extends Controller
                         $html,
                         $attachments
                     );
+
+            /*
+             * SMTP ist an dieser Stelle bereits erfolgreich.
+             *
+             * Deshalb darf ein Fehler beim Draft-Löschen
+             * niemals die gesamte Anfrage als fehlgeschlagen
+             * zurückgeben.
+             */
+            $draftDeleted =
+                false;
+
+            $warnings = [];
+
+            if (!empty($result['warning'])) {
+                $warnings[] =
+                    $result['warning'];
+            }
+
+            if ($draftUid > 0) {
+                $draftResult =
+                    $this
+                        ->draftMessageService
+                        ->deleteDraft(
+                            $mailbox,
+                            $draftUid
+                        );
+
+                $draftDeleted =
+                    $draftResult['success'];
+
+                if (
+                    !$draftResult['success']
+                    && !empty(
+                        $draftResult['message']
+                    )
+                ) {
+                    $warnings[] =
+                        $draftResult['message'];
+                }
+            }
 
             return new JSONResponse([
                 'success' =>
@@ -98,8 +144,16 @@ class ComposeController extends Controller
                 'sentFolder' =>
                     $result['sentFolder'],
 
+                'draftDeleted' =>
+                    $draftDeleted,
+
                 'warning' =>
-                    $result['warning'],
+                    $warnings !== []
+                        ? implode(
+                            ' ',
+                            $warnings
+                        )
+                        : null,
             ]);
         } catch (
             InvalidArgumentException $e

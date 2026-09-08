@@ -686,6 +686,18 @@ document.addEventListener(
                 payload.html
             )
 
+            if (
+                Number(payload.draftUid)
+                > 0
+            ) {
+                formData.append(
+                    'draftUid',
+                    String(
+                        payload.draftUid
+                    )
+                )
+            }
+
             for (
                 const file
                 of attachments
@@ -801,6 +813,18 @@ document.addEventListener(
                 'html',
                 payload.html
             )
+
+            if (
+                Number(payload.draftUid)
+                > 0
+            ) {
+                formData.append(
+                    'draftUid',
+                    String(
+                        payload.draftUid
+                    )
+                )
+            }
 
             for (
                 const file
@@ -1800,6 +1824,9 @@ document.addEventListener(
                                 activeEditor.getData()
                                 || ''
                             ).trim(),
+
+                        draftUid:
+                            currentDraftUid,
                     }
 
 
