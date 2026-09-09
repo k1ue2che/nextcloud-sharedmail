@@ -1306,6 +1306,140 @@ document.addEventListener(
                 )
             )
 
+            // Kontakt-Autovervollständigung: bestehende Composer-Logik bleibt erhalten.
+            function attachContactAutocomplete(input, fieldName) {
+                if (!input.parentNode) return
+                const wrapper = document.createElement('div')
+                wrapper.style.cssText = 'position:relative;flex:1;min-width:0;width:100%'
+                input.parentNode.insertBefore(wrapper, input)
+                wrapper.appendChild(input)
+                const list = document.createElement('div')
+                list.id = 'sharedmail-contacts-' + fieldName
+                list.setAttribute('role', 'listbox')
+                list.setAttribute('aria-label', 'Kontaktvorschläge')
+                list.style.cssText = 'position:absolute;top:100%;left:0;right:0;z-index:1000;max-height:240px;overflow:auto;background:var(--color-main-background,#fff);color:var(--color-main-text,#222);border:1px solid var(--color-border,#ccc);border-radius:6px;box-shadow:0 4px 12px #0002'
+                list.hidden = true
+                wrapper.appendChild(list)
+                input.setAttribute('autocomplete', 'off')
+                input.setAttribute('role', 'combobox')
+                input.setAttribute('aria-autocomplete', 'list')
+                input.setAttribute('aria-controls', list.id)
+                input.setAttribute('aria-expanded', 'false')
+                let timer
+                let controller
+                let generation = 0
+                let contacts = []
+                let active = -1
+                let composing = false
+                const lastRecipient = () => {
+                    const start = Math.max(input.value.lastIndexOf(','), input.value.lastIndexOf(';')) + 1
+                    return { start, query: input.value.slice(start).trim() }
+                }
+                function close() {
+                    clearTimeout(timer)
+                    if (controller) controller.abort()
+                    generation += 1
+                    contacts = []
+                    active = -1
+                    list.replaceChildren()
+                    list.hidden = true
+                    input.setAttribute('aria-expanded', 'false')
+                    input.removeAttribute('aria-activedescendant')
+                }
+                function select(index) {
+                    const contact = contacts[index]
+                    if (!contact) return
+                    const { start } = lastRecipient()
+                    const whitespace = input.value.slice(start).match(/^\s*/)[0]
+                    input.value = input.value.slice(0, start) + whitespace + contact.email
+                    close()
+                    input.focus()
+                    input.setSelectionRange(input.value.length, input.value.length)
+                    input.dispatchEvent(new Event('input', { bubbles: true }))
+                    input.dispatchEvent(new Event('change', { bubbles: true }))
+                    close()
+                }
+                function highlight(index) {
+                    active = index
+                    Array.from(list.children).forEach((option, i) => {
+                        option.setAttribute('aria-selected', String(i === active))
+                        option.style.background = i === active ? 'var(--color-background-hover,#eee)' : ''
+                    })
+                    const option = list.children[active]
+                    if (option) {
+                        input.setAttribute('aria-activedescendant', option.id)
+                        option.scrollIntoView({ block: 'nearest' })
+                    }
+                }
+                function search() {
+                    close()
+                    const { query, start } = lastRecipient()
+                    if (composing || query.length < 2 || input.selectionStart < start) return
+                    const value = input.value
+                    const requestGeneration = generation
+                    timer = setTimeout(async () => {
+                        controller = new AbortController()
+                        try {
+                            const response = await fetch(
+                                OC.generateUrl('/apps/sharedmail/api/contacts') + '?query=' + encodeURIComponent(query),
+                                { headers: { Accept: 'application/json' }, signal: controller.signal }
+                            )
+                            if (!response.ok) return
+                            const data = await response.json()
+                            if (requestGeneration !== generation || input.value !== value || !input.isConnected || document.activeElement !== input) return
+                            if (data.success === false || !Array.isArray(data.contacts)) return
+                            const seen = new Set()
+                            contacts = data.contacts.filter(contact => {
+                                if (!contact || typeof contact.email !== 'string' || !/^[^\s,;<>@]+@[^\s,;<>@]+$/.test(contact.email)) return false
+                                const key = contact.email.toLowerCase()
+                                if (seen.has(key)) return false
+                                seen.add(key)
+                                return true
+                            }).slice(0, 20)
+                            contacts.forEach((contact, index) => {
+                                const option = document.createElement('div')
+                                option.id = list.id + '-' + index
+                                option.setAttribute('role', 'option')
+                                option.setAttribute('aria-selected', 'false')
+                                option.style.cssText = 'padding:8px 12px;cursor:pointer;overflow-wrap:anywhere'
+                                option.textContent = contact.name ? contact.name + ' <' + contact.email + '>' : contact.email
+                                option.addEventListener('mousedown', event => event.preventDefault())
+                                option.addEventListener('click', () => select(index))
+                                list.appendChild(option)
+                            })
+                            list.hidden = contacts.length === 0
+                            input.setAttribute('aria-expanded', String(contacts.length > 0))
+                        } catch (error) {
+                            // Auch bei nicht erreichbarem Adressbuch bleiben manuelle Empfänger möglich.
+                        }
+                    }, 250)
+                }
+                input.addEventListener('input', search)
+                input.addEventListener('blur', close)
+                input.addEventListener('compositionstart', () => { composing = true; close() })
+                input.addEventListener('compositionend', () => { composing = false; search() })
+                input.addEventListener('keydown', event => {
+                    if (event.isComposing) return
+                    if (event.key === 'Escape') {
+                        if (!list.hidden) { event.preventDefault(); event.stopPropagation() }
+                        close()
+                    } else if (!list.hidden && contacts.length) {
+                        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                            event.preventDefault()
+                            highlight(active < 0 ? (event.key === 'ArrowDown' ? 0 : contacts.length - 1) : (active + (event.key === 'ArrowDown' ? 1 : -1) + contacts.length) % contacts.length)
+                        } else if (event.key === 'Enter') {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            select(active < 0 ? 0 : active)
+                        } else if (event.key === 'Tab') close()
+                    }
+                })
+            }
+            attachContactAutocomplete(toInput, 'to')
+            attachContactAutocomplete(ccInput, 'cc')
+            attachContactAutocomplete(bccInput, 'bcc')
+
+
             composer.appendChild(
                 fields
             )
