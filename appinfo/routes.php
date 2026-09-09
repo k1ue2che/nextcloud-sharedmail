@@ -112,5 +112,14 @@ return [
             'url' => '/api/mailboxes/{id}/compose',
             'verb' => 'POST',
         ],
+
+        /*
+         * Nextcloud-Adressbuch durchsuchen.
+         */
+        [
+            'name' => 'contact#search',
+            'url' => '/api/contacts',
+            'verb' => 'GET',
+        ],
     ],
 ];
