@@ -1331,9 +1331,69 @@ document.addEventListener(
                 let contacts = []
                 let active = -1
                 let composing = false
-                const lastRecipient = () => {
-                    const start = Math.max(input.value.lastIndexOf(','), input.value.lastIndexOf(';')) + 1
-                    return { start, query: input.value.slice(start).trim() }
+                function getRecipientSegment() {
+                    const value = String(input.value || '')
+
+                    const cursor =
+                        Number.isInteger(input.selectionStart)
+                            ? input.selectionStart
+                            : value.length
+
+                    const beforeCursor =
+                        value.slice(
+                            0,
+                            cursor
+                        )
+
+                    const start =
+                        Math.max(
+                            beforeCursor.lastIndexOf(','),
+                            beforeCursor.lastIndexOf(';')
+                        ) + 1
+
+                    const afterCursor =
+                        value.slice(
+                            cursor
+                        )
+
+                    const nextSeparatorOffset =
+                        afterCursor.search(
+                            /[;,]/
+                        )
+
+                    const end =
+                        nextSeparatorOffset === -1
+                            ? value.length
+                            : cursor + nextSeparatorOffset
+
+                    const rawSegment =
+                        value.slice(
+                            start,
+                            end
+                        )
+
+                    const leadingWhitespace =
+                        rawSegment.match(
+                            /^\s*/
+                        )?.[0]
+                        || ''
+
+                    const query =
+                        value
+                            .slice(
+                                start,
+                                cursor
+                            )
+                            .trim()
+
+                    return {
+                        value,
+                        cursor,
+                        start,
+                        end,
+                        query,
+                        leadingWhitespace,
+                    }
                 }
                 function close() {
                     clearTimeout(timer)
@@ -1348,16 +1408,83 @@ document.addEventListener(
                 }
                 function select(index) {
                     const contact = contacts[index]
-                    if (!contact) return
-                    const { start } = lastRecipient()
-                    const whitespace = input.value.slice(start).match(/^\s*/)[0]
-                    input.value = input.value.slice(0, start) + whitespace + contact.email
+
+                    if (!contact) {
+                        return
+                    }
+
+                    const segment =
+                        getRecipientSegment()
+
+                    const before =
+                        segment.value.slice(
+                            0,
+                            segment.start
+                        )
+
+                    const after =
+                        segment.value.slice(
+                            segment.end
+                        )
+
+                    let inserted =
+                        segment.leadingWhitespace
+                        + contact.email
+
+                    let newValue
+                    let newCursor
+
+                    if (after === '') {
+                        inserted += ', '
+
+                        newValue =
+                            before
+                            + inserted
+
+                        newCursor =
+                            newValue.length
+                    } else {
+                        newValue =
+                            before
+                            + inserted
+                            + after
+
+                        newCursor =
+                            (
+                                before
+                                + inserted
+                            ).length
+                    }
+
+                    input.value =
+                        newValue
+
                     close()
+
                     input.focus()
-                    input.setSelectionRange(input.value.length, input.value.length)
-                    input.dispatchEvent(new Event('input', { bubbles: true }))
-                    input.dispatchEvent(new Event('change', { bubbles: true }))
-                    close()
+
+                    input.setSelectionRange(
+                        newCursor,
+                        newCursor
+                    )
+
+                    input.dispatchEvent(
+                        new Event(
+                            'input',
+                            {
+                                bubbles: true,
+                            }
+                        )
+                    )
+
+                    input.dispatchEvent(
+                        new Event(
+                            'change',
+                            {
+                                bubbles: true,
+                            }
+                        )
+                    )
                 }
                 function highlight(index) {
                     active = index
@@ -1373,20 +1500,37 @@ document.addEventListener(
                 }
                 function search() {
                     close()
-                    const { query, start } = lastRecipient()
-                    if (composing || query.length < 2 || input.selectionStart < start) return
+
+                    const segment =
+                        getRecipientSegment()
+
+                    if (
+                        composing
+                        || segment.query.length < 2
+                    ) {
+                        return
+                    }
+
                     const value = input.value
+                    const cursor = input.selectionStart
                     const requestGeneration = generation
+
                     timer = setTimeout(async () => {
                         controller = new AbortController()
                         try {
                             const response = await fetch(
-                                OC.generateUrl('/apps/sharedmail/api/contacts') + '?query=' + encodeURIComponent(query),
+                                OC.generateUrl('/apps/sharedmail/api/contacts') + '?query=' + encodeURIComponent(segment.query),
                                 { headers: { Accept: 'application/json' }, signal: controller.signal }
                             )
                             if (!response.ok) return
                             const data = await response.json()
-                            if (requestGeneration !== generation || input.value !== value || !input.isConnected || document.activeElement !== input) return
+                            if (
+                                requestGeneration !== generation
+                                || input.value !== value
+                                || input.selectionStart !== cursor
+                                || !input.isConnected
+                                || document.activeElement !== input
+                            ) return
                             if (data.success === false || !Array.isArray(data.contacts)) return
                             const seen = new Set()
                             contacts = data.contacts.filter(contact => {
