@@ -443,7 +443,7 @@ document.addEventListener(
         ) {
             const row =
                 document.createElement(
-                    'label'
+                    'div'
                 )
 
             row.className =
@@ -485,6 +485,511 @@ document.addEventListener(
                 'off'
 
             return input
+        }
+
+
+        /*
+         * Empfänger-Chips.
+         *
+         * Intern arbeitet das Backend weiterhin mit
+         * kommagetrennten E-Mail-Adressen. Die Chips
+         * sind ausschließlich die UI-Darstellung.
+         */
+        function parseRecipientToken(value) {
+            const token =
+                String(
+                    value
+                    || ''
+                ).trim()
+
+            if (token === '') {
+                return null
+            }
+
+            let name = ''
+            let email = token
+
+            const angleMatch =
+                token.match(
+                    /^\s*"?([^"<>]*)"?\s*<([^<>\s,;@]+@[^<>\s,;@]+)>\s*$/
+                )
+
+            if (angleMatch) {
+                name =
+                    String(
+                        angleMatch[1]
+                        || ''
+                    ).trim()
+
+                email =
+                    String(
+                        angleMatch[2]
+                        || ''
+                    ).trim()
+            }
+
+            if (
+                !/^[^\s,;<>@]+@[^\s,;<>@]+$/.test(
+                    email
+                )
+            ) {
+                return null
+            }
+
+            return {
+                email,
+                name,
+            }
+        }
+
+
+        function createRecipientControl(
+            initialValue = '',
+            options = {}
+        ) {
+            const maxRecipients =
+                Number.isFinite(
+                    options.maxRecipients
+                )
+                    ? Math.max(
+                        1,
+                        Number(
+                            options.maxRecipients
+                        )
+                    )
+                    : Infinity
+
+            const control =
+                document.createElement(
+                    'div'
+                )
+
+            control.className =
+                'sharedmail-recipient-control'
+
+            const chips =
+                document.createElement(
+                    'div'
+                )
+
+            chips.className =
+                'sharedmail-recipient-chips'
+
+            const input =
+                createInput()
+
+            input.classList.add(
+                'sharedmail-recipient-input'
+            )
+
+            input.placeholder =
+                options.placeholder
+                || 'Empfänger eingeben …'
+
+            const recipients = []
+            let externallyDisabled = false
+
+            control.appendChild(
+                chips
+            )
+
+            control.appendChild(
+                input
+            )
+
+
+            function render() {
+                chips.replaceChildren()
+
+                recipients.forEach(
+                    (
+                        recipient,
+                        index
+                    ) => {
+                        const chip =
+                            document.createElement(
+                                'span'
+                            )
+
+                        chip.className =
+                            'sharedmail-recipient-chip'
+
+                        chip.title =
+                            recipient.name !== ''
+                                ? `${recipient.name} <${recipient.email}>`
+                                : recipient.email
+
+                        const text =
+                            document.createElement(
+                                'span'
+                            )
+
+                        text.className =
+                            'sharedmail-recipient-chip-text'
+
+                        text.textContent =
+                            recipient.name !== ''
+                                ? recipient.name
+                                : recipient.email
+
+                        const removeButton =
+                            document.createElement(
+                                'button'
+                            )
+
+                        removeButton.type =
+                            'button'
+
+                        removeButton.className =
+                            'sharedmail-recipient-chip-remove'
+
+                        removeButton.textContent =
+                            '×'
+
+                        removeButton.setAttribute(
+                            'aria-label',
+                            `Empfänger ${recipient.email} entfernen`
+                        )
+
+                        removeButton.addEventListener(
+                            'click',
+                            () => {
+                                recipients.splice(
+                                    index,
+                                    1
+                                )
+
+                                render()
+
+                                input.focus()
+                            }
+                        )
+
+                        chip.appendChild(
+                            text
+                        )
+
+                        chip.appendChild(
+                            removeButton
+                        )
+
+                        chips.appendChild(
+                            chip
+                        )
+                    }
+                )
+
+                input.disabled =
+                    externallyDisabled
+                    || recipients.length
+                        >= maxRecipients
+            }
+
+
+            function add(
+                email,
+                name = ''
+            ) {
+                const parsed =
+                    parseRecipientToken(
+                        email
+                    )
+
+                if (!parsed) {
+                    return false
+                }
+
+                parsed.name =
+                    String(
+                        name
+                        || parsed.name
+                        || ''
+                    ).trim()
+
+                const key =
+                    parsed.email.toLowerCase()
+
+                const duplicate =
+                    recipients.some(
+                        (recipient) => {
+                            return (
+                                recipient.email
+                                    .toLowerCase()
+                                === key
+                            )
+                        }
+                    )
+
+                if (duplicate) {
+                    input.value = ''
+                    return true
+                }
+
+                if (
+                    recipients.length
+                    >= maxRecipients
+                ) {
+                    return false
+                }
+
+                recipients.push(
+                    parsed
+                )
+
+                input.value = ''
+                render()
+
+                return true
+            }
+
+
+            function commitInput() {
+                const parsed =
+                    parseRecipientToken(
+                        input.value
+                    )
+
+                if (!parsed) {
+                    return false
+                }
+
+                return add(
+                    parsed.email,
+                    parsed.name
+                )
+            }
+
+
+            function consumeSeparatedInput() {
+                const value =
+                    String(
+                        input.value
+                        || ''
+                    )
+
+                if (!/[;,]/.test(value)) {
+                    return
+                }
+
+                const endsWithSeparator =
+                    /[;,]\s*$/.test(
+                        value
+                    )
+
+                const parts =
+                    value.split(
+                        /[;,]/
+                    )
+
+                const remainder =
+                    endsWithSeparator
+                        ? ''
+                        : String(
+                            parts.pop()
+                            || ''
+                        ).trimStart()
+
+                const unresolved = []
+
+                for (const part of parts) {
+                    const token =
+                        String(
+                            part
+                            || ''
+                        ).trim()
+
+                    if (token === '') {
+                        continue
+                    }
+
+                    const parsed =
+                        parseRecipientToken(
+                            token
+                        )
+
+                    if (
+                        parsed
+                        && add(
+                            parsed.email,
+                            parsed.name
+                        )
+                    ) {
+                        continue
+                    }
+
+                    unresolved.push(
+                        token
+                    )
+                }
+
+                if (remainder !== '') {
+                    unresolved.push(
+                        remainder
+                    )
+                }
+
+                input.value =
+                    unresolved.join(
+                        ', '
+                    )
+            }
+
+
+            function getValue() {
+                const values =
+                    recipients.map(
+                        (recipient) => {
+                            return recipient.email
+                        }
+                    )
+
+                const pending =
+                    String(
+                        input.value
+                        || ''
+                    ).trim()
+
+                if (pending !== '') {
+                    values.push(
+                        pending
+                    )
+                }
+
+                return values.join(
+                    ', '
+                )
+            }
+
+
+            function setDisabled(disabled) {
+                externallyDisabled =
+                    Boolean(
+                        disabled
+                    )
+
+                render()
+            }
+
+
+            input.addEventListener(
+                'input',
+                () => {
+                    consumeSeparatedInput()
+                }
+            )
+
+            input.addEventListener(
+                'keydown',
+                (event) => {
+                    if (event.isComposing) {
+                        return
+                    }
+
+                    if (
+                        event.key === ','
+                        || event.key === ';'
+                    ) {
+                        if (
+                            String(
+                                input.value
+                                || ''
+                            ).trim() === ''
+                        ) {
+                            event.preventDefault()
+                            return
+                        }
+
+                        const committed =
+                            commitInput()
+
+                        if (committed) {
+                            event.preventDefault()
+                        }
+                    } else if (
+                        event.key === 'Backspace'
+                        && input.value === ''
+                        && recipients.length > 0
+                    ) {
+                        recipients.pop()
+                        render()
+                    }
+                }
+            )
+
+            input.addEventListener(
+                'blur',
+                () => {
+                    commitInput()
+                }
+            )
+
+
+            const initialParts =
+                String(
+                    initialValue
+                    || ''
+                ).split(
+                    /[;,]/
+                )
+
+            const unresolvedInitial = []
+
+            for (const part of initialParts) {
+                const token =
+                    String(
+                        part
+                        || ''
+                    ).trim()
+
+                if (token === '') {
+                    continue
+                }
+
+                const parsed =
+                    parseRecipientToken(
+                        token
+                    )
+
+                if (
+                    parsed
+                    && add(
+                        parsed.email,
+                        parsed.name
+                    )
+                ) {
+                    continue
+                }
+
+                unresolvedInitial.push(
+                    token
+                )
+            }
+
+            input.value =
+                unresolvedInitial.join(
+                    ', '
+                )
+
+            render()
+
+            return {
+                element:
+                    control,
+
+                input,
+
+                add,
+
+                commitInput,
+
+                getValue,
+
+                setDisabled,
+
+                focus() {
+                    input.focus()
+                },
+            }
         }
 
 
@@ -1225,34 +1730,57 @@ document.addEventListener(
                 true
 
 
-            const toInput =
-                createInput()
+            const toRecipients =
+                createRecipientControl(
+                    String(
+                        initialDraft?.to
+                        || ''
+                    ),
+                    {
+                        maxRecipients:
+                            isReplyDraft
+                                ? 1
+                                : Infinity,
 
-            toInput.value =
-                String(
-                    initialDraft?.to
-                    || ''
+                        placeholder:
+                            'Empfänger eingeben …',
+                    }
                 )
 
+            const toInput =
+                toRecipients.input
+
+
+            const ccRecipients =
+                createRecipientControl(
+                    String(
+                        initialDraft?.cc
+                        || ''
+                    ),
+                    {
+                        placeholder:
+                            'CC-Empfänger eingeben …',
+                    }
+                )
 
             const ccInput =
-                createInput()
+                ccRecipients.input
 
-            ccInput.value =
-                String(
-                    initialDraft?.cc
-                    || ''
+
+            const bccRecipients =
+                createRecipientControl(
+                    String(
+                        initialDraft?.bcc
+                        || ''
+                    ),
+                    {
+                        placeholder:
+                            'BCC-Empfänger eingeben …',
+                    }
                 )
-
 
             const bccInput =
-                createInput()
-
-            bccInput.value =
-                String(
-                    initialDraft?.bcc
-                    || ''
-                )
+                bccRecipients.input
 
 
             const subjectInput =
@@ -1275,7 +1803,7 @@ document.addEventListener(
             fields.appendChild(
                 createField(
                     'An',
-                    toInput
+                    toRecipients.element
                 )
             )
 
@@ -1287,14 +1815,14 @@ document.addEventListener(
                 fields.appendChild(
                     createField(
                         'CC',
-                        ccInput
+                        ccRecipients.element
                     )
                 )
 
                 fields.appendChild(
                     createField(
                         'BCC',
-                        bccInput
+                        bccRecipients.element
                     )
                 )
             }
@@ -1306,282 +1834,559 @@ document.addEventListener(
                 )
             )
 
-            // Kontakt-Autovervollständigung: bestehende Composer-Logik bleibt erhalten.
-            function attachContactAutocomplete(input, fieldName) {
-                if (!input.parentNode) return
-                const wrapper = document.createElement('div')
-                wrapper.style.cssText = 'position:relative;flex:1;min-width:0;width:100%'
-                input.parentNode.insertBefore(wrapper, input)
-                wrapper.appendChild(input)
-                const list = document.createElement('div')
-                list.id = 'sharedmail-contacts-' + fieldName
-                list.setAttribute('role', 'listbox')
-                list.setAttribute('aria-label', 'Kontaktvorschläge')
-                list.style.cssText = 'position:absolute;top:100%;left:0;right:0;z-index:1000;max-height:240px;overflow:auto;background:var(--color-main-background,#fff);color:var(--color-main-text,#222);border:1px solid var(--color-border,#ccc);border-radius:6px;box-shadow:0 4px 12px #0002'
+
+            /*
+             * Nextcloud-Kontakte für die
+             * Empfänger-Chip-Felder.
+             */
+            function attachContactAutocomplete(
+                recipientField,
+                fieldName
+            ) {
+                const input =
+                    recipientField.input
+
+                if (!input.parentNode) {
+                    return
+                }
+
+                const wrapper =
+                    document.createElement(
+                        'div'
+                    )
+
+                wrapper.className =
+                    'sharedmail-recipient-input-wrapper'
+
+                input.parentNode.insertBefore(
+                    wrapper,
+                    input
+                )
+
+                wrapper.appendChild(
+                    input
+                )
+
+                const list =
+                    document.createElement(
+                        'div'
+                    )
+
+                list.id =
+                    'sharedmail-contacts-'
+                    + fieldName
+
+                list.className =
+                    'sharedmail-contact-suggestions'
+
+                list.setAttribute(
+                    'role',
+                    'listbox'
+                )
+
+                list.setAttribute(
+                    'aria-label',
+                    'Kontaktvorschläge'
+                )
+
                 list.hidden = true
-                wrapper.appendChild(list)
-                input.setAttribute('autocomplete', 'off')
-                input.setAttribute('role', 'combobox')
-                input.setAttribute('aria-autocomplete', 'list')
-                input.setAttribute('aria-controls', list.id)
-                input.setAttribute('aria-expanded', 'false')
+
+                wrapper.appendChild(
+                    list
+                )
+
+                input.setAttribute(
+                    'autocomplete',
+                    'off'
+                )
+
+                input.setAttribute(
+                    'role',
+                    'combobox'
+                )
+
+                input.setAttribute(
+                    'aria-autocomplete',
+                    'list'
+                )
+
+                input.setAttribute(
+                    'aria-controls',
+                    list.id
+                )
+
+                input.setAttribute(
+                    'aria-expanded',
+                    'false'
+                )
+
                 let timer
                 let controller
                 let generation = 0
                 let contacts = []
                 let active = -1
                 let composing = false
-                function getRecipientSegment() {
-                    const value = String(input.value || '')
 
-                    const cursor =
-                        Number.isInteger(input.selectionStart)
-                            ? input.selectionStart
-                            : value.length
 
-                    const beforeCursor =
-                        value.slice(
-                            0,
-                            cursor
-                        )
-
-                    const start =
-                        Math.max(
-                            beforeCursor.lastIndexOf(','),
-                            beforeCursor.lastIndexOf(';')
-                        ) + 1
-
-                    const afterCursor =
-                        value.slice(
-                            cursor
-                        )
-
-                    const nextSeparatorOffset =
-                        afterCursor.search(
-                            /[;,]/
-                        )
-
-                    const end =
-                        nextSeparatorOffset === -1
-                            ? value.length
-                            : cursor + nextSeparatorOffset
-
-                    const rawSegment =
-                        value.slice(
-                            start,
-                            end
-                        )
-
-                    const leadingWhitespace =
-                        rawSegment.match(
-                            /^\s*/
-                        )?.[0]
-                        || ''
-
-                    const query =
-                        value
-                            .slice(
-                                start,
-                                cursor
-                            )
-                            .trim()
-
-                    return {
-                        value,
-                        cursor,
-                        start,
-                        end,
-                        query,
-                        leadingWhitespace,
-                    }
-                }
                 function close() {
-                    clearTimeout(timer)
-                    if (controller) controller.abort()
+                    clearTimeout(
+                        timer
+                    )
+
+                    if (controller) {
+                        controller.abort()
+                    }
+
                     generation += 1
                     contacts = []
                     active = -1
+
                     list.replaceChildren()
                     list.hidden = true
-                    input.setAttribute('aria-expanded', 'false')
-                    input.removeAttribute('aria-activedescendant')
+
+                    input.setAttribute(
+                        'aria-expanded',
+                        'false'
+                    )
+
+                    input.removeAttribute(
+                        'aria-activedescendant'
+                    )
                 }
+
+
                 function select(index) {
-                    const contact = contacts[index]
+                    const contact =
+                        contacts[
+                            index
+                        ]
 
                     if (!contact) {
                         return
                     }
 
-                    const segment =
-                        getRecipientSegment()
-
-                    const before =
-                        segment.value.slice(
-                            0,
-                            segment.start
+                    const added =
+                        recipientField.add(
+                            contact.email,
+                            String(
+                                contact.name
+                                || ''
+                            )
                         )
 
-                    const after =
-                        segment.value.slice(
-                            segment.end
-                        )
-
-                    let inserted =
-                        segment.leadingWhitespace
-                        + contact.email
-
-                    let newValue
-                    let newCursor
-
-                    if (after === '') {
-                        inserted += ', '
-
-                        newValue =
-                            before
-                            + inserted
-
-                        newCursor =
-                            newValue.length
-                    } else {
-                        newValue =
-                            before
-                            + inserted
-                            + after
-
-                        newCursor =
-                            (
-                                before
-                                + inserted
-                            ).length
+                    if (!added) {
+                        return
                     }
-
-                    input.value =
-                        newValue
 
                     close()
-
-                    input.focus()
-
-                    input.setSelectionRange(
-                        newCursor,
-                        newCursor
-                    )
-
-                    input.dispatchEvent(
-                        new Event(
-                            'input',
-                            {
-                                bubbles: true,
-                            }
-                        )
-                    )
-
-                    input.dispatchEvent(
-                        new Event(
-                            'change',
-                            {
-                                bubbles: true,
-                            }
-                        )
-                    )
+                    recipientField.focus()
                 }
+
+
                 function highlight(index) {
                     active = index
-                    Array.from(list.children).forEach((option, i) => {
-                        option.setAttribute('aria-selected', String(i === active))
-                        option.style.background = i === active ? 'var(--color-background-hover,#eee)' : ''
-                    })
-                    const option = list.children[active]
+
+                    Array.from(
+                        list.children
+                    ).forEach(
+                        (
+                            option,
+                            optionIndex
+                        ) => {
+                            option.setAttribute(
+                                'aria-selected',
+                                String(
+                                    optionIndex
+                                    === active
+                                )
+                            )
+
+                            option.classList.toggle(
+                                'active',
+                                optionIndex
+                                    === active
+                            )
+                        }
+                    )
+
+                    const option =
+                        list.children[
+                            active
+                        ]
+
                     if (option) {
-                        input.setAttribute('aria-activedescendant', option.id)
-                        option.scrollIntoView({ block: 'nearest' })
+                        input.setAttribute(
+                            'aria-activedescendant',
+                            option.id
+                        )
+
+                        option.scrollIntoView({
+                            block:
+                                'nearest',
+                        })
                     }
                 }
+
+
                 function search() {
                     close()
 
-                    const segment =
-                        getRecipientSegment()
+                    const query =
+                        String(
+                            input.value
+                            || ''
+                        ).trim()
 
                     if (
                         composing
-                        || segment.query.length < 2
+                        || query.length < 2
+                        || input.disabled
                     ) {
                         return
                     }
 
-                    const value = input.value
-                    const cursor = input.selectionStart
-                    const requestGeneration = generation
+                    const value =
+                        input.value
 
-                    timer = setTimeout(async () => {
-                        controller = new AbortController()
-                        try {
-                            const response = await fetch(
-                                OC.generateUrl('/apps/sharedmail/api/contacts') + '?query=' + encodeURIComponent(segment.query),
-                                { headers: { Accept: 'application/json' }, signal: controller.signal }
-                            )
-                            if (!response.ok) return
-                            const data = await response.json()
-                            if (
-                                requestGeneration !== generation
-                                || input.value !== value
-                                || input.selectionStart !== cursor
-                                || !input.isConnected
-                                || document.activeElement !== input
-                            ) return
-                            if (data.success === false || !Array.isArray(data.contacts)) return
-                            const seen = new Set()
-                            contacts = data.contacts.filter(contact => {
-                                if (!contact || typeof contact.email !== 'string' || !/^[^\s,;<>@]+@[^\s,;<>@]+$/.test(contact.email)) return false
-                                const key = contact.email.toLowerCase()
-                                if (seen.has(key)) return false
-                                seen.add(key)
-                                return true
-                            }).slice(0, 20)
-                            contacts.forEach((contact, index) => {
-                                const option = document.createElement('div')
-                                option.id = list.id + '-' + index
-                                option.setAttribute('role', 'option')
-                                option.setAttribute('aria-selected', 'false')
-                                option.style.cssText = 'padding:8px 12px;cursor:pointer;overflow-wrap:anywhere'
-                                option.textContent = contact.name ? contact.name + ' <' + contact.email + '>' : contact.email
-                                option.addEventListener('mousedown', event => event.preventDefault())
-                                option.addEventListener('click', () => select(index))
-                                list.appendChild(option)
-                            })
-                            list.hidden = contacts.length === 0
-                            input.setAttribute('aria-expanded', String(contacts.length > 0))
-                        } catch (error) {
-                            // Auch bei nicht erreichbarem Adressbuch bleiben manuelle Empfänger möglich.
-                        }
-                    }, 250)
+                    const requestGeneration =
+                        generation
+
+                    timer =
+                        window.setTimeout(
+                            async () => {
+                                controller =
+                                    new AbortController()
+
+                                try {
+                                    const response =
+                                        await fetch(
+                                            OC.generateUrl(
+                                                '/apps/sharedmail/api/contacts'
+                                            )
+                                            + '?query='
+                                            + encodeURIComponent(
+                                                query
+                                            ),
+                                            {
+                                                headers: {
+                                                    Accept:
+                                                        'application/json',
+                                                },
+
+                                                signal:
+                                                    controller.signal,
+                                            }
+                                        )
+
+                                    if (!response.ok) {
+                                        return
+                                    }
+
+                                    const data =
+                                        await response.json()
+
+                                    if (
+                                        requestGeneration
+                                            !== generation
+                                        || input.value
+                                            !== value
+                                        || !input.isConnected
+                                        || document.activeElement
+                                            !== input
+                                    ) {
+                                        return
+                                    }
+
+                                    if (
+                                        data.success === false
+                                        || !Array.isArray(
+                                            data.contacts
+                                        )
+                                    ) {
+                                        return
+                                    }
+
+                                    const seen =
+                                        new Set()
+
+                                    contacts =
+                                        data.contacts
+                                            .filter(
+                                                (contact) => {
+                                                    if (
+                                                        !contact
+                                                        || typeof contact.email
+                                                            !== 'string'
+                                                        || !/^[^\s,;<>@]+@[^\s,;<>@]+$/.test(
+                                                            contact.email
+                                                        )
+                                                    ) {
+                                                        return false
+                                                    }
+
+                                                    const key =
+                                                        contact.email
+                                                            .toLowerCase()
+
+                                                    if (
+                                                        seen.has(
+                                                            key
+                                                        )
+                                                    ) {
+                                                        return false
+                                                    }
+
+                                                    seen.add(
+                                                        key
+                                                    )
+
+                                                    return true
+                                                }
+                                            )
+                                            .slice(
+                                                0,
+                                                20
+                                            )
+
+                                    contacts.forEach(
+                                        (
+                                            contact,
+                                            index
+                                        ) => {
+                                            const option =
+                                                document.createElement(
+                                                    'div'
+                                                )
+
+                                            option.id =
+                                                list.id
+                                                + '-'
+                                                + index
+
+                                            option.className =
+                                                'sharedmail-contact-suggestion'
+
+                                            option.setAttribute(
+                                                'role',
+                                                'option'
+                                            )
+
+                                            option.setAttribute(
+                                                'aria-selected',
+                                                'false'
+                                            )
+
+                                            option.textContent =
+                                                contact.name
+                                                    ? contact.name
+                                                        + ' <'
+                                                        + contact.email
+                                                        + '>'
+                                                    : contact.email
+
+                                            option.addEventListener(
+                                                'mousedown',
+                                                (event) => {
+                                                    event.preventDefault()
+                                                }
+                                            )
+
+                                            option.addEventListener(
+                                                'click',
+                                                () => {
+                                                    select(
+                                                        index
+                                                    )
+                                                }
+                                            )
+
+                                            list.appendChild(
+                                                option
+                                            )
+                                        }
+                                    )
+
+                                    list.hidden =
+                                        contacts.length === 0
+
+                                    input.setAttribute(
+                                        'aria-expanded',
+                                        String(
+                                            contacts.length > 0
+                                        )
+                                    )
+                                } catch (error) {
+                                    if (
+                                        error?.name
+                                        !== 'AbortError'
+                                    ) {
+                                        /*
+                                         * Auch bei nicht erreichbarem
+                                         * Adressbuch bleiben manuelle
+                                         * Empfänger möglich.
+                                         */
+                                    }
+                                }
+                            },
+                            250
+                        )
                 }
-                input.addEventListener('input', search)
-                input.addEventListener('blur', close)
-                input.addEventListener('compositionstart', () => { composing = true; close() })
-                input.addEventListener('compositionend', () => { composing = false; search() })
-                input.addEventListener('keydown', event => {
-                    if (event.isComposing) return
-                    if (event.key === 'Escape') {
-                        if (!list.hidden) { event.preventDefault(); event.stopPropagation() }
-                        close()
-                    } else if (!list.hidden && contacts.length) {
-                        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                            event.preventDefault()
-                            highlight(active < 0 ? (event.key === 'ArrowDown' ? 0 : contacts.length - 1) : (active + (event.key === 'ArrowDown' ? 1 : -1) + contacts.length) % contacts.length)
-                        } else if (event.key === 'Enter') {
-                            event.preventDefault()
-                            event.stopPropagation()
-                            select(active < 0 ? 0 : active)
-                        } else if (event.key === 'Tab') close()
+
+
+                input.addEventListener(
+                    'input',
+                    search
+                )
+
+                input.addEventListener(
+                    'click',
+                    () => {
+                        if (
+                            String(
+                                input.value
+                                || ''
+                            ).trim() !== ''
+                        ) {
+                            search()
+                        }
                     }
-                })
+                )
+
+                input.addEventListener(
+                    'blur',
+                    close
+                )
+
+                input.addEventListener(
+                    'compositionstart',
+                    () => {
+                        composing = true
+                        close()
+                    }
+                )
+
+                input.addEventListener(
+                    'compositionend',
+                    () => {
+                        composing = false
+                        search()
+                    }
+                )
+
+                input.addEventListener(
+                    'keydown',
+                    (event) => {
+                        if (event.isComposing) {
+                            return
+                        }
+
+                        if (
+                            event.key
+                            === 'Escape'
+                        ) {
+                            if (!list.hidden) {
+                                event.preventDefault()
+                                event.stopPropagation()
+                            }
+
+                            close()
+
+                            return
+                        }
+
+                        if (
+                            !list.hidden
+                            && contacts.length
+                        ) {
+                            if (
+                                event.key
+                                    === 'ArrowDown'
+                                || event.key
+                                    === 'ArrowUp'
+                            ) {
+                                event.preventDefault()
+
+                                highlight(
+                                    active < 0
+                                        ? (
+                                            event.key
+                                                === 'ArrowDown'
+                                                ? 0
+                                                : contacts.length - 1
+                                        )
+                                        : (
+                                            active
+                                            + (
+                                                event.key
+                                                    === 'ArrowDown'
+                                                    ? 1
+                                                    : -1
+                                            )
+                                            + contacts.length
+                                        )
+                                        % contacts.length
+                                )
+
+                                return
+                            }
+
+                            if (
+                                event.key
+                                === 'Enter'
+                            ) {
+                                event.preventDefault()
+                                event.stopPropagation()
+
+                                select(
+                                    active < 0
+                                        ? 0
+                                        : active
+                                )
+
+                                return
+                            }
+
+                            if (
+                                event.key
+                                === 'Tab'
+                            ) {
+                                close()
+                            }
+                        } else if (
+                            event.key
+                            === 'Enter'
+                        ) {
+                            const committed =
+                                recipientField
+                                    .commitInput()
+
+                            if (committed) {
+                                event.preventDefault()
+                                event.stopPropagation()
+                                close()
+                            }
+                        }
+                    }
+                )
             }
-            attachContactAutocomplete(toInput, 'to')
-            attachContactAutocomplete(ccInput, 'cc')
-            attachContactAutocomplete(bccInput, 'bcc')
+
+
+            attachContactAutocomplete(
+                toRecipients,
+                'to'
+            )
+
+            if (!isReplyDraft) {
+                attachContactAutocomplete(
+                    ccRecipients,
+                    'cc'
+                )
+
+                attachContactAutocomplete(
+                    bccRecipients,
+                    'bcc'
+                )
+            }
 
 
             composer.appendChild(
@@ -1822,6 +2627,23 @@ document.addEventListener(
                     busy
 
                 attachmentButton.disabled =
+                    busy
+
+                toRecipients.setDisabled(
+                    busy
+                )
+
+                if (!isReplyDraft) {
+                    ccRecipients.setDisabled(
+                        busy
+                    )
+
+                    bccRecipients.setDisabled(
+                        busy
+                    )
+                }
+
+                subjectInput.disabled =
                     busy
             }
 
@@ -2102,26 +2924,23 @@ document.addEventListener(
 
                     const payload = {
                         to:
-                            String(
-                                toInput.value
-                                || ''
-                            ).trim(),
+                            toRecipients
+                                .getValue()
+                                .trim(),
 
                         cc:
                             isReplyDraft
                                 ? ''
-                                : String(
-                                    ccInput.value
-                                    || ''
-                                ).trim(),
+                                : ccRecipients
+                                    .getValue()
+                                    .trim(),
 
                         bcc:
                             isReplyDraft
                                 ? ''
-                                : String(
-                                    bccInput.value
-                                    || ''
-                                ).trim(),
+                                : bccRecipients
+                                    .getValue()
+                                    .trim(),
 
                         subject:
                             String(
@@ -2248,10 +3067,9 @@ document.addEventListener(
 
 
                     const to =
-                        String(
-                            toInput.value
-                            || ''
-                        ).trim()
+                        toRecipients
+                            .getValue()
+                            .trim()
 
 
                     if (to === '') {
@@ -2292,18 +3110,16 @@ document.addEventListener(
                         cc:
                             isReplyDraft
                                 ? ''
-                                : String(
-                                    ccInput.value
-                                    || ''
-                                ).trim(),
+                                : ccRecipients
+                                    .getValue()
+                                    .trim(),
 
                         bcc:
                             isReplyDraft
                                 ? ''
-                                : String(
-                                    bccInput.value
-                                    || ''
-                                ).trim(),
+                                : bccRecipients
+                                    .getValue()
+                                    .trim(),
 
                         subject:
                             String(
