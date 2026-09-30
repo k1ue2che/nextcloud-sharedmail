@@ -48,3 +48,89 @@
     opacity: 0.7;
     max-width: 760px;
 }
+
+.sharedmail-group-permissions {
+    width: min(100%, 760px);
+    max-width: 760px;
+    margin: 8px 0 24px;
+}
+
+.sharedmail-group-permissions > h3 {
+    margin-top: 0;
+    margin-bottom: 4px;
+}
+
+#sharedmail-group-permissions-list {
+    display: grid;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.sharedmail-permission-group {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-large);
+    background: var(--color-background-hover);
+}
+
+.sharedmail-permission-group-title {
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.sharedmail-permission-options {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(155px, 1fr)
+        );
+    gap: 8px 14px;
+}
+
+#sharedmail-mailbox-form
+.sharedmail-permission-option {
+    display: flex;
+    align-items: center;
+    width: auto;
+    margin: 0;
+    gap: 7px;
+    cursor: pointer;
+}
+
+#sharedmail-mailbox-form
+.sharedmail-permission-option
+input[type="checkbox"] {
+    width: auto;
+    min-width: 0;
+    margin: 0;
+}
+
+#sharedmail-mailbox-form
+.sharedmail-permission-option
+input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+}
+
+#sharedmail-mailbox-form
+.sharedmail-permission-option
+input[type="checkbox"]:disabled
++ span {
+    opacity: 0.7;
+}
+
+@media (max-width: 700px) {
+    #sharedmail-mailbox-form input[type="text"],
+    #sharedmail-mailbox-form input[type="email"],
+    #sharedmail-mailbox-form input[type="password"],
+    #sharedmail-group-ids {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .sharedmail-permission-options {
+        grid-template-columns: 1fr;
+    }
+}

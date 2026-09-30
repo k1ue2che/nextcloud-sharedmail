@@ -7,6 +7,7 @@ namespace OCA\SharedMail\Controller;
 use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\AttachmentService;
 use OCA\SharedMail\Service\MailboxAccessService;
+use OCA\SharedMail\Service\MailboxPermission;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -35,7 +36,6 @@ class AttachmentController extends Controller
         'image/avif',
     ];
 
-
     public function __construct(
         IRequest $request,
         private readonly MailboxAccessService $mailboxAccessService,
@@ -46,7 +46,6 @@ class AttachmentController extends Controller
             $request
         );
     }
-
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -95,7 +94,6 @@ class AttachmentController extends Controller
             );
         }
     }
-
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -195,7 +193,6 @@ class AttachmentController extends Controller
         }
     }
 
-
     /**
      * @return array{
      *     content:string,
@@ -251,7 +248,8 @@ class AttachmentController extends Controller
             $this
                 ->mailboxAccessService
                 ->getAccessibleMailbox(
-                    $id
+                    $id,
+                    MailboxPermission::READ
                 );
 
         if ($mailbox === null) {
@@ -259,7 +257,7 @@ class AttachmentController extends Controller
                 [
                     'success' => false,
                     'message' =>
-                        'Kein Zugriff auf dieses Postfach.',
+                        'Keine Leseberechtigung für dieses Postfach.',
                 ],
                 403
             );
@@ -274,7 +272,6 @@ class AttachmentController extends Controller
                 $mimeId
             );
     }
-
 
     private function buildInlineContentDisposition(
         string $filename

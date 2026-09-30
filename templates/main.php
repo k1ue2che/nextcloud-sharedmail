@@ -48,7 +48,8 @@ $mailboxes = $_['mailboxes'] ?? [];
                             ?>"
                             data-mailbox-id="<?php p((string)$mailbox['id']); ?>"
                             data-mailbox-name="<?php p($mailbox['name']); ?>"
-                            data-mailbox-email="<?php p($mailbox['email']); ?>">
+                            data-mailbox-email="<?php p($mailbox['email']); ?>"
+                            data-mailbox-permissions="<?php p((string)($mailbox['permissions'] ?? 0)); ?>">
 
                             <span class="sharedmail-mailbox-name">
                                 <?php p($mailbox['name']); ?>
@@ -94,7 +95,6 @@ $mailboxes = $_['mailboxes'] ?? [];
 
     </aside>
 
-
     <main class="sharedmail-main">
 
         <?php if ($mailboxes !== []): ?>
@@ -116,7 +116,6 @@ $mailboxes = $_['mailboxes'] ?? [];
                 </div>
 
             </header>
-
 
             <div
                 id="sharedmail-message-area"

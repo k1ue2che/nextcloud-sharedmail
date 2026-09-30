@@ -6,6 +6,7 @@ namespace OCA\SharedMail\Controller;
 
 use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\MailboxAccessService;
+use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageMoveService;
 use OCA\SharedMail\Service\PersonalReadStateMoveService;
 use OCP\AppFramework\Controller;
@@ -80,7 +81,8 @@ class MoveController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::MOVE
                     );
 
             if ($mailbox === null) {
@@ -88,7 +90,7 @@ class MoveController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Berechtigung zum Verschieben von Nachrichten in diesem Postfach.',
                     ],
                     403
                 );

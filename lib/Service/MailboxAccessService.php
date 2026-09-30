@@ -26,7 +26,8 @@ class MailboxAccessService
      */
     public function getAccessibleMailboxes(): array
     {
-        $user = $this->userSession->getUser();
+        $user =
+            $this->userSession->getUser();
 
         if ($user === null) {
             return [];
@@ -38,6 +39,11 @@ class MailboxAccessService
     }
 
     /**
+     * Gibt alle aktivierten Mailboxen zurück,
+     * für die der Benutzer READ besitzt.
+     *
+     * Rechte mehrerer Gruppen werden zusammengeführt.
+     *
      * @return Mailbox[]
      */
     public function getAccessibleMailboxesForUser(
@@ -52,23 +58,44 @@ class MailboxAccessService
             return [];
         }
 
-        $mailboxIds =
+        $permissionsByMailbox =
             $this->accessRuleMapper
-                ->findMailboxIdsForGroups(
+                ->findPermissionsByMailboxForGroups(
                     $groupIds
                 );
 
-        if ($mailboxIds === []) {
+        if (
+            $permissionsByMailbox
+            === []
+        ) {
             return [];
         }
 
         $mailboxes = [];
 
-        foreach ($mailboxIds as $mailboxId) {
+        foreach (
+            $permissionsByMailbox
+            as $mailboxId => $permissions
+        ) {
+            /*
+             * Eine Mailbox darf in der normalen
+             * Oberfläche nur erscheinen, wenn der
+             * Benutzer sie auch lesen darf.
+             */
+            if (
+                (
+                    $permissions
+                    & MailboxPermission::READ
+                )
+                !== MailboxPermission::READ
+            ) {
+                continue;
+            }
+
             try {
                 $mailbox =
                     $this->mailboxMapper->find(
-                        $mailboxId
+                        (int)$mailboxId
                     );
             } catch (\Throwable) {
                 continue;
@@ -82,19 +109,45 @@ class MailboxAccessService
                 continue;
             }
 
-            $mailboxes[] = $mailbox;
+            $mailboxes[] =
+                $mailbox;
         }
 
         return $mailboxes;
     }
 
-    public function canAccessMailbox(
+    /**
+     * Effektive Rechte des aktuell
+     * angemeldeten Benutzers.
+     */
+    public function getPermissions(
         int $mailboxId,
-    ): bool {
-        $user = $this->userSession->getUser();
+    ): int {
+        $user =
+            $this->userSession->getUser();
 
         if ($user === null) {
-            return false;
+            return 0;
+        }
+
+        return $this->getPermissionsForUser(
+            $user,
+            $mailboxId
+        );
+    }
+
+    /**
+     * Effektive Rechte eines Benutzers.
+     *
+     * Rechte aller Gruppen werden per OR
+     * zusammengeführt.
+     */
+    public function getPermissionsForUser(
+        IUser $user,
+        int $mailboxId,
+    ): int {
+        if ($mailboxId <= 0) {
+            return 0;
         }
 
         $groupIds =
@@ -103,28 +156,82 @@ class MailboxAccessService
             );
 
         if ($groupIds === []) {
+            return 0;
+        }
+
+        return $this->accessRuleMapper
+            ->getPermissionsForMailboxAndGroups(
+                $mailboxId,
+                $groupIds
+            );
+    }
+
+    /**
+     * Prüft, ob der aktuell angemeldete Benutzer
+     * ein bestimmtes Recht besitzt.
+     *
+     * Es können auch mehrere Rechte kombiniert
+     * übergeben werden.
+     */
+    public function hasPermission(
+        int $mailboxId,
+        int $permission,
+    ): bool {
+        if (
+            $mailboxId <= 0
+            || $permission <= 0
+        ) {
             return false;
         }
 
-        foreach ($groupIds as $groupId) {
-            if (
-                $this->accessRuleMapper
-                    ->groupHasAccess(
-                        $mailboxId,
-                        $groupId
-                    )
-            ) {
-                return true;
-            }
-        }
+        $permissions =
+            $this->getPermissions(
+                $mailboxId
+            );
 
-        return false;
+        return (
+            (
+                $permissions
+                & $permission
+            )
+            === $permission
+        );
     }
 
+    /**
+     * Bestehende API-Kompatibilität.
+     *
+     * "Zugriff" bedeutet ab jetzt:
+     * Benutzer besitzt READ.
+     */
+    public function canAccessMailbox(
+        int $mailboxId,
+    ): bool {
+        return $this->hasPermission(
+            $mailboxId,
+            MailboxPermission::READ
+        );
+    }
+
+    /**
+     * Gibt eine Mailbox nur zurück, wenn:
+     *
+     * - sie existiert
+     * - sie aktiviert ist
+     * - der Benutzer das verlangte Recht besitzt
+     *
+     * Ohne explizites Recht wird READ verlangt.
+     */
     public function getAccessibleMailbox(
         int $mailboxId,
+        int $permission = MailboxPermission::READ,
     ): ?Mailbox {
-        if (!$this->canAccessMailbox($mailboxId)) {
+        if (
+            !$this->hasPermission(
+                $mailboxId,
+                $permission
+            )
+        ) {
             return null;
         }
 

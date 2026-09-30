@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use OCA\SharedMail\Service\MailboxPermission;
+
 /** @var array $_ */
 
 script('sharedmail', 'admin');
@@ -89,7 +91,8 @@ $groups = $_['groups'] ?? [];
                                         data-smtp-port="<?php p((string)$mailbox['smtpPort']); ?>"
                                         data-smtp-security="<?php p($mailbox['smtpSecurity']); ?>"
                                         data-smtp-username="<?php p($mailbox['smtpUsername']); ?>"
-                                        data-group-ids="<?php p(json_encode($mailbox['groupIds'] ?? [])); ?>">
+                                        data-group-ids="<?php p(json_encode($mailbox['groupIds'] ?? [])); ?>"
+                                        data-group-permissions="<?php p(json_encode($mailbox['groupPermissions'] ?? [])); ?>">
                                         Bearbeiten
                                     </button>
 
@@ -121,11 +124,6 @@ $groups = $_['groups'] ?? [];
         </button>
     </div>
 
-
-    <!--
-        Formular zum Anlegen UND Bearbeiten eines Postfachs.
-        Die Umschaltung übernimmt admin.js.
-    -->
     <div
         id="sharedmail-mailbox-form-wrapper"
         class="sharedmail-form-wrapper"
@@ -150,7 +148,6 @@ $groups = $_['groups'] ?? [];
                     placeholder="z. B. Vorstand">
             </div>
 
-
             <div class="sharedmail-field">
                 <label for="sharedmail-description">
                     <strong>Beschreibung</strong>
@@ -162,7 +159,6 @@ $groups = $_['groups'] ?? [];
                     rows="3"
                     placeholder="Gemeinsames Postfach des Vorstands"></textarea>
             </div>
-
 
             <div class="sharedmail-field">
                 <label for="sharedmail-email">
@@ -176,7 +172,6 @@ $groups = $_['groups'] ?? [];
                     required
                     placeholder="vorstand@example.org">
             </div>
-
 
             <div class="sharedmail-field">
                 <label for="sharedmail-group-ids">
@@ -205,6 +200,29 @@ $groups = $_['groups'] ?? [];
                 </select>
             </div>
 
+            <div
+                id="sharedmail-group-permissions"
+                class="sharedmail-group-permissions"
+                data-read="<?php p((string)MailboxPermission::READ); ?>"
+                data-reply="<?php p((string)MailboxPermission::REPLY); ?>"
+                data-compose="<?php p((string)MailboxPermission::COMPOSE); ?>"
+                data-move="<?php p((string)MailboxPermission::MOVE); ?>"
+                data-delete="<?php p((string)MailboxPermission::DELETE); ?>"
+                data-assign="<?php p((string)MailboxPermission::ASSIGN); ?>"
+                data-change-status="<?php p((string)MailboxPermission::CHANGE_STATUS); ?>"
+                data-manage="<?php p((string)MailboxPermission::MANAGE); ?>"
+                data-default="<?php p((string)MailboxPermission::DEFAULT); ?>"
+                style="display:none;">
+
+                <h3>Gruppenrechte</h3>
+
+                <p class="sharedmail-hint">
+                    Die Rechte gelten für die jeweils ausgewählte Nextcloud-Gruppe.
+                    Lesen ist für jede Zugriffsgruppe immer erforderlich.
+                </p>
+
+                <div id="sharedmail-group-permissions-list"></div>
+            </div>
 
             <div class="sharedmail-form-section">
                 <h3>IMAP</h3>
@@ -222,7 +240,6 @@ $groups = $_['groups'] ?? [];
                         placeholder="mail.example.org">
                 </div>
 
-
                 <div class="sharedmail-field-row">
 
                     <div class="sharedmail-field sharedmail-field-port">
@@ -239,7 +256,6 @@ $groups = $_['groups'] ?? [];
                             value="993"
                             required>
                     </div>
-
 
                     <div class="sharedmail-field sharedmail-field-security">
                         <label for="sharedmail-imap-security">
@@ -266,7 +282,6 @@ $groups = $_['groups'] ?? [];
 
                 </div>
 
-
                 <div class="sharedmail-field">
                     <label for="sharedmail-imap-username">
                         <strong>Benutzername</strong>
@@ -279,7 +294,6 @@ $groups = $_['groups'] ?? [];
                         required
                         autocomplete="off">
                 </div>
-
 
                 <div class="sharedmail-field">
                     <label for="sharedmail-imap-password">
@@ -302,7 +316,6 @@ $groups = $_['groups'] ?? [];
                 </div>
             </div>
 
-
             <div class="sharedmail-form-section">
                 <h3>SMTP</h3>
 
@@ -318,7 +331,6 @@ $groups = $_['groups'] ?? [];
                         required
                         placeholder="mail.example.org">
                 </div>
-
 
                 <div class="sharedmail-field-row">
 
@@ -336,7 +348,6 @@ $groups = $_['groups'] ?? [];
                             value="465"
                             required>
                     </div>
-
 
                     <div class="sharedmail-field sharedmail-field-security">
                         <label for="sharedmail-smtp-security">
@@ -363,7 +374,6 @@ $groups = $_['groups'] ?? [];
 
                 </div>
 
-
                 <div class="sharedmail-field">
                     <label for="sharedmail-smtp-username">
                         <strong>Benutzername</strong>
@@ -376,7 +386,6 @@ $groups = $_['groups'] ?? [];
                         required
                         autocomplete="off">
                 </div>
-
 
                 <div class="sharedmail-field">
                     <label for="sharedmail-smtp-password">
@@ -399,7 +408,6 @@ $groups = $_['groups'] ?? [];
                 </div>
             </div>
 
-
             <div class="sharedmail-connection-test">
                 <button
                     id="sharedmail-test-connection"
@@ -413,7 +421,6 @@ $groups = $_['groups'] ?? [];
                     style="display:none;">
                 </div>
             </div>
-
 
             <div class="sharedmail-form-actions">
 

@@ -10,6 +10,7 @@ use OCA\SharedMail\Service\AttachmentUploadService;
 use OCA\SharedMail\Service\ComposeSendService;
 use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\MailboxAccessService;
+use OCA\SharedMail\Service\MailboxPermission;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
@@ -46,7 +47,8 @@ class ComposeController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::COMPOSE
                     );
 
             if ($mailbox === null) {
@@ -56,7 +58,7 @@ class ComposeController extends Controller
                             false,
 
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Berechtigung zum Verfassen von Nachrichten in diesem Postfach.',
                     ],
                     403
                 );

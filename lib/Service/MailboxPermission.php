@@ -15,10 +15,17 @@ final class MailboxPermission
     public const CHANGE_STATUS = 64;
     public const MANAGE = 128;
 
+    /*
+     * Standardrechte einer neu zugewiesenen Gruppe.
+     *
+     * MOVE gehört bewusst dazu, damit das bisherige
+     * Verhalten von Shared Mail erhalten bleibt.
+     */
     public const DEFAULT =
         self::READ |
         self::REPLY |
-        self::COMPOSE;
+        self::COMPOSE |
+        self::MOVE;
 
     public const FULL =
         self::READ |

@@ -9,6 +9,7 @@ use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\AttachmentUploadService;
 use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\MailboxAccessService;
+use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\ReplySendService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -46,7 +47,8 @@ class ReplyController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::REPLY
                     );
 
             if ($mailbox === null) {
@@ -56,7 +58,7 @@ class ReplyController extends Controller
                             false,
 
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Berechtigung zum Antworten in diesem Postfach.',
                     ],
                     403
                 );

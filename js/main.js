@@ -21,6 +21,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let activeFolders = []
 
+    /*
+     * Effektive Mailbox-Rechte.
+     *
+     * Müssen mit MailboxPermission.php
+     * übereinstimmen.
+     */
+    const PERMISSION_REPLY = 2
+    const PERMISSION_MOVE = 8
+
+
+    function getActiveMailboxPermissions() {
+        if (!activeMailboxButton) {
+            return 0
+        }
+
+        const permissions =
+            Number(
+                activeMailboxButton
+                    .dataset
+                    .mailboxPermissions
+                || 0
+            )
+
+        if (
+            !Number.isInteger(permissions)
+            || permissions < 0
+        ) {
+            return 0
+        }
+
+        return permissions
+    }
+
+
+    function hasActiveMailboxPermission(
+        permission
+    ) {
+        const permissions =
+            getActiveMailboxPermissions()
+
+        return (
+            (
+                permissions
+                & permission
+            )
+            === permission
+        )
+    }
+
     if (mailboxButtons.length === 0) {
         return
     }
@@ -1477,6 +1526,17 @@ ${html || ''}
         moveArea.className =
             'sharedmail-viewer-move'
 
+        /*
+         * MOVE fehlt:
+         * Verschieben gar nicht erst anzeigen.
+         *
+         * Der Server prüft MOVE zusätzlich.
+         */
+        moveArea.hidden =
+            !hasActiveMailboxPermission(
+                PERMISSION_MOVE
+            )
+
 
         const moveSelect =
             document.createElement('select')
@@ -1718,7 +1778,10 @@ ${html || ''}
         messageArea.appendChild(viewer)
 
         if (
-            window.SharedMailReplyComposer
+            hasActiveMailboxPermission(
+                PERMISSION_REPLY
+            )
+            && window.SharedMailReplyComposer
             && typeof window.SharedMailReplyComposer.attach
                 === 'function'
         ) {

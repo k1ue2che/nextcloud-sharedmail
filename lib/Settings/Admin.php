@@ -23,75 +23,153 @@ class Admin implements ISettings
 
     public function getForm(): TemplateResponse
     {
-        $mailboxes = array_map(
-            function (Mailbox $mailbox): array {
-                $mailboxId = (int)$mailbox->getId();
-
-                /*
-                 * Zugeordnete Nextcloud-Gruppen ermitteln.
-                 */
-                $groupIds = [];
-
-                foreach ($this->accessRuleMapper->findByMailbox($mailboxId) as $rule) {
-                    if ($rule->getPrincipalType() !== 'group') {
-                        continue;
-                    }
-
-                    $groupIds[] = $rule->getPrincipalId();
-                }
-
-                return [
-                    'id' => $mailboxId,
-
-                    'name' => $mailbox->getName(),
-                    'description' => $mailbox->getDescription(),
-                    'email' => $mailbox->getEmail(),
-
-                    'imapHost' => $mailbox->getImapHost(),
-                    'imapPort' => $mailbox->getImapPort(),
-                    'imapSecurity' => $mailbox->getImapSecurity(),
-                    'imapUsername' => $mailbox->getImapUsername(),
-
-                    'smtpHost' => $mailbox->getSmtpHost(),
-                    'smtpPort' => $mailbox->getSmtpPort(),
-                    'smtpSecurity' => $mailbox->getSmtpSecurity(),
-                    'smtpUsername' => $mailbox->getSmtpUsername(),
+        $mailboxes =
+            array_map(
+                function (Mailbox $mailbox): array {
+                    $mailboxId =
+                        (int)$mailbox->getId();
 
                     /*
-                     * Passwörter werden absichtlich NICHT
-                     * an den Browser ausgeliefert.
+                     * Zugeordnete Nextcloud-Gruppen
+                     * und deren Rechte ermitteln.
                      */
-                    'groupIds' => $groupIds,
+                    $groupIds = [];
+                    $groupPermissions = [];
 
-                    'enabled' => $mailbox->getEnabled(),
-                ];
-            },
-            $this->mailboxMapper->findAll()
-        );
+                    foreach (
+                        $this
+                            ->accessRuleMapper
+                            ->findByMailbox(
+                                $mailboxId
+                            )
+                        as $rule
+                    ) {
+                        if (
+                            $rule->getPrincipalType()
+                            !== 'group'
+                        ) {
+                            continue;
+                        }
+
+                        $groupId =
+                            (string)$rule
+                                ->getPrincipalId();
+
+                        $groupIds[] =
+                            $groupId;
+
+                        $groupPermissions[
+                            $groupId
+                        ] =
+                            (int)$rule
+                                ->getPermissions();
+                    }
+
+                    return [
+                        'id' =>
+                            $mailboxId,
+
+                        'name' =>
+                            $mailbox->getName(),
+
+                        'description' =>
+                            $mailbox->getDescription(),
+
+                        'email' =>
+                            $mailbox->getEmail(),
+
+                        'imapHost' =>
+                            $mailbox->getImapHost(),
+
+                        'imapPort' =>
+                            $mailbox->getImapPort(),
+
+                        'imapSecurity' =>
+                            $mailbox->getImapSecurity(),
+
+                        'imapUsername' =>
+                            $mailbox->getImapUsername(),
+
+                        'smtpHost' =>
+                            $mailbox->getSmtpHost(),
+
+                        'smtpPort' =>
+                            $mailbox->getSmtpPort(),
+
+                        'smtpSecurity' =>
+                            $mailbox->getSmtpSecurity(),
+
+                        'smtpUsername' =>
+                            $mailbox->getSmtpUsername(),
+
+                        /*
+                         * Passwörter werden absichtlich
+                         * NICHT an den Browser ausgeliefert.
+                         */
+                        'groupIds' =>
+                            $groupIds,
+
+                        /*
+                         * Rechte pro Nextcloud-Gruppe.
+                         *
+                         * Beispiel:
+                         *
+                         * [
+                         *     'Vorstand' => 255,
+                         *     'Mitglieder' => 3,
+                         * ]
+                         */
+                        'groupPermissions' =>
+                            $groupPermissions,
+
+                        'enabled' =>
+                            $mailbox->getEnabled(),
+                    ];
+                },
+                $this
+                    ->mailboxMapper
+                    ->findAll()
+            );
 
         /*
-         * Alle vorhandenen Nextcloud-Gruppen für die Auswahl.
+         * Alle vorhandenen Nextcloud-Gruppen
+         * für die Auswahl.
          */
-        $groups = array_map(
-            static fn ($group): array => [
-                'id' => $group->getGID(),
-                'name' => $group->getDisplayName(),
-            ],
-            $this->groupManager->search('')
-        );
+        $groups =
+            array_map(
+                static fn ($group): array => [
+                    'id' =>
+                        $group->getGID(),
+
+                    'name' =>
+                        $group->getDisplayName(),
+                ],
+                $this
+                    ->groupManager
+                    ->search('')
+            );
 
         usort(
             $groups,
-            static fn (array $a, array $b): int =>
-                strcasecmp($a['name'], $b['name'])
+            static fn (
+                array $a,
+                array $b,
+            ): int =>
+                strcasecmp(
+                    $a['name'],
+                    $b['name']
+                )
         );
 
         return new TemplateResponse(
             Application::APP_ID,
             'admin',
             [
-                'mailboxes' => $mailboxes,
-                'groups' => $groups,
+                'mailboxes' =>
+                    $mailboxes,
+
+                'groups' =>
+                    $groups,
             ],
             ''
         );

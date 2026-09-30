@@ -63,6 +63,30 @@ document.addEventListener(
         }
 
 
+        /*
+         * Effektive Mailbox-Rechte.
+         *
+         * Müssen mit MailboxPermission.php
+         * übereinstimmen.
+         */
+        const PERMISSION_REPLY = 2
+        const PERMISSION_COMPOSE = 4
+
+
+        function hasPermission(
+            permissions,
+            permission
+        ) {
+            return (
+                (
+                    permissions
+                    & permission
+                )
+                === permission
+            )
+        }
+
+
         function getActiveMailboxButton() {
             return document.querySelector(
                 '.sharedmail-mailbox-button.active'
@@ -91,6 +115,14 @@ document.addEventListener(
                 return null
             }
 
+            const permissions =
+                Number(
+                    button
+                        .dataset
+                        .mailboxPermissions
+                    || 0
+                )
+
             return {
                 id,
 
@@ -105,8 +137,101 @@ document.addEventListener(
                         button.dataset.mailboxEmail
                         || ''
                     ),
+
+                permissions:
+                    Number.isInteger(
+                        permissions
+                    )
+                    && permissions >= 0
+                        ? permissions
+                        : 0,
             }
         }
+
+
+        function mailboxHasPermission(
+            mailbox,
+            permission
+        ) {
+            if (!mailbox) {
+                return false
+            }
+
+            return hasPermission(
+                Number(
+                    mailbox.permissions
+                    || 0
+                ),
+                permission
+            )
+        }
+
+
+        function getDraftRequiredPermission(
+            draft
+        ) {
+            if (!draft) {
+                return PERMISSION_COMPOSE
+            }
+
+            const kind =
+                String(
+                    draft.kind
+                    || ''
+                )
+                    .trim()
+                    .toLowerCase()
+
+            const sourceFolder =
+                String(
+                    draft.sourceFolder
+                    || ''
+                )
+                    .trim()
+
+            const sourceUid =
+                Number(
+                    draft.sourceUid
+                    || 0
+                )
+
+            const isReplyDraft =
+                kind === 'reply'
+                || (
+                    sourceFolder !== ''
+                    && Number.isInteger(
+                        sourceUid
+                    )
+                    && sourceUid > 0
+                )
+
+            return isReplyDraft
+                ? PERMISSION_REPLY
+                : PERMISSION_COMPOSE
+        }
+
+
+        function showPermissionMessage(
+            message
+        ) {
+            if (
+                window.OC
+                && OC.Notification
+                && typeof OC.Notification.showTemporary
+                    === 'function'
+            ) {
+                OC.Notification.showTemporary(
+                    message
+                )
+
+                return
+            }
+
+            window.alert(
+                message
+            )
+        }
+
 
 
         /*
@@ -1586,6 +1711,27 @@ document.addEventListener(
                 getActiveMailbox()
 
             if (!mailbox) {
+                return
+            }
+
+            const requiredPermission =
+                getDraftRequiredPermission(
+                    initialDraft
+                )
+
+            if (
+                !mailboxHasPermission(
+                    mailbox,
+                    requiredPermission
+                )
+            ) {
+                showPermissionMessage(
+                    requiredPermission
+                        === PERMISSION_REPLY
+                        ? 'Du hast keine Berechtigung, in diesem Postfach zu antworten.'
+                        : 'Du hast keine Berechtigung, in diesem Postfach neue Nachrichten zu verfassen.'
+                )
+
                 return
             }
 
@@ -3415,9 +3561,43 @@ document.addEventListener(
             '+ Neue Mail'
 
 
+        function updateComposeButton() {
+            const mailbox =
+                getActiveMailbox()
+
+            const allowed =
+                mailboxHasPermission(
+                    mailbox,
+                    PERMISSION_COMPOSE
+                )
+
+            composeButton.hidden =
+                !allowed
+
+            composeButton.disabled =
+                !allowed
+        }
+
+
         composeButton.addEventListener(
             'click',
             () => {
+                const mailbox =
+                    getActiveMailbox()
+
+                if (
+                    !mailboxHasPermission(
+                        mailbox,
+                        PERMISSION_COMPOSE
+                    )
+                ) {
+                    showPermissionMessage(
+                        'Du hast keine Berechtigung, in diesem Postfach neue Nachrichten zu verfassen.'
+                    )
+
+                    return
+                }
+
                 openComposer()
             }
         )
@@ -3426,5 +3606,43 @@ document.addEventListener(
         header.appendChild(
             composeButton
         )
+
+
+        /*
+         * main.js setzt beim Postfachwechsel
+         * die Klasse "active".
+         *
+         * Darauf reagieren wir automatisch und
+         * passen den Neue-Mail-Button an.
+         */
+        const mailboxPermissionObserver =
+            new MutationObserver(
+                () => {
+                    updateComposeButton()
+                }
+            )
+
+        document
+            .querySelectorAll(
+                '.sharedmail-mailbox-button'
+            )
+            .forEach(
+                (button) => {
+                    mailboxPermissionObserver
+                        .observe(
+                            button,
+                            {
+                                attributes:
+                                    true,
+
+                                attributeFilter: [
+                                    'class',
+                                ],
+                            }
+                        )
+                }
+            )
+
+        updateComposeButton()
     }
 )

@@ -7,6 +7,7 @@ namespace OCA\SharedMail\Controller;
 use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxImapService;
+use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\PersonalFolderCountService;
 use OCA\SharedMail\Service\PersonalReadStateService;
 use OCP\AppFramework\Controller;
@@ -41,7 +42,8 @@ class MailController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::READ
                     );
 
             if ($mailbox === null) {
@@ -49,7 +51,7 @@ class MailController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Leseberechtigung für dieses Postfach.',
                     ],
                     403
                 );
@@ -115,7 +117,8 @@ class MailController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::READ
                     );
 
             if ($mailbox === null) {
@@ -123,7 +126,7 @@ class MailController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Leseberechtigung für dieses Postfach.',
                     ],
                     403
                 );
@@ -225,7 +228,8 @@ class MailController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::READ
                     );
 
             if ($mailbox === null) {
@@ -233,7 +237,7 @@ class MailController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Leseberechtigung für dieses Postfach.',
                     ],
                     403
                 );
@@ -316,7 +320,8 @@ class MailController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::READ
                     );
 
             if ($mailbox === null) {
@@ -324,7 +329,7 @@ class MailController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Leseberechtigung für dieses Postfach.',
                     ],
                     403
                 );
@@ -406,7 +411,8 @@ class MailController extends Controller
                 $this
                     ->mailboxAccessService
                     ->getAccessibleMailbox(
-                        $id
+                        $id,
+                        MailboxPermission::READ
                     );
 
             if ($mailbox === null) {
@@ -414,7 +420,7 @@ class MailController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Kein Zugriff auf dieses Postfach.',
+                            'Keine Leseberechtigung für dieses Postfach.',
                     ],
                     403
                 );

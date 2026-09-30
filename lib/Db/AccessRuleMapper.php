@@ -63,16 +63,15 @@ class AccessRuleMapper extends QBMapper
     }
 
     /**
-     * Ermittelt alle Mailbox-IDs, auf die mindestens eine
-     * der übergebenen Nextcloud-Gruppen Zugriff hat.
+     * Normalisiert eine Liste von Nextcloud-Gruppen-IDs.
      *
      * @param string[] $groupIds
-     * @return int[]
+     * @return string[]
      */
-    public function findMailboxIdsForGroups(
+    private function normalizeGroupIds(
         array $groupIds,
     ): array {
-        $groupIds = array_values(
+        return array_values(
             array_unique(
                 array_filter(
                     array_map(
@@ -85,6 +84,37 @@ class AccessRuleMapper extends QBMapper
                 )
             )
         );
+    }
+
+    /**
+     * Ermittelt die effektiven Rechte pro Mailbox
+     * für eine Liste von Nextcloud-Gruppen.
+     *
+     * Ist ein Benutzer Mitglied mehrerer Gruppen,
+     * werden die Rechte aller passenden Regeln
+     * bitweise zusammengeführt.
+     *
+     * Beispiel:
+     *
+     * Gruppe A:
+     * READ | REPLY
+     *
+     * Gruppe B:
+     * COMPOSE | MOVE
+     *
+     * Ergebnis:
+     * READ | REPLY | COMPOSE | MOVE
+     *
+     * @param string[] $groupIds
+     * @return array<int, int>
+     */
+    public function findPermissionsByMailboxForGroups(
+        array $groupIds,
+    ): array {
+        $groupIds =
+            $this->normalizeGroupIds(
+                $groupIds
+            );
 
         if ($groupIds === []) {
             return [];
@@ -92,7 +122,10 @@ class AccessRuleMapper extends QBMapper
 
         $qb = $this->db->getQueryBuilder();
 
-        $qb->selectDistinct('mailbox_id')
+        $qb->select(
+            'mailbox_id',
+            'permissions'
+        )
             ->from('sharedmail_access')
             ->where(
                 $qb->expr()->eq(
@@ -113,45 +146,87 @@ class AccessRuleMapper extends QBMapper
                 )
             );
 
-        $result = $qb->executeQuery();
+        $result =
+            $qb->executeQuery();
 
-        $mailboxIds = [];
+        $permissionsByMailbox = [];
 
         try {
-            while ($row = $result->fetchAssociative()) {
-                $mailboxIds[] =
-                    (int)$row['mailbox_id'];
+            while (
+                $row =
+                    $result->fetchAssociative()
+            ) {
+                $mailboxId =
+                    (int)(
+                        $row['mailbox_id']
+                        ?? 0
+                    );
+
+                $permissions =
+                    (int)(
+                        $row['permissions']
+                        ?? 0
+                    );
+
+                if ($mailboxId <= 0) {
+                    continue;
+                }
+
+                if (
+                    !isset(
+                        $permissionsByMailbox[
+                            $mailboxId
+                        ]
+                    )
+                ) {
+                    $permissionsByMailbox[
+                        $mailboxId
+                    ] = 0;
+                }
+
+                $permissionsByMailbox[
+                    $mailboxId
+                ] |= $permissions;
             }
         } finally {
             $result->closeCursor();
         }
 
-        $mailboxIds = array_values(
-            array_unique($mailboxIds)
+        ksort(
+            $permissionsByMailbox
         );
 
-        sort($mailboxIds);
-
-        return $mailboxIds;
+        return $permissionsByMailbox;
     }
 
     /**
-     * Prüft, ob eine bestimmte Gruppe Zugriff
-     * auf eine bestimmte Mailbox hat.
+     * Ermittelt die effektiven Rechte einer
+     * bestimmten Mailbox für mehrere Gruppen.
+     *
+     * @param string[] $groupIds
      */
-    public function groupHasAccess(
+    public function getPermissionsForMailboxAndGroups(
         int $mailboxId,
-        string $groupId,
-    ): bool {
-        $groupId = trim($groupId);
+        array $groupIds,
+    ): int {
+        if ($mailboxId <= 0) {
+            return 0;
+        }
 
-        if ($groupId === '') {
-            return false;
+        $groupIds =
+            $this->normalizeGroupIds(
+                $groupIds
+            );
+
+        if ($groupIds === []) {
+            return 0;
         }
 
         $qb = $this->db->getQueryBuilder();
 
-        $qb->select('id')
+        $qb->select(
+            'permissions'
+        )
             ->from('sharedmail_access')
             ->where(
                 $qb->expr()->eq(
@@ -172,22 +247,88 @@ class AccessRuleMapper extends QBMapper
                 )
             )
             ->andWhere(
-                $qb->expr()->eq(
+                $qb->expr()->in(
                     'principal_id',
                     $qb->createNamedParameter(
-                        $groupId,
-                        IQueryBuilder::PARAM_STR
+                        $groupIds,
+                        IQueryBuilder::PARAM_STR_ARRAY
                     )
                 )
-            )
-            ->setMaxResults(1);
+            );
 
-        $result = $qb->executeQuery();
+        $result =
+            $qb->executeQuery();
+
+        $permissions = 0;
 
         try {
-            return $result->fetchOne() !== false;
+            while (
+                $row =
+                    $result->fetchAssociative()
+            ) {
+                $permissions |=
+                    (int)(
+                        $row['permissions']
+                        ?? 0
+                    );
+            }
         } finally {
             $result->closeCursor();
         }
+
+        return $permissions;
+    }
+
+    /**
+     * Ermittelt alle Mailbox-IDs, für die
+     * mindestens ein Recht vorhanden ist.
+     *
+     * @param string[] $groupIds
+     * @return int[]
+     */
+    public function findMailboxIdsForGroups(
+        array $groupIds,
+    ): array {
+        $permissionsByMailbox =
+            $this->findPermissionsByMailboxForGroups(
+                $groupIds
+            );
+
+        return array_values(
+            array_map(
+                'intval',
+                array_keys(
+                    $permissionsByMailbox
+                )
+            )
+        );
+    }
+
+    /**
+     * Prüft, ob eine bestimmte Gruppe mindestens
+     * ein Recht auf eine bestimmte Mailbox besitzt.
+     */
+    public function groupHasAccess(
+        int $mailboxId,
+        string $groupId,
+    ): bool {
+        $groupId =
+            trim(
+                $groupId
+            );
+
+        if ($groupId === '') {
+            return false;
+        }
+
+        return (
+            $this->getPermissionsForMailboxAndGroups(
+                $mailboxId,
+                [
+                    $groupId,
+                ]
+            )
+            !== 0
+        );
     }
 }

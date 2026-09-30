@@ -29,7 +29,8 @@ class PageController extends Controller
     public function index(): TemplateResponse
     {
         $accessibleMailboxes =
-            $this->mailboxAccessService
+            $this
+                ->mailboxAccessService
                 ->getAccessibleMailboxes();
 
         /*
@@ -37,22 +38,47 @@ class PageController extends Controller
          * die der Benutzer tatsächlich benötigt.
          *
          * Keine IMAP-/SMTP-Zugangsdaten!
+         *
+         * Zusätzlich werden die effektiven Rechte
+         * des aktuell angemeldeten Benutzers für
+         * jede Mailbox ausgeliefert.
          */
-        $mailboxes = array_map(
-            static fn ($mailbox): array => [
-                'id' => (int)$mailbox->getId(),
-                'name' => $mailbox->getName(),
-                'description' => $mailbox->getDescription(),
-                'email' => $mailbox->getEmail(),
-            ],
-            $accessibleMailboxes
-        );
+        $mailboxes =
+            array_map(
+                function ($mailbox): array {
+                    $mailboxId =
+                        (int)$mailbox->getId();
+
+                    return [
+                        'id' =>
+                            $mailboxId,
+
+                        'name' =>
+                            $mailbox->getName(),
+
+                        'description' =>
+                            $mailbox->getDescription(),
+
+                        'email' =>
+                            $mailbox->getEmail(),
+
+                        'permissions' =>
+                            $this
+                                ->mailboxAccessService
+                                ->getPermissions(
+                                    $mailboxId
+                                ),
+                    ];
+                },
+                $accessibleMailboxes
+            );
 
         return new TemplateResponse(
             Application::APP_ID,
             'main',
             [
-                'mailboxes' => $mailboxes,
+                'mailboxes' =>
+                    $mailboxes,
             ]
         );
     }
