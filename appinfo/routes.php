@@ -58,6 +58,24 @@ return [
             'verb' => 'POST',
         ],
 
+        /*
+         * Gemeinsamen Workflow-Status einer Nachricht laden.
+         */
+        [
+            'name' => 'messageState#get',
+            'url' => '/api/mailboxes/{id}/messages/{uid}/state',
+            'verb' => 'GET',
+        ],
+
+        /*
+         * Gemeinsamen Workflow-Status einer Nachricht ändern.
+         */
+        [
+            'name' => 'messageState#setStatus',
+            'url' => '/api/mailboxes/{id}/messages/{uid}/state',
+            'verb' => 'POST',
+        ],
+
         [
             'name' => 'move#message',
             'url' => '/api/mailboxes/{id}/messages/{uid}/move',

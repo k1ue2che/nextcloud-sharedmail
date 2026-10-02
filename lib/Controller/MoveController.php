@@ -8,6 +8,7 @@ use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageMoveService;
+use OCA\SharedMail\Service\MessageStateMoveService;
 use OCA\SharedMail\Service\PersonalReadStateMoveService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -22,12 +23,14 @@ class MoveController extends Controller
         private readonly MailboxAccessService $mailboxAccessService,
         private readonly MessageMoveService $messageMoveService,
         private readonly PersonalReadStateMoveService $personalReadStateMoveService,
+        private readonly MessageStateMoveService $messageStateMoveService,
     ) {
         parent::__construct(
             Application::APP_ID,
             $request
         );
     }
+
 
     #[NoAdminRequired]
     public function message(
@@ -39,7 +42,9 @@ class MoveController extends Controller
         if ($uid <= 0) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Ungültige Nachrichten-ID.',
                 ],
@@ -47,17 +52,27 @@ class MoveController extends Controller
             );
         }
 
-        $folder = trim($folder);
-        $target = trim($target);
+        $folder =
+            trim(
+                $folder
+            );
+
+        $target =
+            trim(
+                $target
+            );
 
         if ($folder === '') {
-            $folder = 'INBOX';
+            $folder =
+                'INBOX';
         }
 
         if ($target === '') {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Bitte einen Zielordner auswählen.',
                 ],
@@ -68,7 +83,9 @@ class MoveController extends Controller
         if ($folder === $target) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Die Nachricht befindet sich bereits in diesem Ordner.',
                 ],
@@ -88,7 +105,9 @@ class MoveController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Keine Berechtigung zum Verschieben von Nachrichten in diesem Postfach.',
                     ],
@@ -111,7 +130,8 @@ class MoveController extends Controller
         } catch (Throwable $e) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
 
                     'message' =>
                         'Die Nachricht konnte nicht verschoben werden.',
@@ -119,7 +139,9 @@ class MoveController extends Controller
                     /*
                      * Entwicklungsphase:
                      * Hilft uns beim Testen.
-                     * Vor Release können wir details entfernen.
+                     *
+                     * Vor einem öffentlichen Release
+                     * sollten wir details entfernen.
                      */
                     'details' =>
                         $e->getMessage(),
@@ -128,14 +150,17 @@ class MoveController extends Controller
             );
         }
 
+
         /*
          * Das IMAP-MOVE ist jetzt bereits erfolgt.
          *
-         * Ein Fehler beim persönlichen Read-State
-         * darf deshalb nicht behaupten, die Mail sei
-         * nicht verschoben worden.
+         * Fehler beim Übertragen zusätzlicher
+         * Shared-Mail-Zustände dürfen deshalb nicht
+         * behaupten, die Mail sei nicht verschoben
+         * worden.
          */
-        $readStateTransferred = true;
+        $readStateTransferred =
+            true;
 
         try {
             $readStateTransferred =
@@ -149,12 +174,35 @@ class MoveController extends Controller
                         $move['targetUid']
                     );
         } catch (Throwable) {
-            $readStateTransferred = false;
+            $readStateTransferred =
+                false;
         }
+
+
+        $workflowStateTransferred =
+            true;
+
+        try {
+            $workflowStateTransferred =
+                $this
+                    ->messageStateMoveService
+                    ->transfer(
+                        $id,
+                        $move['sourceFolder'],
+                        $move['sourceUid'],
+                        $move['targetFolder'],
+                        $move['targetUid']
+                    );
+        } catch (Throwable) {
+            $workflowStateTransferred =
+                false;
+        }
+
 
         return new JSONResponse(
             [
-                'success' => true,
+                'success' =>
+                    true,
 
                 'sourceFolder' =>
                     $move['sourceFolder'],
@@ -170,6 +218,9 @@ class MoveController extends Controller
 
                 'readStateTransferred' =>
                     $readStateTransferred,
+
+                'workflowStateTransferred' =>
+                    $workflowStateTransferred,
             ]
         );
     }

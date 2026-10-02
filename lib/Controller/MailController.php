@@ -8,6 +8,7 @@ use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxImapService;
 use OCA\SharedMail\Service\MailboxPermission;
+use OCA\SharedMail\Service\MessageStateService;
 use OCA\SharedMail\Service\PersonalFolderCountService;
 use OCA\SharedMail\Service\PersonalReadStateService;
 use OCP\AppFramework\Controller;
@@ -25,12 +26,14 @@ class MailController extends Controller
         private readonly MailboxImapService $mailboxImapService,
         private readonly PersonalReadStateService $personalReadStateService,
         private readonly PersonalFolderCountService $personalFolderCountService,
+        private readonly MessageStateService $messageStateService,
     ) {
         parent::__construct(
             Application::APP_ID,
             $request
         );
     }
+
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -49,7 +52,9 @@ class MailController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Keine Leseberechtigung für dieses Postfach.',
                     ],
@@ -75,7 +80,8 @@ class MailController extends Controller
 
             return new JSONResponse(
                 [
-                    'success' => true,
+                    'success' =>
+                        true,
 
                     'mailbox' => [
                         'id' =>
@@ -95,7 +101,9 @@ class MailController extends Controller
         } catch (Throwable) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Die Ordner konnten nicht geladen werden.',
                 ],
@@ -103,6 +111,7 @@ class MailController extends Controller
             );
         }
     }
+
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -124,7 +133,9 @@ class MailController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Keine Leseberechtigung für dieses Postfach.',
                     ],
@@ -133,7 +144,9 @@ class MailController extends Controller
             }
 
             $folder =
-                trim($folder);
+                trim(
+                    $folder
+                );
 
             if ($folder === '') {
                 $folder =
@@ -150,6 +163,10 @@ class MailController extends Controller
                         $offset
                     );
 
+            /*
+             * Persönlichen Gelesen-/Ungelesen-Status
+             * auf die IMAP-Nachrichten anwenden.
+             */
             $result['messages'] =
                 $this
                     ->personalReadStateService
@@ -159,9 +176,26 @@ class MailController extends Controller
                         $result['messages']
                     );
 
+            /*
+             * Gemeinsamen Workflow-Status ergänzen.
+             *
+             * Fehlende Datenbankeinträge werden vom
+             * MessageStateService automatisch als NEW
+             * behandelt.
+             */
+            $result['messages'] =
+                $this
+                    ->messageStateService
+                    ->applyToMessages(
+                        $id,
+                        (string)$result['folder'],
+                        $result['messages']
+                    );
+
             return new JSONResponse(
                 [
-                    'success' => true,
+                    'success' =>
+                        true,
 
                     'mailbox' => [
                         'id' =>
@@ -196,7 +230,9 @@ class MailController extends Controller
         } catch (Throwable) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Die Nachrichten konnten nicht geladen werden.',
                 ],
@@ -204,6 +240,7 @@ class MailController extends Controller
             );
         }
     }
+
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
@@ -216,7 +253,9 @@ class MailController extends Controller
             if ($uid <= 0) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Ungültige Nachrichten-ID.',
                     ],
@@ -235,7 +274,9 @@ class MailController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Keine Leseberechtigung für dieses Postfach.',
                     ],
@@ -244,7 +285,9 @@ class MailController extends Controller
             }
 
             $folder =
-                trim($folder);
+                trim(
+                    $folder
+                );
 
             if ($folder === '') {
                 $folder =
@@ -260,6 +303,9 @@ class MailController extends Controller
                         $uid
                     );
 
+            /*
+             * Persönlichen Lesestatus auflösen.
+             */
             $imapSeen =
                 (bool)(
                     $message['seen']
@@ -279,9 +325,32 @@ class MailController extends Controller
                         $imapSeen
                     );
 
+            /*
+             * Gemeinsamen Workflow-Status ergänzen.
+             */
+            $workflowState =
+                $this
+                    ->messageStateService
+                    ->getState(
+                        $id,
+                        $folder,
+                        $uid
+                    );
+
+            $message['workflowStatus'] =
+                $workflowState['status'];
+
+            $message['workflowChangedBy'] =
+                $workflowState['changedBy'];
+
+            $message['workflowChangedAt'] =
+                $workflowState['changedAt'];
+
             return new JSONResponse(
                 [
-                    'success' => true,
+                    'success' =>
+                        true,
+
                     'message' =>
                         $message,
                 ]
@@ -289,7 +358,9 @@ class MailController extends Controller
         } catch (Throwable) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Die Nachricht konnte nicht geladen werden.',
                 ],
@@ -297,6 +368,7 @@ class MailController extends Controller
             );
         }
     }
+
 
     #[NoAdminRequired]
     public function markRead(
@@ -308,7 +380,9 @@ class MailController extends Controller
             if ($uid <= 0) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Ungültige Nachrichten-ID.',
                     ],
@@ -327,7 +401,9 @@ class MailController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Keine Leseberechtigung für dieses Postfach.',
                     ],
@@ -336,7 +412,9 @@ class MailController extends Controller
             }
 
             $folder =
-                trim($folder);
+                trim(
+                    $folder
+                );
 
             if ($folder === '') {
                 $folder =
@@ -355,7 +433,9 @@ class MailController extends Controller
             if (!$saved) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Der Lesestatus konnte nicht gespeichert werden.',
                     ],
@@ -365,7 +445,8 @@ class MailController extends Controller
 
             return new JSONResponse(
                 [
-                    'success' => true,
+                    'success' =>
+                        true,
 
                     'uid' =>
                         $uid,
@@ -380,7 +461,9 @@ class MailController extends Controller
         } catch (Throwable) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Der Lesestatus konnte nicht gespeichert werden.',
                 ],
@@ -388,6 +471,7 @@ class MailController extends Controller
             );
         }
     }
+
 
     #[NoAdminRequired]
     public function markUnread(
@@ -399,7 +483,9 @@ class MailController extends Controller
             if ($uid <= 0) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Ungültige Nachrichten-ID.',
                     ],
@@ -418,7 +504,9 @@ class MailController extends Controller
             if ($mailbox === null) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Keine Leseberechtigung für dieses Postfach.',
                     ],
@@ -427,7 +515,9 @@ class MailController extends Controller
             }
 
             $folder =
-                trim($folder);
+                trim(
+                    $folder
+                );
 
             if ($folder === '') {
                 $folder =
@@ -446,7 +536,9 @@ class MailController extends Controller
             if (!$saved) {
                 return new JSONResponse(
                     [
-                        'success' => false,
+                        'success' =>
+                            false,
+
                         'message' =>
                             'Der Lesestatus konnte nicht gespeichert werden.',
                     ],
@@ -456,7 +548,8 @@ class MailController extends Controller
 
             return new JSONResponse(
                 [
-                    'success' => true,
+                    'success' =>
+                        true,
 
                     'uid' =>
                         $uid,
@@ -471,7 +564,9 @@ class MailController extends Controller
         } catch (Throwable) {
             return new JSONResponse(
                 [
-                    'success' => false,
+                    'success' =>
+                        false,
+
                     'message' =>
                         'Der Lesestatus konnte nicht gespeichert werden.',
                 ],

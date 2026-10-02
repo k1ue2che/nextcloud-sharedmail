@@ -13,6 +13,7 @@ use OCA\SharedMail\Db\MailboxMapper;
 use OCA\SharedMail\Service\CredentialService;
 use OCA\SharedMail\Service\MailConnectionTestService;
 use OCA\SharedMail\Service\MailboxPermission;
+use OCA\SharedMail\Service\MessageStateService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IDBConnection;
@@ -35,6 +36,7 @@ class AdminController extends Controller
         private readonly CredentialService $credentialService,
         private readonly IGroupManager $groupManager,
         private readonly MailConnectionTestService $connectionTestService,
+        private readonly MessageStateService $messageStateService,
         private readonly IDBConnection $db,
     ) {
         parent::__construct(
@@ -878,6 +880,12 @@ class AdminController extends Controller
 
             $transactionStarted =
                 true;
+
+            $this
+                ->messageStateService
+                ->deleteByMailbox(
+                    $id
+                );
 
             $this
                 ->accessRuleMapper
