@@ -29,6 +29,87 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const PERMISSION_REPLY = 2
     const PERMISSION_MOVE = 8
+    const PERMISSION_CHANGE_STATUS = 64
+
+    const WORKFLOW_STATUSES = Object.freeze([
+        { value: 'NEW', label: 'Neu' },
+        { value: 'OPEN', label: 'Offen' },
+        { value: 'IN_PROGRESS', label: 'In Bearbeitung' },
+        { value: 'WAITING', label: 'Wartet' },
+        { value: 'DONE', label: 'Erledigt' },
+    ])
+
+
+    function normalizeWorkflowStatus(status) {
+        const normalized =
+            String(status || 'NEW')
+                .trim()
+                .toUpperCase()
+
+        return WORKFLOW_STATUSES.some(
+            (entry) => entry.value === normalized
+        )
+            ? normalized
+            : 'NEW'
+    }
+
+
+    function getWorkflowStatusLabel(status) {
+        const normalized =
+            normalizeWorkflowStatus(status)
+
+        return WORKFLOW_STATUSES.find(
+            (entry) => entry.value === normalized
+        )?.label || 'Neu'
+    }
+
+
+    function createWorkflowBadge(status) {
+        const normalized =
+            normalizeWorkflowStatus(status)
+
+        const badge =
+            document.createElement('span')
+
+        badge.className =
+            'sharedmail-workflow-badge'
+
+        badge.dataset.workflowStatus =
+            normalized
+
+        badge.textContent =
+            getWorkflowStatusLabel(normalized)
+
+        return badge
+    }
+
+
+    function formatWorkflowChangedAt(timestamp) {
+        const value =
+            Number(timestamp || 0)
+
+        if (value <= 0) {
+            return ''
+        }
+
+        const date =
+            new Date(value * 1000)
+
+        if (Number.isNaN(date.getTime())) {
+            return ''
+        }
+
+        return new Intl.DateTimeFormat(
+            'de-DE',
+            {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }
+        ).format(date)
+    }
 
 
     function getActiveMailboxPermissions() {
@@ -686,6 +767,90 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
+    async function setMessageWorkflowStatus(
+        mailboxId,
+        folder,
+        uid,
+        status
+    ) {
+        const normalizedStatus =
+            normalizeWorkflowStatus(status)
+
+        const url =
+            OC.generateUrl(
+                `/apps/sharedmail/api/mailboxes/${mailboxId}/messages/${uid}/state`
+            )
+
+        const headers = {
+            Accept: 'application/json',
+            'Content-Type':
+                'application/x-www-form-urlencoded;charset=UTF-8',
+        }
+
+        const requestToken =
+            getRequestToken()
+
+        if (requestToken !== '') {
+            headers.requesttoken =
+                requestToken
+        }
+
+        const body =
+            new URLSearchParams({
+                folder,
+                status: normalizedStatus,
+            })
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: 'POST',
+                    headers,
+                    body,
+                }
+            )
+
+        const responseText =
+            await response.text()
+
+        let result = {}
+
+        if (responseText !== '') {
+            try {
+                result =
+                    JSON.parse(responseText)
+            } catch (error) {
+                console.error(
+                    'SharedMail: Ungültige Workflow-Status-Antwort.',
+                    responseText
+                )
+
+                throw new Error(
+                    'Der Server hat eine ungültige Antwort geliefert.'
+                )
+            }
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                result.message
+                || result.error
+                || 'Der Workflow-Status konnte nicht gespeichert werden.'
+            )
+        }
+
+        if (!result.success || !result.state) {
+            throw new Error(
+                result.message
+                || 'Der Workflow-Status konnte nicht gespeichert werden.'
+            )
+        }
+
+        return result.state
+    }
+
+
     function renderMessageLoading(folder) {
         if (!messageArea) {
             return
@@ -1093,6 +1258,234 @@ ${html || ''}
         renderViewerStatus()
 
         viewer.appendChild(status)
+
+
+        /*
+         * Gemeinsamer Workflow-Status.
+         *
+         * READ darf ihn sehen. CHANGE_STATUS entscheidet,
+         * ob er verändert werden kann.
+         */
+        const workflowArea =
+            document.createElement('div')
+
+        workflowArea.className =
+            'sharedmail-workflow-area'
+
+        const workflowHeader =
+            document.createElement('div')
+
+        workflowHeader.className =
+            'sharedmail-workflow-header'
+
+        const workflowLabel =
+            document.createElement('strong')
+
+        workflowLabel.textContent =
+            'Workflow-Status'
+
+        workflowHeader.appendChild(
+            workflowLabel
+        )
+
+        const workflowControl =
+            document.createElement('div')
+
+        workflowControl.className =
+            'sharedmail-workflow-control'
+
+        const workflowMeta =
+            document.createElement('div')
+
+        workflowMeta.className =
+            'sharedmail-workflow-meta'
+
+        const workflowFeedback =
+            document.createElement('span')
+
+        workflowFeedback.className =
+            'sharedmail-workflow-feedback'
+
+        function updateWorkflowMeta() {
+            const parts = []
+
+            const changedBy =
+                String(
+                    message.workflowChangedBy
+                    || ''
+                ).trim()
+
+            const changedAt =
+                formatWorkflowChangedAt(
+                    message.workflowChangedAt
+                )
+
+            if (changedBy !== '') {
+                parts.push(
+                    `Geändert von ${changedBy}`
+                )
+            }
+
+            if (changedAt !== '') {
+                parts.push(changedAt)
+            }
+
+            workflowMeta.textContent =
+                parts.join(' · ')
+
+            workflowMeta.hidden =
+                parts.length === 0
+        }
+
+        function renderWorkflowControl() {
+            workflowControl.textContent = ''
+
+            const currentStatus =
+                normalizeWorkflowStatus(
+                    message.workflowStatus
+                )
+
+            message.workflowStatus =
+                currentStatus
+
+            if (
+                hasActiveMailboxPermission(
+                    PERMISSION_CHANGE_STATUS
+                )
+            ) {
+                const select =
+                    document.createElement('select')
+
+                select.className =
+                    'sharedmail-workflow-select'
+
+                select.setAttribute(
+                    'aria-label',
+                    'Workflow-Status'
+                )
+
+                WORKFLOW_STATUSES.forEach(
+                    (entry) => {
+                        const option =
+                            document.createElement('option')
+
+                        option.value =
+                            entry.value
+
+                        option.textContent =
+                            entry.label
+
+                        option.selected =
+                            entry.value === currentStatus
+
+                        select.appendChild(
+                            option
+                        )
+                    }
+                )
+
+                select.addEventListener(
+                    'change',
+                    async () => {
+                        const requestedStatus =
+                            normalizeWorkflowStatus(
+                                select.value
+                            )
+
+                        if (
+                            requestedStatus
+                            === message.workflowStatus
+                        ) {
+                            return
+                        }
+
+                        if (
+                            !activeMailboxId
+                            || sourceFolder === ''
+                            || messageUid <= 0
+                        ) {
+                            select.value =
+                                message.workflowStatus
+                            return
+                        }
+
+                        select.disabled =
+                            true
+
+                        workflowFeedback.textContent =
+                            'Status wird gespeichert …'
+
+                        try {
+                            const savedState =
+                                await setMessageWorkflowStatus(
+                                    activeMailboxId,
+                                    sourceFolder,
+                                    messageUid,
+                                    requestedStatus
+                                )
+
+                            message.workflowStatus =
+                                normalizeWorkflowStatus(
+                                    savedState.status
+                                )
+
+                            message.workflowChangedBy =
+                                savedState.changedBy
+                                ?? null
+
+                            message.workflowChangedAt =
+                                savedState.changedAt
+                                ?? null
+
+                            select.value =
+                                message.workflowStatus
+
+                            updateWorkflowMeta()
+
+                            workflowFeedback.textContent =
+                                'Status gespeichert.'
+                        } catch (error) {
+                            console.error(
+                                'SharedMail: Workflow-Status konnte nicht geändert werden.',
+                                error
+                            )
+
+                            select.value =
+                                message.workflowStatus
+
+                            workflowFeedback.textContent =
+                                error?.message
+                                || 'Der Workflow-Status konnte nicht gespeichert werden.'
+                        } finally {
+                            select.disabled =
+                                false
+                        }
+                    }
+                )
+
+                workflowControl.appendChild(
+                    select
+                )
+            } else {
+                workflowControl.appendChild(
+                    createWorkflowBadge(
+                        currentStatus
+                    )
+                )
+            }
+        }
+
+        workflowArea.appendChild(workflowHeader)
+        workflowArea.appendChild(workflowControl)
+        workflowArea.appendChild(workflowMeta)
+        workflowArea.appendChild(workflowFeedback)
+
+        renderWorkflowControl()
+        updateWorkflowMeta()
+
+        viewer.appendChild(
+            workflowArea
+        )
 
 
         const body =
@@ -2153,6 +2546,21 @@ ${html || ''}
                     || '(Kein Betreff)'
 
 
+                const workflow =
+                    document.createElement(
+                        'span'
+                    )
+
+                workflow.className =
+                    'sharedmail-message-workflow'
+
+                workflow.appendChild(
+                    createWorkflowBadge(
+                        message.workflowStatus
+                    )
+                )
+
+
                 const flags =
                     document.createElement(
                         'span'
@@ -2226,6 +2634,10 @@ ${html || ''}
 
                 row.appendChild(
                     subject
+                )
+
+                row.appendChild(
+                    workflow
                 )
 
                 row.appendChild(
