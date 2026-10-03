@@ -9,6 +9,7 @@ use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageStateService;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -22,6 +23,7 @@ class MessageStateController extends Controller
         IRequest $request,
         private readonly MailboxAccessService $mailboxAccessService,
         private readonly MessageStateService $messageStateService,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -53,7 +55,7 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        'Ungültige Nachricht.',
+                        $this->l->t('Invalid message.'),
                 ],
                 400
             );
@@ -74,7 +76,7 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        'Keine Leseberechtigung für dieses Postfach.',
+                        $this->l->t('No read permission for this mailbox.'),
                 ],
                 403
             );
@@ -106,7 +108,7 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        'Der Nachrichtenstatus konnte nicht geladen werden.',
+                        $this->l->t('The message status could not be loaded.'),
                 ],
                 500
             );
@@ -142,7 +144,7 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        'Ungültige Nachricht.',
+                        $this->l->t('Invalid message.'),
                 ],
                 400
             );
@@ -155,7 +157,7 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        'Es wurde kein Nachrichtenstatus angegeben.',
+                        $this->l->t('No message status was specified.'),
                 ],
                 400
             );
@@ -176,7 +178,7 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        'Keine Berechtigung zum Ändern des Nachrichtenstatus.',
+                        $this->l->t('No permission to change the message status.'),
                 ],
                 403
             );
@@ -220,7 +222,7 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        'Der Nachrichtenstatus konnte nicht gespeichert werden.',
+                        $this->l->t('The message status could not be saved.'),
                 ],
                 500
             );

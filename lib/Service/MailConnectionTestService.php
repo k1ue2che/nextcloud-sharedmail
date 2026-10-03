@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Imap_Client_Socket;
 use Horde_Smtp;
 use Throwable;
 
 class MailConnectionTestService
 {
+
+    public function __construct(
+        private readonly IL10N $l,
+    ) {
+    }
+
     /**
      * @return array{success: bool, message: string}
      */
@@ -42,7 +49,7 @@ class MailConnectionTestService
 
             return [
                 'success' => true,
-                'message' => 'IMAP-Verbindung und Anmeldung erfolgreich.',
+                'message' => $this->l->t('IMAP connection and login successful.'),
             ];
         } catch (Throwable $e) {
             return [
@@ -92,7 +99,7 @@ class MailConnectionTestService
 
             return [
                 'success' => true,
-                'message' => 'SMTP-Verbindung und Anmeldung erfolgreich.',
+                'message' => $this->l->t('SMTP connection and login successful.'),
             ];
         } catch (Throwable $e) {
             return [
@@ -127,7 +134,10 @@ class MailConnectionTestService
         $message = trim($e->getMessage());
 
         if ($message === '') {
-            return $protocol . '-Verbindung fehlgeschlagen.';
+            return $this->l->t(
+                '%s connection failed.',
+                [$protocol]
+            );
         }
 
         return $protocol . ': ' . $message;

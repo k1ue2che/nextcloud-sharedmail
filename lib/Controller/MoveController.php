@@ -10,6 +10,7 @@ use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageMoveService;
 use OCA\SharedMail\Service\MessageStateMoveService;
 use OCA\SharedMail\Service\PersonalReadStateMoveService;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
@@ -24,6 +25,7 @@ class MoveController extends Controller
         private readonly MessageMoveService $messageMoveService,
         private readonly PersonalReadStateMoveService $personalReadStateMoveService,
         private readonly MessageStateMoveService $messageStateMoveService,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -46,7 +48,7 @@ class MoveController extends Controller
                         false,
 
                     'message' =>
-                        'Ungültige Nachrichten-ID.',
+                        $this->l->t('Invalid message ID.'),
                 ],
                 400
             );
@@ -74,7 +76,7 @@ class MoveController extends Controller
                         false,
 
                     'message' =>
-                        'Bitte einen Zielordner auswählen.',
+                        $this->l->t('Please select a target folder.'),
                 ],
                 400
             );
@@ -87,7 +89,7 @@ class MoveController extends Controller
                         false,
 
                     'message' =>
-                        'Die Nachricht befindet sich bereits in diesem Ordner.',
+                        $this->l->t('The message is already in this folder.'),
                 ],
                 400
             );
@@ -109,7 +111,7 @@ class MoveController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Berechtigung zum Verschieben von Nachrichten in diesem Postfach.',
+                            $this->l->t('No permission to move messages in this mailbox.'),
                     ],
                     403
                 );
@@ -134,7 +136,7 @@ class MoveController extends Controller
                         false,
 
                     'message' =>
-                        'Die Nachricht konnte nicht verschoben werden.',
+                        $this->l->t('The message could not be moved.'),
 
                     /*
                      * Entwicklungsphase:

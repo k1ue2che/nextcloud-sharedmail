@@ -426,13 +426,21 @@ document.addEventListener(
                     > MAX_FILE_BYTES
                 ) {
                     throw new Error(
-                        `Der Anhang "${file.name}" ist größer als 10 MB.`
+                        t(
+                            'sharedmail',
+                            'The attachment "{name}" is larger than 10 MB.',
+                            { name: file.name }
+                        )
                     )
                 }
 
                 if (file.size <= 0) {
                     throw new Error(
-                        `Der Anhang "${file.name}" ist leer.`
+                        t(
+                            'sharedmail',
+                            'The attachment "{name}" is empty.',
+                            { name: file.name }
+                        )
                     )
                 }
 
@@ -463,7 +471,12 @@ document.addEventListener(
                 > MAX_ATTACHMENTS
             ) {
                 throw new Error(
-                    `Es können maximal ${MAX_ATTACHMENTS} Anhänge verwendet werden.`
+                    n(
+                        'sharedmail',
+                        'A maximum of %n attachment can be used.',
+                        'A maximum of %n attachments can be used.',
+                        MAX_ATTACHMENTS
+                    )
                 )
             }
 
@@ -474,7 +487,7 @@ document.addEventListener(
                 > MAX_TOTAL_BYTES
             ) {
                 throw new Error(
-                    'Die Anhänge dürfen zusammen maximal 25 MB groß sein.'
+                    t('sharedmail', 'Attachments may not exceed 25 MB in total.')
                 )
             }
 
@@ -494,7 +507,7 @@ document.addEventListener(
                 await activeEditor.destroy()
             } catch (error) {
                 console.error(
-                    'SharedMail: Editor konnte nicht sauber beendet werden.',
+                    'SharedMail: Editor could not be shut down cleanly.',
                     error
                 )
             }
@@ -709,7 +722,7 @@ document.addEventListener(
 
             input.placeholder =
                 options.placeholder
-                || 'Empfänger eingeben …'
+                || t('sharedmail', 'Enter recipient …')
 
             const recipients = []
             let externallyDisabled = false
@@ -773,7 +786,11 @@ document.addEventListener(
 
                         removeButton.setAttribute(
                             'aria-label',
-                            `Empfänger ${recipient.email} entfernen`
+                            t(
+                                'sharedmail',
+                                'Remove recipient {email}',
+                                { email: recipient.email }
+                            )
                         )
 
                         removeButton.addEventListener(
@@ -1151,7 +1168,7 @@ document.addEventListener(
                     await response.json()
             } catch (error) {
                 throw new Error(
-                    'Der Server hat keine gültige Antwort geliefert.'
+                    t('sharedmail', 'The server returned an invalid response.')
                 )
             }
 
@@ -1162,7 +1179,7 @@ document.addEventListener(
             ) {
                 throw new Error(
                     data?.message
-                    || 'Der Entwurf konnte nicht geladen werden.'
+                    || t('sharedmail', 'The draft could not be loaded.')
                 )
             }
 
@@ -1227,7 +1244,7 @@ document.addEventListener(
 
                 if (mimeId === '') {
                     throw new Error(
-                        'Ein Anhang besitzt keine gültige MIME-ID.'
+                        t('sharedmail', 'An attachment does not have a valid MIME ID.')
                     )
                 }
 
@@ -1251,10 +1268,15 @@ document.addEventListener(
 
                 if (!response.ok) {
                     throw new Error(
-                        `Der Anhang "${
-                            attachment.name
-                            || 'Anhang'
-                        }" konnte nicht geladen werden.`
+                        t(
+                            'sharedmail',
+                            'The attachment "{name}" could not be loaded.',
+                            {
+                                name:
+                                    attachment.name
+                                    || t('sharedmail', 'Attachment'),
+                            }
+                        )
                     )
                 }
 
@@ -1264,7 +1286,7 @@ document.addEventListener(
                 const name =
                     String(
                         attachment.name
-                        || 'Anhang'
+                        || t('sharedmail', 'Attachment')
                     )
 
                 const type =
@@ -1399,7 +1421,7 @@ document.addEventListener(
                     await response.json()
             } catch (error) {
                 throw new Error(
-                    'Der Server hat keine gültige Antwort geliefert.'
+                    t('sharedmail', 'The server returned an invalid response.')
                 )
             }
 
@@ -1408,13 +1430,13 @@ document.addEventListener(
                 || !data?.success
             ) {
                 console.error(
-                    'SharedMail Compose API Fehler:',
+                    'SharedMail Compose API error:',
                     data
                 )
 
                 throw new Error(
                     data?.message
-                    || 'Die Nachricht konnte nicht gesendet werden.'
+                    || t('sharedmail', 'The message could not be sent.')
                 )
             }
 
@@ -1448,7 +1470,7 @@ document.addEventListener(
                 || sourceFolder === ''
             ) {
                 throw new Error(
-                    'Die Originalnachricht der Antwort konnte nicht bestimmt werden.'
+                    t('sharedmail', 'The original message for the reply could not be determined.')
                 )
             }
 
@@ -1535,7 +1557,7 @@ document.addEventListener(
                     await response.json()
             } catch (error) {
                 throw new Error(
-                    'Der Server hat keine gültige Antwort geliefert.'
+                    t('sharedmail', 'The server returned an invalid response.')
                 )
             }
 
@@ -1544,13 +1566,13 @@ document.addEventListener(
                 || !data?.success
             ) {
                 console.error(
-                    'SharedMail Reply API Fehler:',
+                    'SharedMail Reply API error:',
                     data
                 )
 
                 throw new Error(
                     data?.message
-                    || 'Die Antwort konnte nicht gesendet werden.'
+                    || t('sharedmail', 'The reply could not be sent.')
                 )
             }
 
@@ -1672,7 +1694,7 @@ document.addEventListener(
                     await response.json()
             } catch (error) {
                 throw new Error(
-                    'Der Server hat keine gültige Antwort geliefert.'
+                    t('sharedmail', 'The server returned an invalid response.')
                 )
             }
 
@@ -1681,13 +1703,13 @@ document.addEventListener(
                 || !data?.success
             ) {
                 console.error(
-                    'SharedMail Draft API Fehler:',
+                    'SharedMail Draft API error:',
                     data
                 )
 
                 throw new Error(
                     data?.message
-                    || 'Der Entwurf konnte nicht gespeichert werden.'
+                    || t('sharedmail', 'The draft could not be saved.')
                 )
             }
 
@@ -1728,8 +1750,8 @@ document.addEventListener(
                 showPermissionMessage(
                     requiredPermission
                         === PERMISSION_REPLY
-                        ? 'Du hast keine Berechtigung, in diesem Postfach zu antworten.'
-                        : 'Du hast keine Berechtigung, in diesem Postfach neue Nachrichten zu verfassen.'
+                        ? t('sharedmail', 'You do not have permission to reply in this mailbox.')
+                        : t('sharedmail', 'You do not have permission to compose new messages in this mailbox.')
                 )
 
                 return
@@ -1737,7 +1759,7 @@ document.addEventListener(
 
             if (!window.SharedMailEditor) {
                 console.error(
-                    'SharedMailEditor wurde nicht geladen.'
+                    t('sharedmail', 'SharedMailEditor was not loaded.')
                 )
 
                 return
@@ -1834,13 +1856,13 @@ document.addEventListener(
 
             if (isReplyDraft) {
                 heading.textContent =
-                    'Antwortentwurf bearbeiten'
+                    t('sharedmail', 'Edit reply draft')
             } else if (isDraft) {
                 heading.textContent =
-                    'Entwurf bearbeiten'
+                    t('sharedmail', 'Edit draft')
             } else {
                 heading.textContent =
-                    'Neue Nachricht'
+                    t('sharedmail', 'New message')
             }
 
             composerHeader.appendChild(
@@ -1889,7 +1911,7 @@ document.addEventListener(
                                 : Infinity,
 
                         placeholder:
-                            'Empfänger eingeben …',
+                            t('sharedmail', 'Enter recipient …'),
                     }
                 )
 
@@ -1905,7 +1927,7 @@ document.addEventListener(
                     ),
                     {
                         placeholder:
-                            'CC-Empfänger eingeben …',
+                            t('sharedmail', 'Enter CC recipient …'),
                     }
                 )
 
@@ -1921,7 +1943,7 @@ document.addEventListener(
                     ),
                     {
                         placeholder:
-                            'BCC-Empfänger eingeben …',
+                            t('sharedmail', 'Enter BCC recipient …'),
                     }
                 )
 
@@ -1941,14 +1963,14 @@ document.addEventListener(
 
             fields.appendChild(
                 createField(
-                    'Von',
+                    t('sharedmail', 'From'),
                     fromInput
                 )
             )
 
             fields.appendChild(
                 createField(
-                    'An',
+                    t('sharedmail', 'To'),
                     toRecipients.element
                 )
             )
@@ -1975,7 +1997,7 @@ document.addEventListener(
 
             fields.appendChild(
                 createField(
-                    'Betreff',
+                    t('sharedmail', 'Subject'),
                     subjectInput
                 )
             )
@@ -2603,7 +2625,7 @@ document.addEventListener(
                 'sharedmail-composer-attachment-button'
 
             attachmentButton.textContent =
-                '📎 Datei anhängen'
+                t('sharedmail', '📎 Attach file')
 
 
             const attachmentInput =
@@ -2704,7 +2726,7 @@ document.addEventListener(
                 'sharedmail-composer-cancel'
 
             cancelButton.textContent =
-                'Abbrechen'
+                t('sharedmail', 'Cancel')
 
 
             const draftButton =
@@ -2720,8 +2742,8 @@ document.addEventListener(
 
             draftButton.textContent =
                 isDraft
-                    ? 'Entwurf aktualisieren'
-                    : 'Entwurf speichern'
+                    ? t('sharedmail', 'Update draft')
+                    : t('sharedmail', 'Save draft')
 
 
             const sendButton =
@@ -2736,7 +2758,7 @@ document.addEventListener(
                 'sharedmail-composer-send primary'
 
             sendButton.textContent =
-                'Senden'
+                t('sharedmail', 'Send')
 
 
             footer.appendChild(
@@ -2807,17 +2829,19 @@ document.addEventListener(
                     === 0
                 ) {
                     attachmentSummary.textContent =
-                        'Keine Anhänge'
+                        t('sharedmail', 'No attachments')
 
                     return
                 }
 
                 attachmentSummary.textContent =
-                    `${attachments.length} Datei${
-                        attachments.length === 1
-                            ? ''
-                            : 'en'
-                    } · ${formatFileSize(totalBytes)}`
+                    n(
+                        'sharedmail',
+                        '%n file',
+                        '%n files',
+                        attachments.length
+                    )
+                    + ` · ${formatFileSize(totalBytes)}`
 
                 attachments.forEach(
                     (
@@ -2928,7 +2952,7 @@ document.addEventListener(
                         status.textContent =
                             error instanceof Error
                                 ? error.message
-                                : 'Der Anhang konnte nicht hinzugefügt werden.'
+                                : t('sharedmail', 'The attachment could not be added.')
                     } finally {
                         attachmentInput.value =
                             ''
@@ -2958,12 +2982,12 @@ document.addEventListener(
                         )
             } catch (error) {
                 console.error(
-                    'SharedMail: Editor konnte nicht gestartet werden.',
+                    'SharedMail: Editor could not be started.',
                     error
                 )
 
                 status.textContent =
-                    'Der Editor konnte nicht geladen werden.'
+                    t('sharedmail', 'The editor could not be loaded.')
 
                 return
             }
@@ -2987,7 +3011,7 @@ document.addEventListener(
                 )
 
                 status.textContent =
-                    'Anhänge des Entwurfs werden geladen …'
+                    t('sharedmail', 'Loading draft attachments …')
 
                 try {
                     attachments =
@@ -2999,21 +3023,21 @@ document.addEventListener(
                     renderAttachments()
 
                     status.textContent =
-                        'Entwurf wurde vollständig geladen.'
+                        t('sharedmail', 'Draft loaded completely.')
 
                     setBusy(
                         false
                     )
                 } catch (error) {
                     console.error(
-                        'SharedMail: Draft-Anhänge konnten nicht geladen werden.',
+                        'SharedMail: Draft attachments could not be loaded.',
                         error
                     )
 
                     status.textContent =
                         error instanceof Error
                             ? error.message
-                            : 'Die Anhänge des Entwurfs konnten nicht geladen werden.'
+                            : t('sharedmail', 'The draft attachments could not be loaded.')
 
                     /*
                      * Nicht speichern/senden, solange
@@ -3062,7 +3086,7 @@ document.addEventListener(
                 async () => {
                     if (!activeEditor) {
                         status.textContent =
-                            'Der Editor ist noch nicht bereit.'
+                            t('sharedmail', 'The editor is not ready yet.')
 
                         return
                     }
@@ -3111,10 +3135,10 @@ document.addEventListener(
                     )
 
                     draftButton.textContent =
-                        'Wird gespeichert …'
+                        t('sharedmail', 'Saving …')
 
                     status.textContent =
-                        'Entwurf wird gespeichert …'
+                        t('sharedmail', 'Saving draft …')
 
 
                     try {
@@ -3167,21 +3191,21 @@ document.addEventListener(
 
                         status.textContent =
                             result.message
-                            || 'Der Entwurf wurde gespeichert.'
+                            || t('sharedmail', 'Draft saved.')
 
 
                         draftButton.textContent =
-                            'Entwurf aktualisieren'
+                            t('sharedmail', 'Update draft')
                     } catch (error) {
                         console.error(
-                            'SharedMail: Entwurf konnte nicht gespeichert werden.',
+                            'SharedMail: Draft could not be saved.',
                             error
                         )
 
                         status.textContent =
                             error instanceof Error
                                 ? error.message
-                                : 'Der Entwurf konnte nicht gespeichert werden.'
+                                : t('sharedmail', 'The draft could not be saved.')
 
                         draftButton.textContent =
                             oldButtonText
@@ -3220,7 +3244,7 @@ document.addEventListener(
 
                     if (to === '') {
                         status.textContent =
-                            'Bitte mindestens einen Empfänger angeben.'
+                            t('sharedmail', 'Please specify at least one recipient.')
 
                         toInput.focus()
 
@@ -3230,7 +3254,7 @@ document.addEventListener(
 
                     if (html === '') {
                         status.textContent =
-                            'Bitte einen Nachrichtentext eingeben.'
+                            t('sharedmail', 'Please enter a message.')
 
                         activeEditor
                             .editing
@@ -3285,12 +3309,12 @@ document.addEventListener(
                     )
 
                     sendButton.textContent =
-                        'Wird gesendet …'
+                        t('sharedmail', 'Sending …')
 
                     status.textContent =
                         isReplyDraft
-                            ? 'Antwort wird versendet …'
-                            : 'Nachricht wird versendet …'
+                            ? t('sharedmail', 'Sending reply …')
+                            : t('sharedmail', 'Sending message …')
 
 
                     try {
@@ -3345,7 +3369,7 @@ document.addEventListener(
                             && result.draftDeleted === false
                         ) {
                             console.warn(
-                                'SharedMail: Nachricht wurde gesendet, aber der Draft wurde serverseitig nicht gelöscht.',
+                                'SharedMail: Message was sent, but the draft was not deleted on the server.',
                                 {
                                     draftUid:
                                         currentDraftUid,
@@ -3400,17 +3424,17 @@ document.addEventListener(
                         }
                     } catch (error) {
                         console.error(
-                            'SharedMail: Nachricht konnte nicht gesendet werden.',
+                            'SharedMail: Message could not be sent.',
                             error
                         )
 
                         status.textContent =
                             error instanceof Error
                                 ? error.message
-                                : 'Die Nachricht konnte nicht gesendet werden.'
+                                : t('sharedmail', 'The message could not be sent.')
 
                         sendButton.textContent =
-                            'Erneut senden'
+                            t('sharedmail', 'Send again')
 
                         setBusy(
                             false
@@ -3467,7 +3491,7 @@ document.addEventListener(
                 'sharedmail-message-loading'
 
             loading.textContent =
-                'Entwurf wird geladen …'
+                t('sharedmail', 'Loading draft …')
 
 
             /*
@@ -3497,7 +3521,7 @@ document.addEventListener(
 
 
                 console.error(
-                    'SharedMail: Entwurf konnte nicht geöffnet werden.',
+                    'SharedMail: Draft could not be opened.',
                     error
                 )
 
@@ -3513,7 +3537,7 @@ document.addEventListener(
                 errorElement.textContent =
                     error instanceof Error
                         ? error.message
-                        : 'Der Entwurf konnte nicht geöffnet werden.'
+                        : t('sharedmail', 'The draft could not be opened.')
 
 
                 messageArea.prepend(
@@ -3558,7 +3582,7 @@ document.addEventListener(
             'sharedmail-new-message-button primary'
 
         composeButton.textContent =
-            '+ Neue Mail'
+            t('sharedmail', '+ New mail')
 
 
         function updateComposeButton() {
@@ -3592,7 +3616,7 @@ document.addEventListener(
                     )
                 ) {
                     showPermissionMessage(
-                        'Du hast keine Berechtigung, in diesem Postfach neue Nachrichten zu verfassen.'
+                        t('sharedmail', 'You do not have permission to compose new messages in this mailbox.')
                     )
 
                     return

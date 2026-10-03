@@ -11,6 +11,7 @@ use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageStateService;
 use OCA\SharedMail\Service\PersonalFolderCountService;
 use OCA\SharedMail\Service\PersonalReadStateService;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -27,6 +28,7 @@ class MailController extends Controller
         private readonly PersonalReadStateService $personalReadStateService,
         private readonly PersonalFolderCountService $personalFolderCountService,
         private readonly MessageStateService $messageStateService,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -56,7 +58,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Leseberechtigung für dieses Postfach.',
+                            $this->l->t('No read permission for this mailbox.'),
                     ],
                     403
                 );
@@ -105,7 +107,7 @@ class MailController extends Controller
                         false,
 
                     'message' =>
-                        'Die Ordner konnten nicht geladen werden.',
+                        $this->l->t('The folders could not be loaded.'),
                 ],
                 500
             );
@@ -137,7 +139,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Leseberechtigung für dieses Postfach.',
+                            $this->l->t('No read permission for this mailbox.'),
                     ],
                     403
                 );
@@ -234,7 +236,7 @@ class MailController extends Controller
                         false,
 
                     'message' =>
-                        'Die Nachrichten konnten nicht geladen werden.',
+                        $this->l->t('The messages could not be loaded.'),
                 ],
                 500
             );
@@ -257,7 +259,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Ungültige Nachrichten-ID.',
+                            $this->l->t('Invalid message ID.'),
                     ],
                     400
                 );
@@ -278,7 +280,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Leseberechtigung für dieses Postfach.',
+                            $this->l->t('No read permission for this mailbox.'),
                     ],
                     403
                 );
@@ -362,7 +364,7 @@ class MailController extends Controller
                         false,
 
                     'message' =>
-                        'Die Nachricht konnte nicht geladen werden.',
+                        $this->l->t('The message could not be loaded.'),
                 ],
                 500
             );
@@ -384,7 +386,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Ungültige Nachrichten-ID.',
+                            $this->l->t('Invalid message ID.'),
                     ],
                     400
                 );
@@ -405,7 +407,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Leseberechtigung für dieses Postfach.',
+                            $this->l->t('No read permission for this mailbox.'),
                     ],
                     403
                 );
@@ -437,7 +439,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Der Lesestatus konnte nicht gespeichert werden.',
+                            $this->l->t('The read status could not be saved.'),
                     ],
                     400
                 );
@@ -465,7 +467,7 @@ class MailController extends Controller
                         false,
 
                     'message' =>
-                        'Der Lesestatus konnte nicht gespeichert werden.',
+                        $this->l->t('The read status could not be saved.'),
                 ],
                 500
             );
@@ -487,7 +489,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Ungültige Nachrichten-ID.',
+                            $this->l->t('Invalid message ID.'),
                     ],
                     400
                 );
@@ -508,7 +510,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Leseberechtigung für dieses Postfach.',
+                            $this->l->t('No read permission for this mailbox.'),
                     ],
                     403
                 );
@@ -540,7 +542,7 @@ class MailController extends Controller
                             false,
 
                         'message' =>
-                            'Der Lesestatus konnte nicht gespeichert werden.',
+                            $this->l->t('The read status could not be saved.'),
                     ],
                     400
                 );
@@ -568,7 +570,7 @@ class MailController extends Controller
                         false,
 
                     'message' =>
-                        'Der Lesestatus konnte nicht gespeichert werden.',
+                        $this->l->t('The read status could not be saved.'),
                 ],
                 500
             );

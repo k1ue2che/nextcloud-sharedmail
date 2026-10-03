@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Mail_Transport_Smtphorde;
 use Horde_Mime_Mail;
 use Horde_Mime_Part;
@@ -19,6 +20,7 @@ class ReplySendService
         private readonly CredentialService $credentialService,
         private readonly ReplyContextService $replyContextService,
         private readonly SentMessageService $sentMessageService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -60,7 +62,7 @@ class ReplySendService
 
         if ($uid <= 0) {
             throw new InvalidArgumentException(
-                'Ungültige Nachrichten-UID.'
+                $this->l->t('Invalid message UID.')
             );
         }
 
@@ -76,7 +78,7 @@ class ReplySendService
             )
         ) {
             throw new InvalidArgumentException(
-                'Die Empfängeradresse ist ungültig.'
+                $this->l->t('The recipient address is invalid.')
             );
         }
 
@@ -97,7 +99,7 @@ class ReplySendService
 
         if ($html === '') {
             throw new InvalidArgumentException(
-                'Die Nachricht darf nicht leer sein.'
+                $this->l->t('The message must not be empty.')
             );
         }
 
@@ -106,7 +108,7 @@ class ReplySendService
             > self::MAX_HTML_BYTES
         ) {
             throw new InvalidArgumentException(
-                'Die Nachricht ist zu groß.'
+                $this->l->t('The message is too large.')
             );
         }
 
@@ -125,7 +127,7 @@ class ReplySendService
             === ''
         ) {
             throw new InvalidArgumentException(
-                'Die Nachricht enthält keinen Text.'
+                $this->l->t('The message contains no text.')
             );
         }
 
@@ -164,7 +166,7 @@ class ReplySendService
 
         if ($smtpHost === '') {
             throw new RuntimeException(
-                'Für dieses Postfach ist kein SMTP-Server konfiguriert.'
+                $this->l->t('No SMTP server is configured for this mailbox.')
             );
         }
 
@@ -256,7 +258,7 @@ class ReplySendService
             )
         ) {
             throw new RuntimeException(
-                'Die installierte Horde-MIME-Version unterstützt keinen HTML-Mailversand.'
+                $this->l->t('The installed Horde MIME version does not support sending HTML mail.')
             );
         }
 
@@ -328,7 +330,7 @@ class ReplySendService
 
         if (!$answeredMarked) {
             $warnings[] =
-                'Die Originalmail konnte nicht als beantwortet markiert werden.';
+                $this->l->t('The original message could not be marked as answered.');
         }
 
         return [
@@ -380,7 +382,7 @@ class ReplySendService
             )
         ) {
             throw new RuntimeException(
-                'Die installierte Horde-MIME-Version unterstützt keine Anhänge.'
+                $this->l->t('The installed Horde MIME version does not support attachments.')
             );
         }
 
@@ -409,13 +411,13 @@ class ReplySendService
 
             if ($name === '') {
                 throw new InvalidArgumentException(
-                    'Ein Anhang besitzt keinen gültigen Dateinamen.'
+                    $this->l->t('An attachment does not have a valid file name.')
                 );
             }
 
             if (!is_string($content)) {
                 throw new InvalidArgumentException(
-                    'Ein Anhang enthält keine gültigen Dateidaten.'
+                    $this->l->t('An attachment does not contain valid file data.')
                 );
             }
 

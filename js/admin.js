@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         || !form
     ) {
         console.error(
-            'SharedMail: Grundelemente des Adminformulars wurden nicht gefunden.'
+            'SharedMail: Basic admin form elements were not found.'
         )
 
         return
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!field) {
             console.warn(
-                `SharedMail: Formularfeld "${name}" wurde nicht gefunden.`
+                `SharedMail: Form field "${name}" was not found.`
             )
 
             return
@@ -542,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Lesen',
+                        t('sharedmail', 'Read'),
                         permissionBits.read,
                         permissions,
                         true
@@ -552,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Antworten',
+                        t('sharedmail', 'Reply'),
                         permissionBits.reply,
                         permissions
                     )
@@ -561,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Neue Nachrichten',
+                        t('sharedmail', 'New messages'),
                         permissionBits.compose,
                         permissions
                     )
@@ -570,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Verschieben',
+                        t('sharedmail', 'Move'),
                         permissionBits.move,
                         permissions
                     )
@@ -579,7 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Löschen',
+                        t('sharedmail', 'Delete'),
                         permissionBits.delete,
                         permissions
                     )
@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Zuweisen',
+                        t('sharedmail', 'Assign'),
                         permissionBits.assign,
                         permissions
                     )
@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Status ändern',
+                        t('sharedmail', 'Change status'),
                         permissionBits.changeStatus,
                         permissions
                     )
@@ -606,7 +606,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 options.appendChild(
                     createPermissionCheckbox(
                         groupId,
-                        'Verwalten',
+                        t('sharedmail', 'Manage'),
                         permissionBits.manage,
                         permissions
                     )
@@ -743,12 +743,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (formTitle) {
             formTitle.textContent =
-                'Postfach hinzufügen'
+                t('sharedmail', 'Add mailbox')
         }
 
         if (saveButton) {
             saveButton.textContent =
-                'Postfach speichern'
+                t('sharedmail', 'Save mailbox')
         }
     }
 
@@ -816,7 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (!mailboxId) {
                             console.error(
-                                'SharedMail: Bearbeiten-Button enthält keine Mailbox-ID.'
+                                'SharedMail: Edit button does not contain a mailbox ID.'
                             )
 
                             return
@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         } catch (error) {
                             console.error(
-                                'SharedMail: Zugriffsgruppen konnten nicht gelesen werden.',
+                                'SharedMail: Access groups could not be read.',
                                 error
                             )
 
@@ -933,7 +933,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         } catch (error) {
                             console.error(
-                                'SharedMail: Gruppenrechte konnten nicht gelesen werden.',
+                                'SharedMail: Group permissions could not be read.',
                                 error
                             )
 
@@ -975,12 +975,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         if (formTitle) {
                             formTitle.textContent =
-                                'Postfach bearbeiten'
+                                t('sharedmail', 'Edit mailbox')
                         }
 
                         if (saveButton) {
                             saveButton.textContent =
-                                'Änderungen speichern'
+                                t('sharedmail', 'Save changes')
                         }
 
                         openForm()
@@ -1029,7 +1029,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 )
             ) {
                 showFormMessage(
-                    'Für einen neuen Verbindungstest beim Bearbeiten bitte IMAP- und SMTP-Passwort eingeben.',
+                    t('sharedmail', 'To run a new connection test while editing, please enter the IMAP and SMTP passwords.'),
                     true
                 )
 
@@ -1040,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 true
 
             showFormMessage(
-                'Verbindung wird getestet …'
+                t('sharedmail', 'Testing connection …')
             )
 
             try {
@@ -1103,12 +1103,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             )
                     } catch (error) {
                         console.error(
-                            'SharedMail: Verbindungstest lieferte kein gültiges JSON.',
+                            'SharedMail: Connection test returned invalid JSON.',
                             responseText
                         )
 
                         throw new Error(
-                            'Der Server hat eine ungültige Antwort geliefert.'
+                            t('sharedmail', 'The server returned an invalid response.')
                         )
                     }
                 }
@@ -1116,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) {
                     throw new Error(
                         result.error
-                        || 'Verbindungstest fehlgeschlagen.'
+                        || t('sharedmail', 'Connection test failed.')
                     )
                 }
 
@@ -1148,13 +1148,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 )
             } catch (error) {
                 console.error(
-                    'SharedMail: Verbindungstest fehlgeschlagen.',
+                    'SharedMail: Connection test failed.',
                     error
                 )
 
                 showFormMessage(
                     error?.message
-                    || 'Verbindungstest konnte nicht ausgeführt werden.',
+                    || t('sharedmail', 'The connection test could not be run.'),
                     true
                 )
             } finally {
@@ -1183,7 +1183,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!submitButton) {
                 console.error(
-                    'SharedMail: Submit-Button wurde nicht gefunden.'
+                    'SharedMail: Submit button was not found.'
                 )
 
                 return
@@ -1197,7 +1197,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 === 0
             ) {
                 showFormMessage(
-                    'Mindestens eine Zugriffsgruppe muss ausgewählt werden.',
+                    t('sharedmail', 'At least one access group must be selected.'),
                     true
                 )
 
@@ -1309,12 +1309,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             )
                     } catch (error) {
                         console.error(
-                            'SharedMail: Serverantwort ist kein gültiges JSON.',
+                            'SharedMail: Server response is not valid JSON.',
                             responseText
                         )
 
                         throw new Error(
-                            'Der Server hat eine ungültige Antwort geliefert.'
+                            t('sharedmail', 'The server returned an invalid response.')
                         )
                     }
                 }
@@ -1324,8 +1324,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         result.error
                         || (
                             isEditing
-                                ? 'Postfach konnte nicht aktualisiert werden.'
-                                : 'Postfach konnte nicht gespeichert werden.'
+                                ? t('sharedmail', 'The mailbox could not be updated.')
+                                : t('sharedmail', 'The mailbox could not be saved.')
                         )
                     )
                 }
@@ -1337,7 +1337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     === 'AbortError'
                 ) {
                     showFormMessage(
-                        'Die Serveranfrage hat zu lange gedauert.',
+                        t('sharedmail', 'The server request took too long.'),
                         true
                     )
                 } else {
@@ -1348,7 +1348,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     showFormMessage(
                         error?.message
-                        || 'Postfach konnte nicht gespeichert werden.',
+                        || t('sharedmail', 'The mailbox could not be saved.'),
                         true
                     )
                 }
@@ -1376,11 +1376,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const mailboxName =
                             button.dataset.mailboxName
-                            || 'dieses Postfach'
+                            || t('sharedmail', 'this mailbox')
 
                         if (!mailboxId) {
                             console.error(
-                                'SharedMail: Löschen-Button enthält keine Mailbox-ID.'
+                                'SharedMail: Delete button does not contain a mailbox ID.'
                             )
 
                             return
@@ -1388,8 +1388,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         const confirmed =
                             window.confirm(
-                                `Postfach "${mailboxName}" wirklich aus Shared Mail löschen?\n\n`
-                                + 'Das echte Mailkonto und die Nachrichten auf dem Mailserver werden nicht gelöscht.'
+                                t(
+                                    'sharedmail',
+                                    'Really delete mailbox "{name}" from Shared Mail?\n\nThe actual mail account and the messages on the mail server will not be deleted.',
+                                    { name: mailboxName }
+                                )
                             )
 
                         if (!confirmed) {
@@ -1431,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         )
                                 } catch (error) {
                                     throw new Error(
-                                        'Der Server hat eine ungültige Antwort geliefert.'
+                                        t('sharedmail', 'The server returned an invalid response.')
                                     )
                                 }
                             }
@@ -1439,20 +1442,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (!response.ok) {
                                 throw new Error(
                                     result.error
-                                    || 'Postfach konnte nicht gelöscht werden.'
+                                    || t('sharedmail', 'The mailbox could not be deleted.')
                                 )
                             }
 
                             window.location.reload()
                         } catch (error) {
                             console.error(
-                                'SharedMail: Löschen fehlgeschlagen.',
+                                'SharedMail: Delete failed.',
                                 error
                             )
 
                             window.alert(
                                 error?.message
-                                || 'Postfach konnte nicht gelöscht werden.'
+                                || t('sharedmail', 'The mailbox could not be deleted.')
                             )
                         } finally {
                             button.disabled =

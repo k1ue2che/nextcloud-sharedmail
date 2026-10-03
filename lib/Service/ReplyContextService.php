@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Imap_Client_Data_Fetch;
 use Horde_Imap_Client_Fetch_Query;
 use Horde_Imap_Client_Socket;
@@ -16,6 +17,7 @@ class ReplyContextService
 {
     public function __construct(
         private readonly CredentialService $credentialService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -39,7 +41,7 @@ class ReplyContextService
 
         if ($uid <= 0) {
             throw new RuntimeException(
-                'Ungültige Nachrichten-UID.'
+                $this->l->t('Invalid message UID.')
             );
         }
 
@@ -88,7 +90,7 @@ class ReplyContextService
                 || $message === false
             ) {
                 throw new RuntimeException(
-                    'Die Originalnachricht wurde nicht gefunden.'
+                    $this->l->t('The original message was not found.')
                 );
             }
 

@@ -14,6 +14,7 @@ use OCA\SharedMail\Service\CredentialService;
 use OCA\SharedMail\Service\MailConnectionTestService;
 use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageStateService;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IDBConnection;
@@ -38,6 +39,7 @@ class AdminController extends Controller
         private readonly MailConnectionTestService $connectionTestService,
         private readonly MessageStateService $messageStateService,
         private readonly IDBConnection $db,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -98,7 +100,7 @@ class AdminController extends Controller
          */
         if ($name === '') {
             return $this->error(
-                'Name darf nicht leer sein.',
+                $this->l->t('Name must not be empty.'),
                 400
             );
         }
@@ -110,7 +112,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültige E-Mail-Adresse.',
+                $this->l->t('Invalid email address.'),
                 400
             );
         }
@@ -120,7 +122,7 @@ class AdminController extends Controller
             || $smtpHost === ''
         ) {
             return $this->error(
-                'IMAP- und SMTP-Host sind erforderlich.',
+                $this->l->t('IMAP and SMTP hosts are required.'),
                 400
             );
         }
@@ -134,7 +136,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültiger IMAP- oder SMTP-Port.',
+                $this->l->t('Invalid IMAP or SMTP port.'),
                 400
             );
         }
@@ -148,7 +150,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültige Verschlüsselungsart.',
+                $this->l->t('Invalid encryption type.'),
                 400
             );
         }
@@ -163,7 +165,7 @@ class AdminController extends Controller
 
         if ($groupIds === []) {
             return $this->error(
-                'Mindestens eine Zugriffsgruppe muss ausgewählt werden.',
+                $this->l->t('At least one access group must be selected.'),
                 400
             );
         }
@@ -181,9 +183,10 @@ class AdminController extends Controller
                     )
             ) {
                 return $this->error(
-                    'Die Gruppe "'
-                    . $groupId
-                    . '" existiert nicht.',
+                    $this->l->t(
+                        'The group "%s" does not exist.',
+                        [$groupId]
+                    ),
                     400
                 );
             }
@@ -365,7 +368,7 @@ class AdminController extends Controller
             }
 
             return $this->error(
-                'Postfach konnte nicht gespeichert werden.',
+                $this->l->t('The mailbox could not be saved.'),
                 500
             );
         }
@@ -429,7 +432,7 @@ class AdminController extends Controller
             || $smtpHost === ''
         ) {
             return $this->error(
-                'IMAP- und SMTP-Host müssen angegeben werden.',
+                $this->l->t('IMAP and SMTP hosts must be specified.'),
                 400
             );
         }
@@ -443,7 +446,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültiger IMAP- oder SMTP-Port.',
+                $this->l->t('Invalid IMAP or SMTP port.'),
                 400
             );
         }
@@ -457,7 +460,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültige Verschlüsselungsart.',
+                $this->l->t('Invalid encryption type.'),
                 400
             );
         }
@@ -550,7 +553,7 @@ class AdminController extends Controller
 
         if ($name === '') {
             return $this->error(
-                'Name darf nicht leer sein.',
+                $this->l->t('Name must not be empty.'),
                 400
             );
         }
@@ -562,7 +565,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültige E-Mail-Adresse.',
+                $this->l->t('Invalid email address.'),
                 400
             );
         }
@@ -572,7 +575,7 @@ class AdminController extends Controller
             || $smtpHost === ''
         ) {
             return $this->error(
-                'IMAP- und SMTP-Host sind erforderlich.',
+                $this->l->t('IMAP and SMTP hosts are required.'),
                 400
             );
         }
@@ -586,7 +589,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültiger IMAP- oder SMTP-Port.',
+                $this->l->t('Invalid IMAP or SMTP port.'),
                 400
             );
         }
@@ -600,7 +603,7 @@ class AdminController extends Controller
             )
         ) {
             return $this->error(
-                'Ungültige Verschlüsselungsart.',
+                $this->l->t('Invalid encryption type.'),
                 400
             );
         }
@@ -612,7 +615,7 @@ class AdminController extends Controller
 
         if ($groupIds === []) {
             return $this->error(
-                'Mindestens eine Zugriffsgruppe muss ausgewählt werden.',
+                $this->l->t('At least one access group must be selected.'),
                 400
             );
         }
@@ -626,9 +629,10 @@ class AdminController extends Controller
                     )
             ) {
                 return $this->error(
-                    'Die Gruppe "'
-                    . $groupId
-                    . '" existiert nicht.',
+                    $this->l->t(
+                        'The group "%s" does not exist.',
+                        [$groupId]
+                    ),
                     400
                 );
             }
@@ -658,7 +662,7 @@ class AdminController extends Controller
                     );
         } catch (Throwable) {
             return $this->error(
-                'Postfach wurde nicht gefunden.',
+                $this->l->t('Mailbox was not found.'),
                 404
             );
         }
@@ -819,7 +823,7 @@ class AdminController extends Controller
             }
 
             return $this->error(
-                'Postfach konnte nicht aktualisiert werden.',
+                $this->l->t('The mailbox could not be updated.'),
                 500
             );
         }
@@ -860,7 +864,7 @@ class AdminController extends Controller
                     );
         } catch (Throwable) {
             return $this->error(
-                'Postfach wurde nicht gefunden.',
+                $this->l->t('Mailbox was not found.'),
                 404
             );
         }
@@ -910,7 +914,7 @@ class AdminController extends Controller
             }
 
             return $this->error(
-                'Postfach konnte nicht gelöscht werden.',
+                $this->l->t('The mailbox could not be deleted.'),
                 500
             );
         }
@@ -988,9 +992,10 @@ class AdminController extends Controller
                     );
             } else {
                 throw new InvalidArgumentException(
-                    'Ungültige Rechte für die Gruppe "'
-                    . $groupId
-                    . '".'
+                    $this->l->t(
+                        'Invalid permissions for group "%s".',
+                        [$groupId]
+                    )
                 );
             }
 
@@ -1004,9 +1009,10 @@ class AdminController extends Controller
                     > MailboxPermission::FULL
             ) {
                 throw new InvalidArgumentException(
-                    'Ungültige Rechte für die Gruppe "'
-                    . $groupId
-                    . '".'
+                    $this->l->t(
+                        'Invalid permissions for group "%s".',
+                        [$groupId]
+                    )
                 );
             }
 

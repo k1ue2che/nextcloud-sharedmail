@@ -8,6 +8,7 @@ use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\AttachmentService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -40,6 +41,7 @@ class AttachmentController extends Controller
         IRequest $request,
         private readonly MailboxAccessService $mailboxAccessService,
         private readonly AttachmentService $attachmentService,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -80,7 +82,7 @@ class AttachmentController extends Controller
                         false,
 
                     'message' =>
-                        'Der Anhang konnte nicht heruntergeladen werden.',
+                        $this->l->t('The attachment could not be downloaded.'),
 
                     /*
                      * Entwicklungsphase:
@@ -140,7 +142,7 @@ class AttachmentController extends Controller
                             false,
 
                         'message' =>
-                            'Dieser Dateityp kann nicht direkt geöffnet werden. Bitte herunterladen.',
+                            $this->l->t('This file type cannot be opened directly. Please download it.'),
                     ],
                     415
                 );
@@ -183,7 +185,7 @@ class AttachmentController extends Controller
                         false,
 
                     'message' =>
-                        'Der Anhang konnte nicht geöffnet werden.',
+                        $this->l->t('The attachment could not be opened.'),
 
                     'details' =>
                         $e->getMessage(),
@@ -212,7 +214,7 @@ class AttachmentController extends Controller
                 [
                     'success' => false,
                     'message' =>
-                        'Ungültige Nachrichten-ID.',
+                        $this->l->t('Invalid message ID.'),
                 ],
                 400
             );
@@ -234,7 +236,7 @@ class AttachmentController extends Controller
                 [
                     'success' => false,
                     'message' =>
-                        'Die MIME-ID des Anhangs fehlt.',
+                        $this->l->t('The attachment MIME ID is missing.'),
                 ],
                 400
             );
@@ -257,7 +259,7 @@ class AttachmentController extends Controller
                 [
                     'success' => false,
                     'message' =>
-                        'Keine Leseberechtigung für dieses Postfach.',
+                        $this->l->t('No read permission for this mailbox.'),
                 ],
                 403
             );
@@ -292,7 +294,7 @@ class AttachmentController extends Controller
 
         if ($filename === '') {
             $filename =
-                'Anhang';
+                $this->l->t('Attachment');
         }
 
         /*
@@ -310,7 +312,7 @@ class AttachmentController extends Controller
             || trim($fallback) === ''
         ) {
             $fallback =
-                'Anhang';
+                $this->l->t('Attachment');
         }
 
         $fallback =

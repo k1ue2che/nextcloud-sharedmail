@@ -1,0 +1,841 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Shared Mail\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 00:00+0000\n"
+"PO-Revision-Date: 2026-10-03 00:00+0000\n"
+"Last-Translator: Shared Mail contributors\n"
+"Language-Team: Nextcloud\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n == 0 || n == 1) ? 0 : n != 0 && n % 1000000 == 0 ? 1 : 2;\n"
+
+msgid "%n attachment"
+msgid_plural "%n attachments"
+msgstr[0] "%n pièce jointe"
+msgstr[1] "%n pièces jointes"
+msgstr[2] "%n pièces jointes"
+
+msgid "%n file"
+msgid_plural "%n files"
+msgstr[0] "%n fichier"
+msgstr[1] "%n fichiers"
+msgstr[2] "%n fichiers"
+
+msgid "%n message"
+msgid_plural "%n messages"
+msgstr[0] "%n message"
+msgstr[1] "%n messages"
+msgstr[2] "%n messages"
+
+msgid "A maximum of %n attachment can be sent."
+msgid_plural "A maximum of %n attachments can be sent."
+msgstr[0] "Un maximum de %n pièce jointe peut être envoyé."
+msgstr[1] "Un maximum de %n pièces jointes peut être envoyé."
+msgstr[2] "Un maximum de %n pièces jointes peut être envoyé."
+
+msgid "A maximum of %n attachment can be used."
+msgid_plural "A maximum of %n attachments can be used."
+msgstr[0] "Un maximum de %n pièce jointe peut être utilisé."
+msgstr[1] "Un maximum de %n pièces jointes peut être utilisé."
+msgstr[2] "Un maximum de %n pièces jointes peut être utilisé."
+
+msgid "%s connection failed."
+msgstr "Échec de la connexion %s."
+
+msgid "(No subject)"
+msgstr "(Sans objet)"
+
+msgid "+ New mail"
+msgstr "+ Nouveau message"
+
+msgid "A completely empty draft is not saved."
+msgstr "Un brouillon entièrement vide n’est pas enregistré."
+
+msgid "Access groups"
+msgstr "Groupes d’accès"
+
+msgid "Actions"
+msgstr "Actions"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Add mailbox"
+msgstr "Ajouter une boîte aux lettres"
+
+msgid "An attachment could not be read."
+msgstr "Une pièce jointe n’a pas pu être lue."
+
+msgid "An attachment could not be stored temporarily on the server."
+msgstr "Une pièce jointe n’a pas pu être stockée temporairement sur le serveur."
+
+msgid "An attachment does not contain valid file data."
+msgstr "Une pièce jointe ne contient pas de données de fichier valides."
+
+msgid "An attachment does not have a valid MIME ID."
+msgstr "Une pièce jointe ne possède pas d’identifiant MIME valide."
+
+msgid "An attachment does not have a valid file name."
+msgstr "Une pièce jointe ne possède pas de nom de fichier valide."
+
+msgid "An attachment exceeds the allowed upload size."
+msgstr "Une pièce jointe dépasse la taille de téléversement autorisée."
+
+msgid "An attachment was only partially uploaded."
+msgstr "Une pièce jointe n’a été téléversée que partiellement."
+
+msgid "An attachment was rejected by a PHP extension."
+msgstr "Une pièce jointe a été rejetée par une extension PHP."
+
+msgid "An error occurred while uploading an attachment."
+msgstr "Une erreur s’est produite lors du téléversement d’une pièce jointe."
+
+msgid "An existing draft cannot later be converted into a reply draft."
+msgstr "Un brouillon existant ne peut pas être converti ultérieurement en brouillon de réponse."
+
+msgid "An uploaded file could not be read."
+msgstr "Un fichier téléversé n’a pas pu être lu."
+
+msgid "Answered"
+msgstr "Répondu"
+
+msgid "As soon as a shared mailbox is made available to you, it will appear here."
+msgstr "Dès qu’une boîte aux lettres partagée vous sera attribuée, elle apparaîtra ici."
+
+msgid "Assign"
+msgstr "Attribuer"
+
+msgid "At least one access group must be selected."
+msgstr "Au moins un groupe d’accès doit être sélectionné."
+
+msgid "Attachment"
+msgstr "Pièce jointe"
+
+msgid "Attachments may not exceed 25 MB in total."
+msgstr "La taille totale des pièces jointes ne doit pas dépasser 25 Mo."
+
+msgid "CC:"
+msgstr "CC :"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "Change status"
+msgstr "Modifier le statut"
+
+msgid "Changed by {user}"
+msgstr "Modifié par {user}"
+
+msgid "Compose reply"
+msgstr "Rédiger une réponse"
+
+msgid "Connection test failed."
+msgstr "Échec du test de connexion."
+
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Disabled"
+msgstr "Désactivé"
+
+msgid "Done"
+msgstr "Terminé"
+
+msgid "Download"
+msgstr "Télécharger"
+
+msgid "Draft loaded completely."
+msgstr "Brouillon entièrement chargé."
+
+msgid "Draft saved."
+msgstr "Brouillon enregistré."
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Edit draft"
+msgstr "Modifier le brouillon"
+
+msgid "Edit mailbox"
+msgstr "Modifier la boîte aux lettres"
+
+msgid "Edit reply draft"
+msgstr "Modifier le brouillon de réponse"
+
+msgid "Email address"
+msgstr "Adresse e-mail"
+
+msgid "Empty files cannot be sent as attachments."
+msgstr "Les fichiers vides ne peuvent pas être envoyés en pièce jointe."
+
+msgid "Enter BCC recipient …"
+msgstr "Saisir un destinataire Cci …"
+
+msgid "Enter CC recipient …"
+msgstr "Saisir un destinataire Cc …"
+
+msgid "Enter recipient …"
+msgstr "Saisir un destinataire …"
+
+msgid "File"
+msgstr "Fichier"
+
+msgid "Flagged"
+msgstr "Marqué"
+
+msgid "Folder"
+msgstr "Dossier"
+
+msgid "From"
+msgstr "De"
+
+msgid "From:"
+msgstr "De :"
+
+msgid "Group permissions"
+msgstr "Autorisations du groupe"
+
+msgid "IMAP and SMTP hosts are required."
+msgstr "Les hôtes IMAP et SMTP sont requis."
+
+msgid "IMAP and SMTP hosts must be specified."
+msgstr "Les hôtes IMAP et SMTP doivent être indiqués."
+
+msgid "IMAP connection and login successful."
+msgstr "Connexion et authentification IMAP réussies."
+
+msgid "In progress"
+msgstr "En cours"
+
+msgid "Inline file"
+msgstr "Fichier intégré"
+
+msgid "Invalid IMAP or SMTP port."
+msgstr "Port IMAP ou SMTP non valide."
+
+msgid "Invalid MIME ID."
+msgstr "Identifiant MIME non valide."
+
+msgid "Invalid draft ID."
+msgstr "Identifiant de brouillon non valide."
+
+msgid "Invalid email address."
+msgstr "Adresse e-mail non valide."
+
+msgid "Invalid email address: %s"
+msgstr "Adresse e-mail non valide : %s"
+
+msgid "Invalid encryption type."
+msgstr "Type de chiffrement non valide."
+
+msgid "Invalid message ID."
+msgstr "Identifiant de message non valide."
+
+msgid "Invalid message UID."
+msgstr "UID de message non valide."
+
+msgid "Invalid message status."
+msgstr "Statut de message non valide."
+
+msgid "Invalid message."
+msgstr "Message non valide."
+
+msgid "Invalid original message ID."
+msgstr "Identifiant du message d’origine non valide."
+
+msgid "Invalid permissions for group \"%s\"."
+msgstr "Autorisations non valides pour le groupe « %s »."
+
+msgid "Leave blank to keep the stored password."
+msgstr "Laisser vide pour conserver le mot de passe enregistré."
+
+msgid "Load more messages"
+msgstr "Charger plus de messages"
+
+msgid "Loading IMAP folders …"
+msgstr "Chargement des dossiers IMAP …"
+
+msgid "Loading draft attachments …"
+msgstr "Chargement des pièces jointes du brouillon …"
+
+msgid "Loading draft …"
+msgstr "Chargement du brouillon …"
+
+msgid "Loading mailbox …"
+msgstr "Chargement de la boîte aux lettres …"
+
+msgid "Loading message …"
+msgstr "Chargement du message …"
+
+msgid "Loading messages …"
+msgstr "Chargement des messages …"
+
+msgid "Mailbox or message could not be determined."
+msgstr "La boîte aux lettres ou le message n’a pas pu être déterminé."
+
+msgid "Mailbox was not found."
+msgstr "Boîte aux lettres introuvable."
+
+msgid "Mailboxes"
+msgstr "Boîtes aux lettres"
+
+msgid "Manage"
+msgstr "Gérer"
+
+msgid "Manage shared mailboxes for teams and organizations."
+msgstr "Gérer les boîtes aux lettres partagées pour les équipes et les organisations."
+
+msgid "Mark as read"
+msgstr "Marquer comme lu"
+
+msgid "Mark as read for me only"
+msgstr "Marquer comme lu uniquement pour moi"
+
+msgid "Mark as unread"
+msgstr "Marquer comme non lu"
+
+msgid "Mark as unread for me only"
+msgstr "Marquer comme non lu uniquement pour moi"
+
+msgid "Marked as read."
+msgstr "Marqué comme lu."
+
+msgid "Marked as unread."
+msgstr "Marqué comme non lu."
+
+msgid "Marking as read …"
+msgstr "Marquage comme lu …"
+
+msgid "Marking as unread …"
+msgstr "Marquage comme non lu …"
+
+msgid "Members of these Nextcloud groups can view and use the mailbox. Multiple groups can be selected."
+msgstr "Les membres de ces groupes Nextcloud peuvent voir et utiliser la boîte aux lettres. Plusieurs groupes peuvent être sélectionnés."
+
+msgid "Message moved."
+msgstr "Message déplacé."
+
+msgid "Message was not found."
+msgstr "Message introuvable."
+
+msgid "Move"
+msgstr "Déplacer"
+
+msgid "Move to …"
+msgstr "Déplacer vers …"
+
+msgid "Moving …"
+msgstr "Déplacement …"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Name must not be empty."
+msgstr "Le nom ne doit pas être vide."
+
+msgid "New"
+msgstr "Nouveau"
+
+msgid "New message"
+msgstr "Nouveau message"
+
+msgid "New messages"
+msgstr "Nouveaux messages"
+
+msgid "No IMAP folder for drafts was found."
+msgstr "Aucun dossier IMAP pour les brouillons n’a été trouvé."
+
+msgid "No IMAP folder for sent messages was found."
+msgstr "Aucun dossier IMAP pour les messages envoyés n’a été trouvé."
+
+msgid "No SMTP server is configured for this mailbox."
+msgstr "Aucun serveur SMTP n’est configuré pour cette boîte aux lettres."
+
+msgid "No attachments"
+msgstr "Aucune pièce jointe"
+
+msgid "No folders were found on the IMAP server."
+msgstr "Aucun dossier n’a été trouvé sur le serveur IMAP."
+
+msgid "No message status was specified."
+msgstr "Aucun statut de message n’a été indiqué."
+
+msgid "No other target folder is available."
+msgstr "Aucun autre dossier de destination n’est disponible."
+
+msgid "No permission to change the message status."
+msgstr "Aucune autorisation pour modifier le statut du message."
+
+msgid "No permission to compose messages in this mailbox."
+msgstr "Aucune autorisation pour rédiger des messages dans cette boîte aux lettres."
+
+msgid "No permission to compose messages."
+msgstr "Aucune autorisation pour rédiger des messages."
+
+msgid "No permission to edit this draft."
+msgstr "Aucune autorisation pour modifier ce brouillon."
+
+msgid "No permission to edit this reply draft."
+msgstr "Aucune autorisation pour modifier ce brouillon de réponse."
+
+msgid "No permission to move messages in this mailbox."
+msgstr "Aucune autorisation pour déplacer des messages dans cette boîte aux lettres."
+
+msgid "No permission to reply in this mailbox."
+msgstr "Aucune autorisation pour répondre dans cette boîte aux lettres."
+
+msgid "No permission to save reply drafts."
+msgstr "Aucune autorisation pour enregistrer des brouillons de réponse."
+
+msgid "No permission to save this draft."
+msgstr "Aucune autorisation pour enregistrer ce brouillon."
+
+msgid "No read permission for this mailbox."
+msgstr "Aucune autorisation de lecture pour cette boîte aux lettres."
+
+msgid "No shared mailbox has been configured yet."
+msgstr "Aucune boîte aux lettres partagée n’a encore été configurée."
+
+msgid "No shared mailboxes have been made available to you yet."
+msgstr "Aucune boîte aux lettres partagée ne vous a encore été attribuée."
+
+msgid "No signed-in user."
+msgstr "Aucun utilisateur connecté."
+
+msgid "None"
+msgstr "Aucun"
+
+msgid "On {date}, {sender} wrote:"
+msgstr "Le {date}, {sender} a écrit :"
+
+msgid "Open"
+msgstr "Ouvert"
+
+msgid "Password"
+msgstr "Mot de passe"
+
+msgid "Permissions apply to the selected Nextcloud group. Read access is always required for every access group."
+msgstr "Les autorisations s’appliquent au groupe Nextcloud sélectionné. L’accès en lecture est toujours requis pour chaque groupe d’accès."
+
+msgid "Please enter a message."
+msgstr "Veuillez saisir un message."
+
+msgid "Please select a target folder."
+msgstr "Veuillez sélectionner un dossier de destination."
+
+msgid "Please specify a recipient."
+msgstr "Veuillez indiquer un destinataire."
+
+msgid "Please specify at least one recipient."
+msgstr "Veuillez indiquer au moins un destinataire."
+
+msgid "Read"
+msgstr "Lecture"
+
+msgid ""
+"Really delete mailbox \"{name}\" from Shared Mail?\n"
+"\n"
+"The actual mail account and the messages on the mail server will not be deleted."
+msgstr ""
+"Voulez-vous vraiment supprimer la boîte aux lettres « {name} » de Shared Mail ?\n"
+"\n"
+"Le compte de messagerie réel et les messages sur le serveur de messagerie ne seront pas supprimés."
+
+msgid "Remove recipient {email}"
+msgstr "Supprimer le destinataire {email}"
+
+msgid "Reply"
+msgstr "Répondre"
+
+msgid "SMTP connection and login successful."
+msgstr "Connexion et authentification SMTP réussies."
+
+msgid "Save changes"
+msgstr "Enregistrer les modifications"
+
+msgid "Save draft"
+msgstr "Enregistrer le brouillon"
+
+msgid "Save mailbox"
+msgstr "Enregistrer la boîte aux lettres"
+
+msgid "Saving draft …"
+msgstr "Enregistrement du brouillon …"
+
+msgid "Saving status …"
+msgstr "Enregistrement du statut …"
+
+msgid "Saving …"
+msgstr "Enregistrement …"
+
+msgid "Security"
+msgstr "Sécurité"
+
+msgid "Send"
+msgstr "Envoyer"
+
+msgid "Send again"
+msgstr "Renvoyer"
+
+msgid "Sending HTML mail is not supported by the installed Horde version."
+msgstr "L’envoi d’e-mails HTML n’est pas pris en charge par la version de Horde installée."
+
+msgid "Sending message …"
+msgstr "Envoi du message …"
+
+msgid "Sending reply …"
+msgstr "Envoi de la réponse …"
+
+msgid "Sending …"
+msgstr "Envoi …"
+
+msgid "Shared Mail"
+msgstr "Shared Mail"
+
+msgid "Shared Mail Editor could not be initialized."
+msgstr "L’éditeur Shared Mail n’a pas pu être initialisé."
+
+msgid "Shared mailbox of the board"
+msgstr "Boîte aux lettres partagée du conseil d’administration"
+
+msgid "SharedMailEditor was not loaded."
+msgstr "SharedMailEditor n’a pas été chargé."
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Status saved."
+msgstr "Statut enregistré."
+
+msgid "Subject"
+msgstr "Objet"
+
+msgid "Target folder"
+msgstr "Dossier de destination"
+
+msgid "Test IMAP & SMTP"
+msgstr "Tester IMAP et SMTP"
+
+msgid "Testing connection …"
+msgstr "Test de la connexion …"
+
+msgid "The IMAP folder is missing."
+msgstr "Le dossier IMAP est manquant."
+
+msgid "The IMAP folders could not be loaded."
+msgstr "Les dossiers IMAP n’ont pas pu être chargés."
+
+msgid "The IMAP server did not return a UID mapping."
+msgstr "Le serveur IMAP n’a renvoyé aucune correspondance d’UID."
+
+msgid "The MIME structure could not be read."
+msgstr "La structure MIME n’a pas pu être lue."
+
+msgid "The MIME structure of the message could not be read."
+msgstr "La structure MIME du message n’a pas pu être lue."
+
+msgid "The attachment \"%s\" is larger than 10 MB."
+msgstr "La pièce jointe « %s » dépasse 10 Mo."
+
+msgid "The attachment \"{name}\" could not be loaded."
+msgstr "La pièce jointe « {name} » n’a pas pu être chargée."
+
+msgid "The attachment \"{name}\" is empty."
+msgstr "La pièce jointe « {name} » est vide."
+
+msgid "The attachment \"{name}\" is larger than 10 MB."
+msgstr "La pièce jointe « {name} » dépasse 10 Mo."
+
+msgid "The attachment MIME ID is missing."
+msgstr "L’identifiant MIME de la pièce jointe est manquant."
+
+msgid "The attachment contains no data."
+msgstr "La pièce jointe ne contient aucune donnée."
+
+msgid "The attachment could not be added."
+msgstr "La pièce jointe n’a pas pu être ajoutée."
+
+msgid "The attachment could not be downloaded."
+msgstr "La pièce jointe n’a pas pu être téléchargée."
+
+msgid "The attachment could not be loaded."
+msgstr "La pièce jointe n’a pas pu être chargée."
+
+msgid "The attachment could not be opened."
+msgstr "La pièce jointe n’a pas pu être ouverte."
+
+msgid "The attachment was not found."
+msgstr "Pièce jointe introuvable."
+
+msgid "The connection test could not be run."
+msgstr "Le test de connexion n’a pas pu être exécuté."
+
+msgid "The draft attachments could not be loaded."
+msgstr "Les pièces jointes du brouillon n’ont pas pu être chargées."
+
+msgid "The draft could not be created as a MIME message."
+msgstr "Le brouillon n’a pas pu être créé sous forme de message MIME."
+
+msgid "The draft could not be loaded."
+msgstr "Le brouillon n’a pas pu être chargé."
+
+msgid "The draft could not be opened."
+msgstr "Le brouillon n’a pas pu être ouvert."
+
+msgid "The draft could not be saved in the IMAP mailbox."
+msgstr "Le brouillon n’a pas pu être enregistré dans la boîte aux lettres IMAP."
+
+msgid "The draft could not be saved."
+msgstr "Le brouillon n’a pas pu être enregistré."
+
+msgid "The draft headers could not be read."
+msgstr "Les en-têtes du brouillon n’ont pas pu être lus."
+
+msgid "The draft was not found."
+msgstr "Brouillon introuvable."
+
+msgid "The draft was saved."
+msgstr "Le brouillon a été enregistré."
+
+msgid "The draft was updated."
+msgstr "Le brouillon a été mis à jour."
+
+msgid "The editor could not be loaded."
+msgstr "L’éditeur n’a pas pu être chargé."
+
+msgid "The editor is not ready yet."
+msgstr "L’éditeur n’est pas encore prêt."
+
+msgid "The folder view could not be initialized."
+msgstr "La vue des dossiers n’a pas pu être initialisée."
+
+msgid "The folders could not be loaded."
+msgstr "Les dossiers n’ont pas pu être chargés."
+
+msgid "The group \"%s\" does not exist."
+msgstr "Le groupe « %s » n’existe pas."
+
+msgid "The installed Horde MIME version does not support HTML drafts."
+msgstr "La version de Horde MIME installée ne prend pas en charge les brouillons HTML."
+
+msgid "The installed Horde MIME version does not support attachments."
+msgstr "La version de Horde MIME installée ne prend pas en charge les pièces jointes."
+
+msgid "The installed Horde MIME version does not support sending HTML mail."
+msgstr "La version de Horde MIME installée ne prend pas en charge l’envoi d’e-mails HTML."
+
+msgid "The mail was sent, but could not be saved in the Sent folder."
+msgstr "L’e-mail a été envoyé, mais n’a pas pu être enregistré dans le dossier Envoyés."
+
+msgid "The mailbox could not be deleted."
+msgstr "La boîte aux lettres n’a pas pu être supprimée."
+
+msgid "The mailbox could not be saved."
+msgstr "La boîte aux lettres n’a pas pu être enregistrée."
+
+msgid "The mailbox could not be updated."
+msgstr "La boîte aux lettres n’a pas pu être mise à jour."
+
+msgid "The message body is too large."
+msgstr "Le contenu du message est trop volumineux."
+
+msgid "The message contains no text."
+msgstr "Le message ne contient aucun texte."
+
+msgid "The message could not be loaded."
+msgstr "Le message n’a pas pu être chargé."
+
+msgid "The message could not be moved."
+msgstr "Le message n’a pas pu être déplacé."
+
+msgid "The message could not be sent."
+msgstr "Le message n’a pas pu être envoyé."
+
+msgid "The message is already in this folder."
+msgstr "Le message se trouve déjà dans ce dossier."
+
+msgid "The message is too large."
+msgstr "Le message est trop volumineux."
+
+msgid "The message must not be empty."
+msgstr "Le message ne doit pas être vide."
+
+msgid "The message status could not be loaded."
+msgstr "Le statut du message n’a pas pu être chargé."
+
+msgid "The message status could not be saved."
+msgstr "Le statut du message n’a pas pu être enregistré."
+
+msgid "The message was not found."
+msgstr "Le message n’a pas été trouvé."
+
+msgid "The message was saved in the Sent folder."
+msgstr "Le message a été enregistré dans le dossier Envoyés."
+
+msgid "The message was sent successfully."
+msgstr "Le message a été envoyé avec succès."
+
+msgid "The message was sent, but could not be prepared for the Sent folder."
+msgstr "Le message a été envoyé, mais n’a pas pu être préparé pour le dossier Envoyés."
+
+msgid "The message was sent, but could not be saved in the Sent folder."
+msgstr "Le message a été envoyé, mais n’a pas pu être enregistré dans le dossier Envoyés."
+
+msgid "The message was sent, but the draft could not be removed."
+msgstr "Le message a été envoyé, mais le brouillon n’a pas pu être supprimé."
+
+msgid "The message was sent, but the drafts folder could not be found."
+msgstr "Le message a été envoyé, mais le dossier des brouillons n’a pas pu être trouvé."
+
+msgid "The messages could not be loaded."
+msgstr "Les messages n’ont pas pu être chargés."
+
+msgid "The new UID of the moved message could not be determined."
+msgstr "Le nouvel UID du message déplacé n’a pas pu être déterminé."
+
+msgid "The new draft was saved, but the old version could not be replaced safely."
+msgstr "Le nouveau brouillon a été enregistré, mais l’ancienne version n’a pas pu être remplacée en toute sécurité."
+
+msgid "The new draft was saved, but the previous version could not be removed."
+msgstr "Le nouveau brouillon a été enregistré, mais la version précédente n’a pas pu être supprimée."
+
+msgid "The original message could not be marked as answered."
+msgstr "Le message d’origine n’a pas pu être marqué comme ayant reçu une réponse."
+
+msgid "The original message for the reply could not be determined."
+msgstr "Le message d’origine de la réponse n’a pas pu être déterminé."
+
+msgid "The original message of a reply draft may not be changed."
+msgstr "Le message d’origine d’un brouillon de réponse ne peut pas être modifié."
+
+msgid "The original message of the reply draft is incomplete."
+msgstr "Le message d’origine du brouillon de réponse est incomplet."
+
+msgid "The original message was not found."
+msgstr "Le message d’origine n’a pas été trouvé."
+
+msgid "The read status could not be changed."
+msgstr "Le statut de lecture n’a pas pu être modifié."
+
+msgid "The read status could not be saved."
+msgstr "Le statut de lecture n’a pas pu être enregistré."
+
+msgid "The recipient address is invalid."
+msgstr "L’adresse du destinataire n’est pas valide."
+
+msgid "The reply could not be sent."
+msgstr "La réponse n’a pas pu être envoyée."
+
+msgid "The reply draft does not contain a valid original message."
+msgstr "Le brouillon de réponse ne contient pas de message d’origine valide."
+
+msgid "The reply editor could not be loaded."
+msgstr "L’éditeur de réponse n’a pas pu être chargé."
+
+msgid "The reply was sent successfully."
+msgstr "La réponse a été envoyée avec succès."
+
+msgid "The sent message could not be prepared for IMAP."
+msgstr "Le message envoyé n’a pas pu être préparé pour IMAP."
+
+msgid "The server request took too long."
+msgstr "La requête au serveur a pris trop de temps."
+
+msgid "The server returned an invalid response."
+msgstr "Le serveur a renvoyé une réponse non valide."
+
+msgid "The size of an attachment could not be determined."
+msgstr "La taille d’une pièce jointe n’a pas pu être déterminée."
+
+msgid "The temporary upload directory is missing on the server."
+msgstr "Le répertoire temporaire de téléversement est absent du serveur."
+
+msgid "The workflow status could not be saved."
+msgstr "Le statut du flux de travail n’a pas pu être enregistré."
+
+msgid "This MIME part is not a file."
+msgstr "Cette partie MIME n’est pas un fichier."
+
+msgid "This MIME part is not an attachment."
+msgstr "Cette partie MIME n’est pas une pièce jointe."
+
+msgid "This file type cannot be opened directly. Please download it."
+msgstr "Ce type de fichier ne peut pas être ouvert directement. Veuillez le télécharger."
+
+msgid "This folder contains no messages."
+msgstr "Ce dossier ne contient aucun message."
+
+msgid "To"
+msgstr "À"
+
+msgid "To run a new connection test while editing, please enter the IMAP and SMTP passwords."
+msgstr "Pour effectuer un nouveau test de connexion pendant la modification, veuillez saisir les mots de passe IMAP et SMTP."
+
+msgid "To:"
+msgstr "À :"
+
+msgid "Unknown sender"
+msgstr "Expéditeur inconnu"
+
+msgid "Update draft"
+msgstr "Mettre à jour le brouillon"
+
+msgid "Username"
+msgstr "Nom d’utilisateur"
+
+msgid "Waiting"
+msgstr "En attente"
+
+msgid "Workflow status"
+msgstr "Statut du flux de travail"
+
+msgid "Yesterday"
+msgstr "Hier"
+
+msgid "You do not have permission to compose new messages in this mailbox."
+msgstr "Vous n’avez pas l’autorisation de rédiger de nouveaux messages dans cette boîte aux lettres."
+
+msgid "You do not have permission to reply in this mailbox."
+msgstr "Vous n’avez pas l’autorisation de répondre dans cette boîte aux lettres."
+
+msgid "e.g. Board"
+msgstr "p. ex. Conseil d’administration"
+
+msgid "this mailbox"
+msgstr "cette boîte aux lettres"
+
+msgid "{sender} wrote:"
+msgstr "{sender} a écrit :"
+
+msgid "← Back to message list"
+msgstr "← Retour à la liste des messages"
+
+msgid "↩ Answered"
+msgstr "↩ Répondu"
+
+msgid "↩ Reply"
+msgstr "↩ Répondre"
+
+msgid "● Unread"
+msgstr "● Non lu"
+
+msgid "★ Flagged"
+msgstr "★ Marqué"
+
+msgid "📎 Attach file"
+msgstr "📎 Joindre un fichier"
+
+msgid "The source folder is missing."
+msgstr "Le dossier source est manquant."
+
+msgid "The target folder is missing."
+msgstr "Le dossier cible est manquant."
+
+msgid "Source and target folder are identical."
+msgstr "Les dossiers source et cible sont identiques."

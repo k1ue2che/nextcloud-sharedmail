@@ -17,17 +17,17 @@ $groups = $_['groups'] ?? [];
     <h2>Shared Mail</h2>
 
     <p>
-        Gemeinsame Postfächer für Teams und Organisationen verwalten.
+        <?php p($l->t('Manage shared mailboxes for teams and organizations.')); ?>
     </p>
 
-    <h3>Postfächer</h3>
+    <h3><?php p($l->t('Mailboxes')); ?></h3>
 
     <div id="sharedmail-mailbox-list">
 
         <?php if ($mailboxes === []): ?>
 
             <p id="sharedmail-empty">
-                Es wurde noch kein gemeinsames Postfach eingerichtet.
+                <?php p($l->t('No shared mailbox has been configured yet.')); ?>
             </p>
 
         <?php else: ?>
@@ -35,10 +35,10 @@ $groups = $_['groups'] ?? [];
             <table class="grid sharedmail-mailbox-table">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>E-Mail-Adresse</th>
-                        <th>Status</th>
-                        <th>Aktionen</th>
+                        <th><?php p($l->t('Name')); ?></th>
+                        <th><?php p($l->t('Email address')); ?></th>
+                        <th><?php p($l->t('Status')); ?></th>
+                        <th><?php p($l->t('Actions')); ?></th>
                     </tr>
                 </thead>
 
@@ -64,11 +64,11 @@ $groups = $_['groups'] ?? [];
                             <td>
                                 <?php if ($mailbox['enabled']): ?>
                                     <span class="sharedmail-status sharedmail-status-active">
-                                        Aktiv
+                                        <?php p($l->t('Active')); ?>
                                     </span>
                                 <?php else: ?>
                                     <span class="sharedmail-status sharedmail-status-disabled">
-                                        Deaktiviert
+                                        <?php p($l->t('Disabled')); ?>
                                     </span>
                                 <?php endif; ?>
                             </td>
@@ -93,7 +93,7 @@ $groups = $_['groups'] ?? [];
                                         data-smtp-username="<?php p($mailbox['smtpUsername']); ?>"
                                         data-group-ids="<?php p(json_encode($mailbox['groupIds'] ?? [])); ?>"
                                         data-group-permissions="<?php p(json_encode($mailbox['groupPermissions'] ?? [])); ?>">
-                                        Bearbeiten
+                                        <?php p($l->t('Edit')); ?>
                                     </button>
 
                                     <button
@@ -101,7 +101,7 @@ $groups = $_['groups'] ?? [];
                                         class="sharedmail-delete-mailbox"
                                         data-mailbox-id="<?php p((string)$mailbox['id']); ?>"
                                         data-mailbox-name="<?php p($mailbox['name']); ?>">
-                                        Löschen
+                                        <?php p($l->t('Delete')); ?>
                                     </button>
 
                                 </div>
@@ -120,7 +120,7 @@ $groups = $_['groups'] ?? [];
             id="sharedmail-add-mailbox"
             type="button"
             class="primary">
-            + Postfach hinzufügen
+            + <?php p($l->t('Add mailbox')); ?>
         </button>
     </div>
 
@@ -130,14 +130,14 @@ $groups = $_['groups'] ?? [];
         style="display:none;">
 
         <h3 id="sharedmail-form-title">
-            Postfach hinzufügen
+            <?php p($l->t('Add mailbox')); ?>
         </h3>
 
         <form id="sharedmail-mailbox-form">
 
             <div class="sharedmail-field">
                 <label for="sharedmail-name">
-                    <strong>Name</strong>
+                    <strong><?php p($l->t('Name')); ?></strong>
                 </label>
 
                 <input
@@ -145,24 +145,24 @@ $groups = $_['groups'] ?? [];
                     name="name"
                     type="text"
                     required
-                    placeholder="z. B. Vorstand">
+                    placeholder="<?php p($l->t('e.g. Board')); ?>">
             </div>
 
             <div class="sharedmail-field">
                 <label for="sharedmail-description">
-                    <strong>Beschreibung</strong>
+                    <strong><?php p($l->t('Description')); ?></strong>
                 </label>
 
                 <textarea
                     id="sharedmail-description"
                     name="description"
                     rows="3"
-                    placeholder="Gemeinsames Postfach des Vorstands"></textarea>
+                    placeholder="<?php p($l->t('Shared mailbox of the board')); ?>"></textarea>
             </div>
 
             <div class="sharedmail-field">
                 <label for="sharedmail-email">
-                    <strong>E-Mail-Adresse</strong>
+                    <strong><?php p($l->t('Email address')); ?></strong>
                 </label>
 
                 <input
@@ -175,12 +175,11 @@ $groups = $_['groups'] ?? [];
 
             <div class="sharedmail-field">
                 <label for="sharedmail-group-ids">
-                    <strong>Zugriffsgruppen</strong>
+                    <strong><?php p($l->t('Access groups')); ?></strong>
                 </label>
 
                 <p class="sharedmail-hint">
-                    Mitglieder dieser Nextcloud-Gruppen können das Postfach
-                    sehen und verwenden. Mehrere Gruppen können ausgewählt werden.
+                    <?php p($l->t('Members of these Nextcloud groups can view and use the mailbox. Multiple groups can be selected.')); ?>
                 </p>
 
                 <select
@@ -214,11 +213,10 @@ $groups = $_['groups'] ?? [];
                 data-default="<?php p((string)MailboxPermission::DEFAULT); ?>"
                 style="display:none;">
 
-                <h3>Gruppenrechte</h3>
+                <h3><?php p($l->t('Group permissions')); ?></h3>
 
                 <p class="sharedmail-hint">
-                    Die Rechte gelten für die jeweils ausgewählte Nextcloud-Gruppe.
-                    Lesen ist für jede Zugriffsgruppe immer erforderlich.
+                    <?php p($l->t('Permissions apply to the selected Nextcloud group. Read access is always required for every access group.')); ?>
                 </p>
 
                 <div id="sharedmail-group-permissions-list"></div>
@@ -259,7 +257,7 @@ $groups = $_['groups'] ?? [];
 
                     <div class="sharedmail-field sharedmail-field-security">
                         <label for="sharedmail-imap-security">
-                            <strong>Sicherheit</strong>
+                            <strong><?php p($l->t('Security')); ?></strong>
                         </label>
 
                         <select
@@ -275,7 +273,7 @@ $groups = $_['groups'] ?? [];
                             </option>
 
                             <option value="none">
-                                Keine
+                                <?php p($l->t('None')); ?>
                             </option>
                         </select>
                     </div>
@@ -284,7 +282,7 @@ $groups = $_['groups'] ?? [];
 
                 <div class="sharedmail-field">
                     <label for="sharedmail-imap-username">
-                        <strong>Benutzername</strong>
+                        <strong><?php p($l->t('Username')); ?></strong>
                     </label>
 
                     <input
@@ -297,7 +295,7 @@ $groups = $_['groups'] ?? [];
 
                 <div class="sharedmail-field">
                     <label for="sharedmail-imap-password">
-                        <strong>Passwort</strong>
+                        <strong><?php p($l->t('Password')); ?></strong>
                     </label>
 
                     <input
@@ -311,7 +309,7 @@ $groups = $_['groups'] ?? [];
                         id="sharedmail-imap-password-hint"
                         class="sharedmail-hint sharedmail-edit-password-hint"
                         style="display:none;">
-                        Leer lassen, um das gespeicherte Passwort beizubehalten.
+                        <?php p($l->t('Leave blank to keep the stored password.')); ?>
                     </p>
                 </div>
             </div>
@@ -351,7 +349,7 @@ $groups = $_['groups'] ?? [];
 
                     <div class="sharedmail-field sharedmail-field-security">
                         <label for="sharedmail-smtp-security">
-                            <strong>Sicherheit</strong>
+                            <strong><?php p($l->t('Security')); ?></strong>
                         </label>
 
                         <select
@@ -367,7 +365,7 @@ $groups = $_['groups'] ?? [];
                             </option>
 
                             <option value="none">
-                                Keine
+                                <?php p($l->t('None')); ?>
                             </option>
                         </select>
                     </div>
@@ -376,7 +374,7 @@ $groups = $_['groups'] ?? [];
 
                 <div class="sharedmail-field">
                     <label for="sharedmail-smtp-username">
-                        <strong>Benutzername</strong>
+                        <strong><?php p($l->t('Username')); ?></strong>
                     </label>
 
                     <input
@@ -389,7 +387,7 @@ $groups = $_['groups'] ?? [];
 
                 <div class="sharedmail-field">
                     <label for="sharedmail-smtp-password">
-                        <strong>Passwort</strong>
+                        <strong><?php p($l->t('Password')); ?></strong>
                     </label>
 
                     <input
@@ -403,7 +401,7 @@ $groups = $_['groups'] ?? [];
                         id="sharedmail-smtp-password-hint"
                         class="sharedmail-hint sharedmail-edit-password-hint"
                         style="display:none;">
-                        Leer lassen, um das gespeicherte Passwort beizubehalten.
+                        <?php p($l->t('Leave blank to keep the stored password.')); ?>
                     </p>
                 </div>
             </div>
@@ -412,7 +410,7 @@ $groups = $_['groups'] ?? [];
                 <button
                     id="sharedmail-test-connection"
                     type="button">
-                    IMAP &amp; SMTP testen
+                    <?php p($l->t('Test IMAP & SMTP')); ?>
                 </button>
 
                 <div
@@ -428,13 +426,13 @@ $groups = $_['groups'] ?? [];
                     id="sharedmail-save-mailbox"
                     type="submit"
                     class="primary">
-                    Postfach speichern
+                    <?php p($l->t('Save mailbox')); ?>
                 </button>
 
                 <button
                     id="sharedmail-cancel-mailbox"
                     type="button">
-                    Abbrechen
+                    <?php p($l->t('Cancel')); ?>
                 </button>
 
             </div>

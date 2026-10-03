@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use OCA\SharedMail\Db\Mailbox;
 use RuntimeException;
 use Throwable;
@@ -12,6 +13,7 @@ class AttachmentService
 {
     public function __construct(
         private readonly CredentialService $credentialService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -34,19 +36,19 @@ class AttachmentService
 
         if ($folder === '') {
             throw new RuntimeException(
-                'Der IMAP-Ordner fehlt.'
+                $this->l->t('The IMAP folder is missing.')
             );
         }
 
         if ($uid <= 0) {
             throw new RuntimeException(
-                'Ungültige Nachrichten-ID.'
+                $this->l->t('Invalid message ID.')
             );
         }
 
         if ($mimeId === '') {
             throw new RuntimeException(
-                'Die MIME-ID des Anhangs fehlt.'
+                $this->l->t('The attachment MIME ID is missing.')
             );
         }
 
@@ -65,7 +67,7 @@ class AttachmentService
             )
         ) {
             throw new RuntimeException(
-                'Ungültige MIME-ID.'
+                $this->l->t('Invalid MIME ID.')
             );
         }
 
@@ -108,7 +110,7 @@ class AttachmentService
                 || $structureMessage === false
             ) {
                 throw new RuntimeException(
-                    'Die Nachricht wurde nicht gefunden.'
+                    $this->l->t('The message was not found.')
                 );
             }
 
@@ -120,7 +122,7 @@ class AttachmentService
                 instanceof \Horde_Mime_Part
             ) {
                 throw new RuntimeException(
-                    'Die MIME-Struktur der Nachricht konnte nicht gelesen werden.'
+                    $this->l->t('The MIME structure of the message could not be read.')
                 );
             }
 
@@ -134,7 +136,7 @@ class AttachmentService
                 instanceof \Horde_Mime_Part
             ) {
                 throw new RuntimeException(
-                    'Der Anhang wurde nicht gefunden.'
+                    $this->l->t('The attachment was not found.')
                 );
             }
 
@@ -148,7 +150,7 @@ class AttachmentService
                 ) === 'multipart'
             ) {
                 throw new RuntimeException(
-                    'Dieser MIME-Part ist keine Datei.'
+                    $this->l->t('This MIME part is not a file.')
                 );
             }
 
@@ -183,15 +185,15 @@ class AttachmentService
 
             if (!$isAttachment) {
                 throw new RuntimeException(
-                    'Dieser MIME-Part ist kein Anhang.'
+                    $this->l->t('This MIME part is not an attachment.')
                 );
             }
 
             if ($name === '') {
                 $name =
                     $contentId !== null
-                        ? 'Inline-Datei'
-                        : 'Anhang';
+                        ? $this->l->t('Inline file')
+                        : $this->l->t('Attachment');
             }
 
             $contentType =
@@ -242,7 +244,7 @@ class AttachmentService
                 || $attachmentMessage === false
             ) {
                 throw new RuntimeException(
-                    'Der Anhang konnte nicht geladen werden.'
+                    $this->l->t('The attachment could not be loaded.')
                 );
             }
 
@@ -254,7 +256,7 @@ class AttachmentService
 
             if ($content === null) {
                 throw new RuntimeException(
-                    'Der Anhang enthält keine Daten.'
+                    $this->l->t('The attachment contains no data.')
                 );
             }
 
@@ -302,7 +304,7 @@ class AttachmentService
                 );
 
             if ($name === '') {
-                $name = 'Anhang';
+                $name = $this->l->t('Attachment');
             }
 
             return [

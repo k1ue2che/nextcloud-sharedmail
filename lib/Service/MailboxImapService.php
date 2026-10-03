@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Imap_Client;
 use Horde_Imap_Client_Fetch_Query;
 use Horde_Imap_Client_Mailbox;
@@ -17,6 +18,7 @@ class MailboxImapService
 {
     public function __construct(
         private readonly CredentialService $credentialService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -276,7 +278,7 @@ class MailboxImapService
                 );
 
                 if ($subject === '') {
-                    $subject = '(Kein Betreff)';
+                    $subject = $this->l->t('(No subject)');
                 }
 
                 /*
@@ -434,7 +436,7 @@ class MailboxImapService
 
         if ($uid <= 0) {
             throw new RuntimeException(
-                'Ungültige Nachrichten-UID.'
+                $this->l->t('Invalid message UID.')
             );
         }
 
@@ -479,7 +481,7 @@ class MailboxImapService
                 || $message === false
             ) {
                 throw new RuntimeException(
-                    'Nachricht wurde nicht gefunden.'
+                    $this->l->t('Message was not found.')
                 );
             }
 
@@ -494,7 +496,7 @@ class MailboxImapService
                 instanceof Horde_Mime_Part
             ) {
                 throw new RuntimeException(
-                    'Die MIME-Struktur konnte nicht gelesen werden.'
+                    $this->l->t('The MIME structure could not be read.')
                 );
             }
 
@@ -515,7 +517,7 @@ class MailboxImapService
             );
 
             if ($subject === '') {
-                $subject = '(Kein Betreff)';
+                $subject = $this->l->t('(No subject)');
             }
 
             [
@@ -1017,8 +1019,8 @@ class MailboxImapService
             if ($name === '') {
                 $name =
                     $contentId !== null
-                        ? 'Inline-Datei'
-                        : 'Anhang';
+                        ? $this->l->t('Inline file')
+                        : $this->l->t('Attachment');
             }
 
             $attachments[] = [

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace OCA\SharedMail\Service;
 
 use OCA\SharedMail\Db\Mailbox;
+use OCP\IL10N;
 use RuntimeException;
 
 class MessageMoveService
 {
     public function __construct(
         private readonly CredentialService $credentialService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -35,25 +37,33 @@ class MessageMoveService
 
         if ($sourceFolder === '') {
             throw new RuntimeException(
-                'Der Quellordner fehlt.'
+                $this->l->t(
+                    'The source folder is missing.'
+                )
             );
         }
 
         if ($targetFolder === '') {
             throw new RuntimeException(
-                'Der Zielordner fehlt.'
+                $this->l->t(
+                    'The target folder is missing.'
+                )
             );
         }
 
         if ($uid <= 0) {
             throw new RuntimeException(
-                'Ungültige Nachrichten-ID.'
+                $this->l->t(
+                    'Invalid message ID.'
+                )
             );
         }
 
         if ($sourceFolder === $targetFolder) {
             throw new RuntimeException(
-                'Quell- und Zielordner sind identisch.'
+                $this->l->t(
+                    'Source and target folder are identical.'
+                )
             );
         }
 
@@ -93,7 +103,9 @@ class MessageMoveService
 
             if (!is_array($mapping)) {
                 throw new RuntimeException(
-                    'Der IMAP-Server hat keine UID-Zuordnung zurückgegeben.'
+                    $this->l->t(
+                        'The IMAP server did not return a UID mapping.'
+                    )
                 );
             }
 
@@ -111,7 +123,9 @@ class MessageMoveService
 
             if ($targetUid <= 0) {
                 throw new RuntimeException(
-                    'Die neue UID der verschobenen Nachricht konnte nicht ermittelt werden.'
+                    $this->l->t(
+                        'The new UID of the moved message could not be determined.'
+                    )
                 );
             }
 

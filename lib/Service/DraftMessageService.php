@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Imap_Client_Socket;
 use Horde_Mail_Transport_Null;
 use Horde_Mime_Mail;
@@ -20,6 +21,7 @@ class DraftMessageService
     public function __construct(
         private readonly CredentialService $credentialService,
         private readonly MailboxImapService $mailboxImapService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -94,7 +96,7 @@ class DraftMessageService
             > self::MAX_HTML_BYTES
         ) {
             throw new InvalidArgumentException(
-                'Der Nachrichtentext ist zu groß.'
+                $this->l->t('The message body is too large.')
             );
         }
 
@@ -117,7 +119,7 @@ class DraftMessageService
             && $attachments === []
         ) {
             throw new InvalidArgumentException(
-                'Ein vollständig leerer Entwurf wird nicht gespeichert.'
+                $this->l->t('A completely empty draft is not saved.')
             );
         }
 
@@ -128,7 +130,7 @@ class DraftMessageService
 
         if ($draftFolder === null) {
             throw new RuntimeException(
-                'Es wurde kein IMAP-Ordner für Entwürfe gefunden.'
+                $this->l->t('No IMAP folder for drafts was found.')
             );
         }
 
@@ -195,7 +197,7 @@ class DraftMessageService
             if ($replaceDraftUid > 0) {
                 if ($newDraftUid === null) {
                     $warning =
-                        'Der neue Entwurf wurde gespeichert, die alte Version konnte aber nicht sicher ersetzt werden.';
+                        $this->l->t('The new draft was saved, but the old version could not be replaced safely.');
                 } elseif (
                     $newDraftUid
                     !== $replaceDraftUid
@@ -215,7 +217,7 @@ class DraftMessageService
                          * Deshalb Save nicht als Fehler melden.
                          */
                         $warning =
-                            'Der neue Entwurf wurde gespeichert, die vorherige Version konnte aber nicht entfernt werden.';
+                            $this->l->t('The new draft was saved, but the previous version could not be removed.');
                     }
                 }
             }
@@ -240,7 +242,7 @@ class DraftMessageService
             throw $e;
         } catch (Throwable) {
             throw new RuntimeException(
-                'Der Entwurf konnte nicht im IMAP-Postfach gespeichert werden.'
+                $this->l->t('The draft could not be saved in the IMAP mailbox.')
             );
         } finally {
             try {
@@ -282,7 +284,7 @@ class DraftMessageService
                     null,
 
                 'message' =>
-                    'Ungültige Entwurfs-ID.',
+                    $this->l->t('Invalid draft ID.'),
             ];
         }
 
@@ -314,7 +316,7 @@ class DraftMessageService
                         null,
 
                     'message' =>
-                        'Die Nachricht wurde gesendet, der Entwurfsordner konnte aber nicht gefunden werden.',
+                        $this->l->t('The message was sent, but the drafts folder could not be found.'),
                 ];
             }
 
@@ -360,7 +362,7 @@ class DraftMessageService
                     $draftFolder,
 
                 'message' =>
-                    'Die Nachricht wurde gesendet, der Entwurf konnte aber nicht entfernt werden.',
+                    $this->l->t('The message was sent, but the draft could not be removed.'),
             ];
         } finally {
             if (
@@ -602,7 +604,7 @@ class DraftMessageService
                 )
             ) {
                 throw new RuntimeException(
-                    'Die installierte Horde-MIME-Version unterstützt keine HTML-Entwürfe.'
+                    $this->l->t('The installed Horde MIME version does not support HTML drafts.')
                 );
             }
 
@@ -686,7 +688,7 @@ class DraftMessageService
             || $rawMessage === ''
         ) {
             throw new RuntimeException(
-                'Der Entwurf konnte nicht als MIME-Nachricht erzeugt werden.'
+                $this->l->t('The draft could not be created as a MIME message.')
             );
         }
 
@@ -730,13 +732,13 @@ class DraftMessageService
 
             if ($name === '') {
                 throw new InvalidArgumentException(
-                    'Ein Anhang besitzt keinen gültigen Dateinamen.'
+                    $this->l->t('An attachment does not have a valid file name.')
                 );
             }
 
             if (!is_string($content)) {
                 throw new InvalidArgumentException(
-                    'Ein Anhang enthält keine gültigen Dateidaten.'
+                    $this->l->t('An attachment does not contain valid file data.')
                 );
             }
 

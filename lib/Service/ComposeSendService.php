@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Mail_Transport_Smtphorde;
 use Horde_Mime_Mail;
 use Horde_Mime_Part;
@@ -19,6 +20,7 @@ class ComposeSendService
     public function __construct(
         private readonly CredentialService $credentialService,
         private readonly SentMessageService $sentMessageService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -64,7 +66,7 @@ class ComposeSendService
 
         if ($toRecipients === []) {
             throw new InvalidArgumentException(
-                'Bitte mindestens einen Empfänger angeben.'
+                $this->l->t('Please specify at least one recipient.')
             );
         }
 
@@ -91,7 +93,7 @@ class ComposeSendService
 
         if ($html === '') {
             throw new InvalidArgumentException(
-                'Die Nachricht darf nicht leer sein.'
+                $this->l->t('The message must not be empty.')
             );
         }
 
@@ -100,7 +102,7 @@ class ComposeSendService
             > self::MAX_HTML_BYTES
         ) {
             throw new InvalidArgumentException(
-                'Die Nachricht ist zu groß.'
+                $this->l->t('The message is too large.')
             );
         }
 
@@ -119,7 +121,7 @@ class ComposeSendService
             === ''
         ) {
             throw new InvalidArgumentException(
-                'Die Nachricht enthält keinen Text.'
+                $this->l->t('The message contains no text.')
             );
         }
 
@@ -130,7 +132,7 @@ class ComposeSendService
 
         if ($smtpHost === '') {
             throw new RuntimeException(
-                'Für dieses Postfach ist kein SMTP-Server konfiguriert.'
+                $this->l->t('No SMTP server is configured for this mailbox.')
             );
         }
 
@@ -237,7 +239,7 @@ class ComposeSendService
             )
         ) {
             throw new RuntimeException(
-                'HTML-Mailversand wird von der installierten Horde-Version nicht unterstützt.'
+                $this->l->t('Sending HTML mail is not supported by the installed Horde version.')
             );
         }
 
@@ -301,7 +303,7 @@ class ComposeSendService
 
             if ($rawMessage === '') {
                 $warning =
-                    'Die Nachricht wurde gesendet, konnte aber nicht für den Gesendet-Ordner aufbereitet werden.';
+                    $this->l->t('The message was sent, but could not be prepared for the Sent folder.');
             } else {
                 $sentResult =
                     $this
@@ -332,7 +334,7 @@ class ComposeSendService
 
                     if ($warning === '') {
                         $warning =
-                            'Die Nachricht wurde gesendet, konnte aber nicht im Gesendet-Ordner gespeichert werden.';
+                            $this->l->t('The message was sent, but could not be saved in the Sent folder.');
                     }
                 }
             }
@@ -344,7 +346,7 @@ class ComposeSendService
                 null;
 
             $warning =
-                'Die Nachricht wurde gesendet, konnte aber nicht im Gesendet-Ordner gespeichert werden.';
+                $this->l->t('The message was sent, but could not be saved in the Sent folder.');
         }
 
         return [
@@ -388,7 +390,7 @@ class ComposeSendService
             )
         ) {
             throw new RuntimeException(
-                'Die installierte Horde-MIME-Version unterstützt keine Anhänge.'
+                $this->l->t('The installed Horde MIME version does not support attachments.')
             );
         }
 
@@ -417,13 +419,13 @@ class ComposeSendService
 
             if ($name === '') {
                 throw new InvalidArgumentException(
-                    'Ein Anhang besitzt keinen gültigen Dateinamen.'
+                    $this->l->t('An attachment does not have a valid file name.')
                 );
             }
 
             if (!is_string($content)) {
                 throw new InvalidArgumentException(
-                    'Ein Anhang enthält keine gültigen Dateidaten.'
+                    $this->l->t('An attachment does not contain valid file data.')
                 );
             }
 
@@ -515,8 +517,10 @@ class ComposeSendService
                 )
             ) {
                 throw new InvalidArgumentException(
-                    'Ungültige E-Mail-Adresse: '
-                    . $part
+                    $this->l->t(
+                        'Invalid email address: %s',
+                        [$part]
+                    )
                 );
             }
 

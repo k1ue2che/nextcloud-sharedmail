@@ -26,8 +26,7 @@ $mailboxes = $_['mailboxes'] ?? [];
 
             <div class="sharedmail-empty">
                 <p>
-                    Für dich wurden noch keine gemeinsamen
-                    Postfächer freigegeben.
+                    <?php p($l->t('No shared mailboxes have been made available to you yet.')); ?>
                 </p>
             </div>
 
@@ -71,7 +70,7 @@ $mailboxes = $_['mailboxes'] ?? [];
                             <div
                                 class="sharedmail-folder-loading"
                                 hidden>
-                                IMAP-Ordner werden geladen …
+                                <?php p($l->t('Loading IMAP folders …')); ?>
                             </div>
 
                             <div
@@ -122,7 +121,7 @@ $mailboxes = $_['mailboxes'] ?? [];
                 class="sharedmail-message-area">
 
                 <p>
-                    Postfach wird geladen …
+                    <?php p($l->t('Loading mailbox …')); ?>
                 </p>
 
             </div>
@@ -134,8 +133,7 @@ $mailboxes = $_['mailboxes'] ?? [];
                 <h2>Shared Mail</h2>
 
                 <p>
-                    Sobald dir ein gemeinsames Postfach freigegeben wird,
-                    erscheint es hier.
+                    <?php p($l->t('As soon as a shared mailbox is made available to you, it will appear here.')); ?>
                 </p>
 
             </div>

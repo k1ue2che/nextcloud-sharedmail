@@ -1,0 +1,833 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Shared Mail\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-03 00:00+0000\n"
+"PO-Revision-Date: 2026-10-03 00:00+0000\n"
+"Last-Translator: Shared Mail contributors\n"
+"Language-Team: Nextcloud\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "%n attachment"
+msgid_plural "%n attachments"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%n file"
+msgid_plural "%n files"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%n message"
+msgid_plural "%n messages"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "A maximum of %n attachment can be sent."
+msgid_plural "A maximum of %n attachments can be sent."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "A maximum of %n attachment can be used."
+msgid_plural "A maximum of %n attachments can be used."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s connection failed."
+msgstr ""
+
+msgid "(No subject)"
+msgstr ""
+
+msgid "+ New mail"
+msgstr ""
+
+msgid "A completely empty draft is not saved."
+msgstr ""
+
+msgid "Access groups"
+msgstr ""
+
+msgid "Actions"
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Add mailbox"
+msgstr ""
+
+msgid "An attachment could not be read."
+msgstr ""
+
+msgid "An attachment could not be stored temporarily on the server."
+msgstr ""
+
+msgid "An attachment does not contain valid file data."
+msgstr ""
+
+msgid "An attachment does not have a valid MIME ID."
+msgstr ""
+
+msgid "An attachment does not have a valid file name."
+msgstr ""
+
+msgid "An attachment exceeds the allowed upload size."
+msgstr ""
+
+msgid "An attachment was only partially uploaded."
+msgstr ""
+
+msgid "An attachment was rejected by a PHP extension."
+msgstr ""
+
+msgid "An error occurred while uploading an attachment."
+msgstr ""
+
+msgid "An existing draft cannot later be converted into a reply draft."
+msgstr ""
+
+msgid "An uploaded file could not be read."
+msgstr ""
+
+msgid "Answered"
+msgstr ""
+
+msgid "As soon as a shared mailbox is made available to you, it will appear here."
+msgstr ""
+
+msgid "Assign"
+msgstr ""
+
+msgid "At least one access group must be selected."
+msgstr ""
+
+msgid "Attachment"
+msgstr ""
+
+msgid "Attachments may not exceed 25 MB in total."
+msgstr ""
+
+msgid "CC:"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Change status"
+msgstr ""
+
+msgid "Changed by {user}"
+msgstr ""
+
+msgid "Compose reply"
+msgstr ""
+
+msgid "Connection test failed."
+msgstr ""
+
+msgid "Delete"
+msgstr ""
+
+msgid "Description"
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
+msgid "Download"
+msgstr ""
+
+msgid "Draft loaded completely."
+msgstr ""
+
+msgid "Draft saved."
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Edit draft"
+msgstr ""
+
+msgid "Edit mailbox"
+msgstr ""
+
+msgid "Edit reply draft"
+msgstr ""
+
+msgid "Email address"
+msgstr ""
+
+msgid "Empty files cannot be sent as attachments."
+msgstr ""
+
+msgid "Enter BCC recipient …"
+msgstr ""
+
+msgid "Enter CC recipient …"
+msgstr ""
+
+msgid "Enter recipient …"
+msgstr ""
+
+msgid "File"
+msgstr ""
+
+msgid "Flagged"
+msgstr ""
+
+msgid "Folder"
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "From:"
+msgstr ""
+
+msgid "Group permissions"
+msgstr ""
+
+msgid "IMAP and SMTP hosts are required."
+msgstr ""
+
+msgid "IMAP and SMTP hosts must be specified."
+msgstr ""
+
+msgid "IMAP connection and login successful."
+msgstr ""
+
+msgid "In progress"
+msgstr ""
+
+msgid "Inline file"
+msgstr ""
+
+msgid "Invalid IMAP or SMTP port."
+msgstr ""
+
+msgid "Invalid MIME ID."
+msgstr ""
+
+msgid "Invalid draft ID."
+msgstr ""
+
+msgid "Invalid email address."
+msgstr ""
+
+msgid "Invalid email address: %s"
+msgstr ""
+
+msgid "Invalid encryption type."
+msgstr ""
+
+msgid "Invalid message ID."
+msgstr ""
+
+msgid "Invalid message UID."
+msgstr ""
+
+msgid "Invalid message status."
+msgstr ""
+
+msgid "Invalid message."
+msgstr ""
+
+msgid "Invalid original message ID."
+msgstr ""
+
+msgid "Invalid permissions for group \"%s\"."
+msgstr ""
+
+msgid "Leave blank to keep the stored password."
+msgstr ""
+
+msgid "Load more messages"
+msgstr ""
+
+msgid "Loading IMAP folders …"
+msgstr ""
+
+msgid "Loading draft attachments …"
+msgstr ""
+
+msgid "Loading draft …"
+msgstr ""
+
+msgid "Loading mailbox …"
+msgstr ""
+
+msgid "Loading message …"
+msgstr ""
+
+msgid "Loading messages …"
+msgstr ""
+
+msgid "Mailbox or message could not be determined."
+msgstr ""
+
+msgid "Mailbox was not found."
+msgstr ""
+
+msgid "Mailboxes"
+msgstr ""
+
+msgid "Manage"
+msgstr ""
+
+msgid "Manage shared mailboxes for teams and organizations."
+msgstr ""
+
+msgid "Mark as read"
+msgstr ""
+
+msgid "Mark as read for me only"
+msgstr ""
+
+msgid "Mark as unread"
+msgstr ""
+
+msgid "Mark as unread for me only"
+msgstr ""
+
+msgid "Marked as read."
+msgstr ""
+
+msgid "Marked as unread."
+msgstr ""
+
+msgid "Marking as read …"
+msgstr ""
+
+msgid "Marking as unread …"
+msgstr ""
+
+msgid "Members of these Nextcloud groups can view and use the mailbox. Multiple groups can be selected."
+msgstr ""
+
+msgid "Message moved."
+msgstr ""
+
+msgid "Message was not found."
+msgstr ""
+
+msgid "Move"
+msgstr ""
+
+msgid "Move to …"
+msgstr ""
+
+msgid "Moving …"
+msgstr ""
+
+msgid "Name"
+msgstr ""
+
+msgid "Name must not be empty."
+msgstr ""
+
+msgid "New"
+msgstr ""
+
+msgid "New message"
+msgstr ""
+
+msgid "New messages"
+msgstr ""
+
+msgid "No IMAP folder for drafts was found."
+msgstr ""
+
+msgid "No IMAP folder for sent messages was found."
+msgstr ""
+
+msgid "No SMTP server is configured for this mailbox."
+msgstr ""
+
+msgid "No attachments"
+msgstr ""
+
+msgid "No folders were found on the IMAP server."
+msgstr ""
+
+msgid "No message status was specified."
+msgstr ""
+
+msgid "No other target folder is available."
+msgstr ""
+
+msgid "No permission to change the message status."
+msgstr ""
+
+msgid "No permission to compose messages in this mailbox."
+msgstr ""
+
+msgid "No permission to compose messages."
+msgstr ""
+
+msgid "No permission to edit this draft."
+msgstr ""
+
+msgid "No permission to edit this reply draft."
+msgstr ""
+
+msgid "No permission to move messages in this mailbox."
+msgstr ""
+
+msgid "No permission to reply in this mailbox."
+msgstr ""
+
+msgid "No permission to save reply drafts."
+msgstr ""
+
+msgid "No permission to save this draft."
+msgstr ""
+
+msgid "No read permission for this mailbox."
+msgstr ""
+
+msgid "No shared mailbox has been configured yet."
+msgstr ""
+
+msgid "No shared mailboxes have been made available to you yet."
+msgstr ""
+
+msgid "No signed-in user."
+msgstr ""
+
+msgid "None"
+msgstr ""
+
+msgid "On {date}, {sender} wrote:"
+msgstr ""
+
+msgid "Open"
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "Permissions apply to the selected Nextcloud group. Read access is always required for every access group."
+msgstr ""
+
+msgid "Please enter a message."
+msgstr ""
+
+msgid "Please select a target folder."
+msgstr ""
+
+msgid "Please specify a recipient."
+msgstr ""
+
+msgid "Please specify at least one recipient."
+msgstr ""
+
+msgid "Read"
+msgstr ""
+
+msgid ""
+"Really delete mailbox \"{name}\" from Shared Mail?\n"
+"\n"
+"The actual mail account and the messages on the mail server will not be deleted."
+msgstr ""
+
+msgid "Remove recipient {email}"
+msgstr ""
+
+msgid "Reply"
+msgstr ""
+
+msgid "SMTP connection and login successful."
+msgstr ""
+
+msgid "Save changes"
+msgstr ""
+
+msgid "Save draft"
+msgstr ""
+
+msgid "Save mailbox"
+msgstr ""
+
+msgid "Saving draft …"
+msgstr ""
+
+msgid "Saving status …"
+msgstr ""
+
+msgid "Saving …"
+msgstr ""
+
+msgid "Security"
+msgstr ""
+
+msgid "Send"
+msgstr ""
+
+msgid "Send again"
+msgstr ""
+
+msgid "Sending HTML mail is not supported by the installed Horde version."
+msgstr ""
+
+msgid "Sending message …"
+msgstr ""
+
+msgid "Sending reply …"
+msgstr ""
+
+msgid "Sending …"
+msgstr ""
+
+msgid "Shared Mail"
+msgstr ""
+
+msgid "Shared Mail Editor could not be initialized."
+msgstr ""
+
+msgid "Shared mailbox of the board"
+msgstr ""
+
+msgid "SharedMailEditor was not loaded."
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Status saved."
+msgstr ""
+
+msgid "Subject"
+msgstr ""
+
+msgid "Target folder"
+msgstr ""
+
+msgid "Test IMAP & SMTP"
+msgstr ""
+
+msgid "Testing connection …"
+msgstr ""
+
+msgid "The IMAP folder is missing."
+msgstr ""
+
+msgid "The IMAP folders could not be loaded."
+msgstr ""
+
+msgid "The IMAP server did not return a UID mapping."
+msgstr ""
+
+msgid "The MIME structure could not be read."
+msgstr ""
+
+msgid "The MIME structure of the message could not be read."
+msgstr ""
+
+msgid "The attachment \"%s\" is larger than 10 MB."
+msgstr ""
+
+msgid "The attachment \"{name}\" could not be loaded."
+msgstr ""
+
+msgid "The attachment \"{name}\" is empty."
+msgstr ""
+
+msgid "The attachment \"{name}\" is larger than 10 MB."
+msgstr ""
+
+msgid "The attachment MIME ID is missing."
+msgstr ""
+
+msgid "The attachment contains no data."
+msgstr ""
+
+msgid "The attachment could not be added."
+msgstr ""
+
+msgid "The attachment could not be downloaded."
+msgstr ""
+
+msgid "The attachment could not be loaded."
+msgstr ""
+
+msgid "The attachment could not be opened."
+msgstr ""
+
+msgid "The attachment was not found."
+msgstr ""
+
+msgid "The connection test could not be run."
+msgstr ""
+
+msgid "The draft attachments could not be loaded."
+msgstr ""
+
+msgid "The draft could not be created as a MIME message."
+msgstr ""
+
+msgid "The draft could not be loaded."
+msgstr ""
+
+msgid "The draft could not be opened."
+msgstr ""
+
+msgid "The draft could not be saved in the IMAP mailbox."
+msgstr ""
+
+msgid "The draft could not be saved."
+msgstr ""
+
+msgid "The draft headers could not be read."
+msgstr ""
+
+msgid "The draft was not found."
+msgstr ""
+
+msgid "The draft was saved."
+msgstr ""
+
+msgid "The draft was updated."
+msgstr ""
+
+msgid "The editor could not be loaded."
+msgstr ""
+
+msgid "The editor is not ready yet."
+msgstr ""
+
+msgid "The folder view could not be initialized."
+msgstr ""
+
+msgid "The folders could not be loaded."
+msgstr ""
+
+msgid "The group \"%s\" does not exist."
+msgstr ""
+
+msgid "The installed Horde MIME version does not support HTML drafts."
+msgstr ""
+
+msgid "The installed Horde MIME version does not support attachments."
+msgstr ""
+
+msgid "The installed Horde MIME version does not support sending HTML mail."
+msgstr ""
+
+msgid "The mail was sent, but could not be saved in the Sent folder."
+msgstr ""
+
+msgid "The mailbox could not be deleted."
+msgstr ""
+
+msgid "The mailbox could not be saved."
+msgstr ""
+
+msgid "The mailbox could not be updated."
+msgstr ""
+
+msgid "The message body is too large."
+msgstr ""
+
+msgid "The message contains no text."
+msgstr ""
+
+msgid "The message could not be loaded."
+msgstr ""
+
+msgid "The message could not be moved."
+msgstr ""
+
+msgid "The message could not be sent."
+msgstr ""
+
+msgid "The message is already in this folder."
+msgstr ""
+
+msgid "The message is too large."
+msgstr ""
+
+msgid "The message must not be empty."
+msgstr ""
+
+msgid "The message status could not be loaded."
+msgstr ""
+
+msgid "The message status could not be saved."
+msgstr ""
+
+msgid "The message was not found."
+msgstr ""
+
+msgid "The message was saved in the Sent folder."
+msgstr ""
+
+msgid "The message was sent successfully."
+msgstr ""
+
+msgid "The message was sent, but could not be prepared for the Sent folder."
+msgstr ""
+
+msgid "The message was sent, but could not be saved in the Sent folder."
+msgstr ""
+
+msgid "The message was sent, but the draft could not be removed."
+msgstr ""
+
+msgid "The message was sent, but the drafts folder could not be found."
+msgstr ""
+
+msgid "The messages could not be loaded."
+msgstr ""
+
+msgid "The new UID of the moved message could not be determined."
+msgstr ""
+
+msgid "The new draft was saved, but the old version could not be replaced safely."
+msgstr ""
+
+msgid "The new draft was saved, but the previous version could not be removed."
+msgstr ""
+
+msgid "The original message could not be marked as answered."
+msgstr ""
+
+msgid "The original message for the reply could not be determined."
+msgstr ""
+
+msgid "The original message of a reply draft may not be changed."
+msgstr ""
+
+msgid "The original message of the reply draft is incomplete."
+msgstr ""
+
+msgid "The original message was not found."
+msgstr ""
+
+msgid "The read status could not be changed."
+msgstr ""
+
+msgid "The read status could not be saved."
+msgstr ""
+
+msgid "The recipient address is invalid."
+msgstr ""
+
+msgid "The reply could not be sent."
+msgstr ""
+
+msgid "The reply draft does not contain a valid original message."
+msgstr ""
+
+msgid "The reply editor could not be loaded."
+msgstr ""
+
+msgid "The reply was sent successfully."
+msgstr ""
+
+msgid "The sent message could not be prepared for IMAP."
+msgstr ""
+
+msgid "The server request took too long."
+msgstr ""
+
+msgid "The server returned an invalid response."
+msgstr ""
+
+msgid "The size of an attachment could not be determined."
+msgstr ""
+
+msgid "The temporary upload directory is missing on the server."
+msgstr ""
+
+msgid "The workflow status could not be saved."
+msgstr ""
+
+msgid "This MIME part is not a file."
+msgstr ""
+
+msgid "This MIME part is not an attachment."
+msgstr ""
+
+msgid "This file type cannot be opened directly. Please download it."
+msgstr ""
+
+msgid "This folder contains no messages."
+msgstr ""
+
+msgid "To"
+msgstr ""
+
+msgid "To run a new connection test while editing, please enter the IMAP and SMTP passwords."
+msgstr ""
+
+msgid "To:"
+msgstr ""
+
+msgid "Unknown sender"
+msgstr ""
+
+msgid "Update draft"
+msgstr ""
+
+msgid "Username"
+msgstr ""
+
+msgid "Waiting"
+msgstr ""
+
+msgid "Workflow status"
+msgstr ""
+
+msgid "Yesterday"
+msgstr ""
+
+msgid "You do not have permission to compose new messages in this mailbox."
+msgstr ""
+
+msgid "You do not have permission to reply in this mailbox."
+msgstr ""
+
+msgid "e.g. Board"
+msgstr ""
+
+msgid "this mailbox"
+msgstr ""
+
+msgid "{sender} wrote:"
+msgstr ""
+
+msgid "← Back to message list"
+msgstr ""
+
+msgid "↩ Answered"
+msgstr ""
+
+msgid "↩ Reply"
+msgstr ""
+
+msgid "● Unread"
+msgstr ""
+
+msgid "★ Flagged"
+msgstr ""
+
+msgid "📎 Attach file"
+msgstr ""
+
+msgid "The source folder is missing."
+msgstr ""
+
+msgid "The target folder is missing."
+msgstr ""
+
+msgid "Source and target folder are identical."
+msgstr ""

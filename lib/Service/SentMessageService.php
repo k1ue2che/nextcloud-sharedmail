@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Imap_Client_Socket;
 use OCA\SharedMail\Db\Mailbox;
 use RuntimeException;
@@ -14,6 +15,7 @@ class SentMessageService
     public function __construct(
         private readonly CredentialService $credentialService,
         private readonly MailboxImapService $mailboxImapService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -36,7 +38,7 @@ class SentMessageService
                 'success' => false,
                 'folder' => null,
                 'message' =>
-                    'Die gesendete Nachricht konnte nicht für IMAP aufbereitet werden.',
+                    $this->l->t('The sent message could not be prepared for IMAP.'),
             ];
         }
 
@@ -51,7 +53,7 @@ class SentMessageService
                     'success' => false,
                     'folder' => null,
                     'message' =>
-                        'Es wurde kein IMAP-Ordner für gesendete Nachrichten gefunden.',
+                        $this->l->t('No IMAP folder for sent messages was found.'),
                 ];
             }
 
@@ -91,7 +93,7 @@ class SentMessageService
                     'success' => true,
                     'folder' => $sentFolder,
                     'message' =>
-                        'Die Nachricht wurde im Gesendet-Ordner gespeichert.',
+                        $this->l->t('The message was saved in the Sent folder.'),
                 ];
             } finally {
                 try {
@@ -115,7 +117,7 @@ class SentMessageService
                 'success' => false,
                 'folder' => null,
                 'message' =>
-                    'Die Mail wurde versendet, konnte aber nicht im Gesendet-Ordner gespeichert werden.',
+                    $this->l->t('The mail was sent, but could not be saved in the Sent folder.'),
             ];
         }
     }

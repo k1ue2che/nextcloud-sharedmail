@@ -11,6 +11,7 @@ use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\DraftReadService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
@@ -27,6 +28,7 @@ class DraftController extends Controller
         private readonly DraftMessageService $draftMessageService,
         private readonly DraftReadService $draftReadService,
         private readonly AttachmentUploadService $attachmentUploadService,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -51,7 +53,7 @@ class DraftController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Ungültige Entwurfs-ID.',
+                            $this->l->t('Invalid draft ID.'),
                     ],
                     400
                 );
@@ -70,7 +72,7 @@ class DraftController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Keine Leseberechtigung für dieses Postfach.',
+                            $this->l->t('No read permission for this mailbox.'),
                     ],
                     403
                 );
@@ -101,7 +103,7 @@ class DraftController extends Controller
                 [
                     'success' => false,
                     'message' =>
-                        'Der Entwurf konnte nicht geladen werden.',
+                        $this->l->t('The draft could not be loaded.'),
                 ],
                 500
             );
@@ -140,7 +142,7 @@ class DraftController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Ungültige Entwurfs-ID.',
+                            $this->l->t('Invalid draft ID.'),
                     ],
                     400
                 );
@@ -151,7 +153,7 @@ class DraftController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Ungültige ID der Originalnachricht.',
+                            $this->l->t('Invalid original message ID.'),
                     ],
                     400
                 );
@@ -180,7 +182,7 @@ class DraftController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Die Originalnachricht des Antwortentwurfs ist unvollständig.',
+                            $this->l->t('The original message of the reply draft is incomplete.'),
                     ],
                     400
                 );
@@ -240,7 +242,7 @@ class DraftController extends Controller
                     [
                         'success' => false,
                         'message' =>
-                            'Keine Berechtigung zum Speichern dieses Entwurfs.',
+                            $this->l->t('No permission to save this draft.'),
                     ],
                     403
                 );
@@ -311,7 +313,7 @@ class DraftController extends Controller
                             [
                                 'success' => false,
                                 'message' =>
-                                    'Keine Berechtigung zum Bearbeiten dieses Antwortentwurfs.',
+                                    $this->l->t('No permission to edit this reply draft.'),
                             ],
                             403
                         );
@@ -325,7 +327,7 @@ class DraftController extends Controller
                             [
                                 'success' => false,
                                 'message' =>
-                                    'Der Antwortentwurf enthält keine gültige Originalnachricht.',
+                                    $this->l->t('The reply draft does not contain a valid original message.'),
                             ],
                             400
                         );
@@ -361,7 +363,7 @@ class DraftController extends Controller
                             [
                                 'success' => false,
                                 'message' =>
-                                    'Die Originalnachricht eines Antwortentwurfs darf nicht geändert werden.',
+                                    $this->l->t('The original message of a reply draft may not be changed.'),
                             ],
                             400
                         );
@@ -383,7 +385,7 @@ class DraftController extends Controller
                             [
                                 'success' => false,
                                 'message' =>
-                                    'Keine Berechtigung zum Bearbeiten dieses Entwurfs.',
+                                    $this->l->t('No permission to edit this draft.'),
                             ],
                             403
                         );
@@ -399,7 +401,7 @@ class DraftController extends Controller
                             [
                                 'success' => false,
                                 'message' =>
-                                    'Ein bestehender Entwurf kann nicht nachträglich in einen Antwortentwurf umgewandelt werden.',
+                                    $this->l->t('An existing draft cannot later be converted into a reply draft.'),
                             ],
                             400
                         );
@@ -430,8 +432,8 @@ class DraftController extends Controller
                             'success' => false,
                             'message' =>
                                 $requestIsReply
-                                    ? 'Keine Berechtigung zum Speichern von Antwortentwürfen.'
-                                    : 'Keine Berechtigung zum Verfassen von Nachrichten.',
+                                    ? $this->l->t('No permission to save reply drafts.')
+                                    : $this->l->t('No permission to compose messages.'),
                         ],
                         403
                     );
@@ -466,8 +468,8 @@ class DraftController extends Controller
 
                 'message' =>
                     $result['replaced']
-                        ? 'Der Entwurf wurde aktualisiert.'
-                        : 'Der Entwurf wurde gespeichert.',
+                        ? $this->l->t('The draft was updated.')
+                        : $this->l->t('The draft was saved.'),
 
                 'draftFolder' =>
                     $result['folder'],
@@ -505,7 +507,7 @@ class DraftController extends Controller
                 [
                     'success' => false,
                     'message' =>
-                        'Der Entwurf konnte nicht gespeichert werden.',
+                        $this->l->t('The draft could not be saved.'),
                 ],
                 500
             );

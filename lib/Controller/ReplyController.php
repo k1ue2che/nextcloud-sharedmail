@@ -11,6 +11,7 @@ use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\ReplySendService;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
@@ -25,6 +26,7 @@ class ReplyController extends Controller
         private readonly ReplySendService $replySendService,
         private readonly AttachmentUploadService $attachmentUploadService,
         private readonly DraftMessageService $draftMessageService,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -58,7 +60,7 @@ class ReplyController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Berechtigung zum Antworten in diesem Postfach.',
+                            $this->l->t('No permission to reply in this mailbox.'),
                     ],
                     403
                 );
@@ -129,7 +131,7 @@ class ReplyController extends Controller
                     true,
 
                 'message' =>
-                    'Die Antwort wurde erfolgreich gesendet.',
+                    $this->l->t('The reply was sent successfully.'),
 
                 'messageId' =>
                     $result['messageId'],
@@ -177,7 +179,7 @@ class ReplyController extends Controller
                         false,
 
                     'message' =>
-                        'Die Antwort konnte nicht gesendet werden.',
+                        $this->l->t('The reply could not be sent.'),
                 ],
                 500
             );

@@ -32,11 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const PERMISSION_CHANGE_STATUS = 64
 
     const WORKFLOW_STATUSES = Object.freeze([
-        { value: 'NEW', label: 'Neu' },
-        { value: 'OPEN', label: 'Offen' },
-        { value: 'IN_PROGRESS', label: 'In Bearbeitung' },
-        { value: 'WAITING', label: 'Wartet' },
-        { value: 'DONE', label: 'Erledigt' },
+        { value: 'NEW', label: t('sharedmail', 'New') },
+        { value: 'OPEN', label: t('sharedmail', 'Open') },
+        { value: 'IN_PROGRESS', label: t('sharedmail', 'In progress') },
+        { value: 'WAITING', label: t('sharedmail', 'Waiting') },
+        { value: 'DONE', label: t('sharedmail', 'Done') },
     ])
 
 
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return WORKFLOW_STATUSES.find(
             (entry) => entry.value === normalized
-        )?.label || 'Neu'
+        )?.label || t('sharedmail', 'New')
     }
 
 
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return new Intl.DateTimeFormat(
-            'de-DE',
+            (document.documentElement.lang || navigator.language || undefined),
             {
                 day: '2-digit',
                 month: '2-digit',
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const label =
             folder.label
             || folder.name
-            || 'Ordner'
+            || t('sharedmail', 'Folder')
 
         if (
             folder.name
@@ -389,7 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (isToday) {
             return new Intl.DateTimeFormat(
-                'de-DE',
+                (document.documentElement.lang || navigator.language || undefined),
                 {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
             && date.getDate() === yesterday.getDate()
 
         if (isYesterday) {
-            return 'Gestern'
+            return t('sharedmail', 'Yesterday')
         }
 
         if (
@@ -417,7 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
             === now.getFullYear()
         ) {
             return new Intl.DateTimeFormat(
-                'de-DE',
+                (document.documentElement.lang || navigator.language || undefined),
                 {
                     day: '2-digit',
                     month: '2-digit',
@@ -426,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return new Intl.DateTimeFormat(
-            'de-DE',
+            (document.documentElement.lang || navigator.language || undefined),
             {
                 day: '2-digit',
                 month: '2-digit',
@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return new Intl.DateTimeFormat(
-            'de-DE',
+            (document.documentElement.lang || navigator.language || undefined),
             {
                 day: '2-digit',
                 month: '2-digit',
@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return email
         }
 
-        return 'Unbekannter Absender'
+        return t('sharedmail', 'Unknown sender')
     }
 
 
@@ -637,12 +637,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     JSON.parse(responseText)
             } catch (error) {
                 console.error(
-                    'SharedMail: Ungültige Read-State-Antwort.',
+                    'SharedMail: Invalid read-state response.',
                     responseText
                 )
 
                 throw new Error(
-                    'Der Lesestatus konnte nicht gespeichert werden.'
+                    t('sharedmail', 'The read status could not be saved.')
                 )
             }
         }
@@ -651,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error(
                 result.message
                 || result.error
-                || 'Der Lesestatus konnte nicht gespeichert werden.'
+                || t('sharedmail', 'The read status could not be saved.')
             )
         }
 
@@ -737,12 +737,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     JSON.parse(responseText)
             } catch (error) {
                 console.error(
-                    'SharedMail: Ungültige Move-Antwort.',
+                    'SharedMail: Invalid move response.',
                     responseText
                 )
 
                 throw new Error(
-                    'Der Server hat eine ungültige Antwort geliefert.'
+                    t('sharedmail', 'The server returned an invalid response.')
                 )
             }
         }
@@ -752,14 +752,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 result.details
                 || result.message
                 || result.error
-                || 'Die Nachricht konnte nicht verschoben werden.'
+                || t('sharedmail', 'The message could not be moved.')
             )
         }
 
         if (!result.success) {
             throw new Error(
                 result.message
-                || 'Die Nachricht konnte nicht verschoben werden.'
+                || t('sharedmail', 'The message could not be moved.')
             )
         }
 
@@ -822,12 +822,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     JSON.parse(responseText)
             } catch (error) {
                 console.error(
-                    'SharedMail: Ungültige Workflow-Status-Antwort.',
+                    'SharedMail: Invalid workflow status response.',
                     responseText
                 )
 
                 throw new Error(
-                    'Der Server hat eine ungültige Antwort geliefert.'
+                    t('sharedmail', 'The server returned an invalid response.')
                 )
             }
         }
@@ -836,14 +836,14 @@ document.addEventListener('DOMContentLoaded', () => {
             throw new Error(
                 result.message
                 || result.error
-                || 'Der Workflow-Status konnte nicht gespeichert werden.'
+                || t('sharedmail', 'The workflow status could not be saved.')
             )
         }
 
         if (!result.success || !result.state) {
             throw new Error(
                 result.message
-                || 'Der Workflow-Status konnte nicht gespeichert werden.'
+                || t('sharedmail', 'The workflow status could not be saved.')
             )
         }
 
@@ -878,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'sharedmail-message-loading'
 
         loading.textContent =
-            'Nachrichten werden geladen …'
+            t('sharedmail', 'Loading messages …')
 
         header.appendChild(heading)
         header.appendChild(loading)
@@ -1091,7 +1091,7 @@ ${html || ''}
 
         subject.textContent =
             message.subject
-            || '(Kein Betreff)'
+            || t('sharedmail', '(No subject)')
 
 
         const date =
@@ -1128,7 +1128,7 @@ ${html || ''}
             document.createElement('strong')
 
         fromLabel.textContent =
-            'Von:'
+            t('sharedmail', 'From:')
 
 
         const fromValue =
@@ -1158,7 +1158,7 @@ ${html || ''}
                 document.createElement('strong')
 
             label.textContent =
-                'An:'
+                t('sharedmail', 'To:')
 
             const value =
                 document.createElement('span')
@@ -1187,7 +1187,7 @@ ${html || ''}
                 document.createElement('strong')
 
             label.textContent =
-                'CC:'
+                t('sharedmail', 'CC:')
 
             const value =
                 document.createElement('span')
@@ -1223,7 +1223,7 @@ ${html || ''}
                     document.createElement('span')
 
                 unread.textContent =
-                    '● Ungelesen'
+                    t('sharedmail', '● Unread')
 
                 status.appendChild(unread)
             }
@@ -1234,7 +1234,7 @@ ${html || ''}
                     document.createElement('span')
 
                 flagged.textContent =
-                    '★ Markiert'
+                    t('sharedmail', '★ Flagged')
 
                 status.appendChild(flagged)
             }
@@ -1245,7 +1245,7 @@ ${html || ''}
                     document.createElement('span')
 
                 answered.textContent =
-                    '↩ Beantwortet'
+                    t('sharedmail', '↩ Answered')
 
                 status.appendChild(answered)
             }
@@ -1282,7 +1282,7 @@ ${html || ''}
             document.createElement('strong')
 
         workflowLabel.textContent =
-            'Workflow-Status'
+            t('sharedmail', 'Workflow status')
 
         workflowHeader.appendChild(
             workflowLabel
@@ -1322,7 +1322,11 @@ ${html || ''}
 
             if (changedBy !== '') {
                 parts.push(
-                    `Geändert von ${changedBy}`
+                    t(
+                        'sharedmail',
+                        'Changed by {user}',
+                        { user: changedBy }
+                    )
                 )
             }
 
@@ -1361,7 +1365,7 @@ ${html || ''}
 
                 select.setAttribute(
                     'aria-label',
-                    'Workflow-Status'
+                    t('sharedmail', 'Workflow status')
                 )
 
                 WORKFLOW_STATUSES.forEach(
@@ -1413,7 +1417,7 @@ ${html || ''}
                             true
 
                         workflowFeedback.textContent =
-                            'Status wird gespeichert …'
+                            t('sharedmail', 'Saving status …')
 
                         try {
                             const savedState =
@@ -1443,10 +1447,10 @@ ${html || ''}
                             updateWorkflowMeta()
 
                             workflowFeedback.textContent =
-                                'Status gespeichert.'
+                                t('sharedmail', 'Status saved.')
                         } catch (error) {
                             console.error(
-                                'SharedMail: Workflow-Status konnte nicht geändert werden.',
+                                'SharedMail: Workflow status could not be changed.',
                                 error
                             )
 
@@ -1455,7 +1459,7 @@ ${html || ''}
 
                             workflowFeedback.textContent =
                                 error?.message
-                                || 'Der Workflow-Status konnte nicht gespeichert werden.'
+                                || t('sharedmail', 'The workflow status could not be saved.')
                         } finally {
                             select.disabled =
                                 false
@@ -1540,9 +1544,12 @@ ${html || ''}
                 document.createElement('h3')
 
             attachmentHeading.textContent =
-                attachments.length === 1
-                    ? '1 Anhang'
-                    : `${attachments.length} Anhänge`
+                n(
+                    'sharedmail',
+                    '%n attachment',
+                    '%n attachments',
+                    attachments.length
+                )
 
 
             attachmentArea.appendChild(
@@ -1588,7 +1595,7 @@ ${html || ''}
 
                     name.textContent =
                         attachment.name
-                        || 'Anhang'
+                        || t('sharedmail', 'Attachment')
 
 
                     const details =
@@ -1630,7 +1637,7 @@ ${html || ''}
                             'sharedmail-attachment-open'
 
                         open.textContent =
-                            'Öffnen'
+                            t('sharedmail', 'Open')
 
                         open.href =
                             getAttachmentViewUrl(
@@ -1663,7 +1670,7 @@ ${html || ''}
                         'sharedmail-attachment-download'
 
                     download.textContent =
-                        'Herunterladen'
+                        t('sharedmail', 'Download')
 
                     download.href =
                         getAttachmentDownloadUrl(
@@ -1681,7 +1688,7 @@ ${html || ''}
                     download.setAttribute(
                         'download',
                         attachment.name
-                        || 'Anhang'
+                        || t('sharedmail', 'Attachment')
                     )
 
 
@@ -1792,13 +1799,13 @@ ${html || ''}
         function updateReadStateButton() {
             readStateButton.textContent =
                 message.seen
-                    ? 'Als ungelesen markieren'
-                    : 'Als gelesen markieren'
+                    ? t('sharedmail', 'Mark as unread')
+                    : t('sharedmail', 'Mark as read')
 
             readStateButton.title =
                 message.seen
-                    ? 'Nur für mich als ungelesen markieren'
-                    : 'Nur für mich als gelesen markieren'
+                    ? t('sharedmail', 'Mark as unread for me only')
+                    : t('sharedmail', 'Mark as read for me only')
         }
 
 
@@ -1831,8 +1838,8 @@ ${html || ''}
 
                 readStateStatus.textContent =
                     newReadState
-                        ? 'Wird als gelesen markiert …'
-                        : 'Wird als ungelesen markiert …'
+                        ? t('sharedmail', 'Marking as read …')
+                        : t('sharedmail', 'Marking as unread …')
 
 
                 try {
@@ -1860,8 +1867,8 @@ ${html || ''}
 
                     readStateStatus.textContent =
                         newReadState
-                            ? 'Als gelesen markiert.'
-                            : 'Als ungelesen markiert.'
+                            ? t('sharedmail', 'Marked as read.')
+                            : t('sharedmail', 'Marked as unread.')
 
 
                     /*
@@ -1882,13 +1889,13 @@ ${html || ''}
                     }
                 } catch (error) {
                     console.error(
-                        'SharedMail: Lesestatus konnte nicht geändert werden.',
+                        'SharedMail: Read status could not be changed.',
                         error
                     )
 
                     readStateStatus.textContent =
                         error?.message
-                        || 'Der Lesestatus konnte nicht geändert werden.'
+                        || t('sharedmail', 'The read status could not be changed.')
 
                     readStateButton.disabled =
                         false
@@ -1939,7 +1946,7 @@ ${html || ''}
 
         moveSelect.setAttribute(
             'aria-label',
-            'Zielordner'
+            t('sharedmail', 'Target folder')
         )
 
 
@@ -1948,7 +1955,7 @@ ${html || ''}
 
         placeholder.value = ''
         placeholder.textContent =
-            'Verschieben nach …'
+            t('sharedmail', 'Move to …')
 
         moveSelect.appendChild(
             placeholder
@@ -1993,7 +2000,7 @@ ${html || ''}
             'sharedmail-move-button'
 
         moveButton.textContent =
-            'Verschieben'
+            t('sharedmail', 'Move')
 
         moveButton.disabled =
             true
@@ -2011,7 +2018,7 @@ ${html || ''}
                 true
 
             moveStatus.textContent =
-                'Kein anderer Zielordner verfügbar.'
+                t('sharedmail', 'No other target folder is available.')
         }
 
 
@@ -2054,7 +2061,7 @@ ${html || ''}
                     true
 
                 moveButton.textContent =
-                    'Wird verschoben …'
+                    t('sharedmail', 'Moving …')
 
                 moveStatus.textContent =
                     ''
@@ -2071,13 +2078,13 @@ ${html || ''}
 
 
                     console.log(
-                        'SharedMail: Nachricht verschoben.',
+                        'SharedMail: Message moved.',
                         result
                     )
 
 
                     moveStatus.textContent =
-                        'Nachricht wurde verschoben.'
+                        t('sharedmail', 'Message moved.')
 
 
                     if (
@@ -2096,13 +2103,13 @@ ${html || ''}
                     }
                 } catch (error) {
                     console.error(
-                        'SharedMail: Nachricht konnte nicht verschoben werden.',
+                        'SharedMail: Message could not be moved.',
                         error
                     )
 
                     moveStatus.textContent =
                         error?.message
-                        || 'Die Nachricht konnte nicht verschoben werden.'
+                        || t('sharedmail', 'The message could not be moved.')
 
                     moveSelect.disabled =
                         false
@@ -2111,7 +2118,7 @@ ${html || ''}
                         moveSelect.value === ''
 
                     moveButton.textContent =
-                        'Verschieben'
+                        t('sharedmail', 'Move')
                 }
             }
         )
@@ -2144,7 +2151,7 @@ ${html || ''}
             'button'
 
         back.textContent =
-            '← Zurück zur Nachrichtenliste'
+            t('sharedmail', '← Back to message list')
 
 
         back.addEventListener(
@@ -2240,7 +2247,7 @@ ${html || ''}
                 'sharedmail-message-loading'
 
             loading.textContent =
-                'Nachricht wird geladen …'
+                t('sharedmail', 'Loading message …')
 
             messageArea.appendChild(
                 loading
@@ -2286,12 +2293,12 @@ ${html || ''}
                         )
                 } catch (error) {
                     console.error(
-                        'SharedMail: Ungültige Mail-Antwort.',
+                        'SharedMail: Invalid mail response.',
                         responseText
                     )
 
                     throw new Error(
-                        'Der Server hat eine ungültige Antwort geliefert.'
+                        t('sharedmail', 'The server returned an invalid response.')
                     )
                 }
             }
@@ -2301,7 +2308,7 @@ ${html || ''}
                 throw new Error(
                     result.message
                     || result.error
-                    || 'Die Nachricht konnte nicht geladen werden.'
+                    || t('sharedmail', 'The message could not be loaded.')
                 )
             }
 
@@ -2345,7 +2352,7 @@ ${html || ''}
                     )
                 } catch (error) {
                     console.error(
-                        'SharedMail: Persönlicher Lesestatus konnte nicht gespeichert werden.',
+                        'SharedMail: Personal read status could not be saved.',
                         error
                     )
                 }
@@ -2357,7 +2364,7 @@ ${html || ''}
             )
         } catch (error) {
             console.error(
-                'SharedMail: Nachricht konnte nicht geladen werden.',
+                'SharedMail: Message could not be loaded.',
                 error
             )
 
@@ -2372,7 +2379,7 @@ ${html || ''}
 
                 errorElement.textContent =
                     error?.message
-                    || 'Die Nachricht konnte nicht geladen werden.'
+                    || t('sharedmail', 'The message could not be loaded.')
 
                 messageArea.appendChild(
                     errorElement
@@ -2421,9 +2428,12 @@ ${html || ''}
             )
 
         count.textContent =
-            total === 1
-                ? '1 Nachricht'
-                : `${total} Nachrichten`
+            n(
+                'sharedmail',
+                '%n message',
+                '%n messages',
+                total
+            )
 
 
         header.appendChild(
@@ -2457,7 +2467,7 @@ ${html || ''}
                 'sharedmail-message-empty'
 
             empty.textContent =
-                'Dieser Ordner enthält keine Nachrichten.'
+                t('sharedmail', 'This folder contains no messages.')
 
             messageArea.appendChild(
                 empty
@@ -2543,7 +2553,7 @@ ${html || ''}
 
                 subject.textContent =
                     message.subject
-                    || '(Kein Betreff)'
+                    || t('sharedmail', '(No subject)')
 
 
                 const workflow =
@@ -2583,7 +2593,7 @@ ${html || ''}
                         '★'
 
                     star.title =
-                        'Markiert'
+                        t('sharedmail', 'Flagged')
 
                     flags.appendChild(
                         star
@@ -2604,7 +2614,7 @@ ${html || ''}
                         '↩'
 
                     answered.title =
-                        'Beantwortet'
+                        t('sharedmail', 'Answered')
 
                     flags.appendChild(
                         answered
@@ -2714,7 +2724,7 @@ ${html || ''}
                 'sharedmail-load-more'
 
             button.textContent =
-                'Weitere Nachrichten laden'
+                t('sharedmail', 'Load more messages')
 
 
             button.addEventListener(
@@ -2839,12 +2849,12 @@ ${html || ''}
                         )
                 } catch (error) {
                     console.error(
-                        'SharedMail: Ungültige Nachrichten-Antwort.',
+                        'SharedMail: Invalid message-list response.',
                         responseText
                     )
 
                     throw new Error(
-                        'Der Server hat eine ungültige Antwort geliefert.'
+                        t('sharedmail', 'The server returned an invalid response.')
                     )
                 }
             }
@@ -2854,7 +2864,7 @@ ${html || ''}
                 throw new Error(
                     result.message
                     || result.error
-                    || 'Die Nachrichten konnten nicht geladen werden.'
+                    || t('sharedmail', 'The messages could not be loaded.')
                 )
             }
 
@@ -2875,14 +2885,14 @@ ${html || ''}
             )
         } catch (error) {
             console.error(
-                'SharedMail: Nachrichten konnten nicht geladen werden.',
+                'SharedMail: Messages could not be loaded.',
                 error
             )
 
             renderMessageError(
                 folder,
                 error?.message
-                || 'Die Nachrichten konnten nicht geladen werden.'
+                || t('sharedmail', 'The messages could not be loaded.')
             )
         }
     }
@@ -2907,7 +2917,7 @@ ${html || ''}
                 'sharedmail-folder-empty'
 
             empty.textContent =
-                'Auf dem IMAP-Server wurden keine Ordner gefunden.'
+                t('sharedmail', 'No folders were found on the IMAP server.')
 
             folderList.appendChild(
                 empty
@@ -3328,7 +3338,7 @@ ${html || ''}
                 document.createElement('p')
 
             info.textContent =
-                'Postfach wird geladen …'
+                t('sharedmail', 'Loading mailbox …')
 
             messageArea.appendChild(
                 info
@@ -3366,12 +3376,12 @@ ${html || ''}
                         )
                 } catch (error) {
                     console.error(
-                        'SharedMail: Ungültige Ordner-Antwort.',
+                        'SharedMail: Invalid folder response.',
                         responseText
                     )
 
                     throw new Error(
-                        'Der Server hat eine ungültige Antwort geliefert.'
+                        t('sharedmail', 'The server returned an invalid response.')
                     )
                 }
             }
@@ -3381,7 +3391,7 @@ ${html || ''}
                 throw new Error(
                     result.message
                     || result.error
-                    || 'Die IMAP-Ordner konnten nicht geladen werden.'
+                    || t('sharedmail', 'The IMAP folders could not be loaded.')
                 )
             }
 
@@ -3396,7 +3406,7 @@ ${html || ''}
 
             if (!folderList) {
                 throw new Error(
-                    'Die Ordneransicht konnte nicht initialisiert werden.'
+                    t('sharedmail', 'The folder view could not be initialized.')
                 )
             }
 
@@ -3416,14 +3426,14 @@ ${html || ''}
             )
         } catch (error) {
             console.error(
-                'SharedMail: Ordner konnten nicht geladen werden.',
+                'SharedMail: Folders could not be loaded.',
                 error
             )
 
             showFolderError(
                 mailboxId,
                 error?.message
-                || 'Die IMAP-Ordner konnten nicht geladen werden.'
+                || t('sharedmail', 'The IMAP folders could not be loaded.')
             )
         } finally {
             setFolderLoading(

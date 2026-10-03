@@ -11,6 +11,7 @@ use OCA\SharedMail\Service\ComposeSendService;
 use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
+use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
@@ -25,6 +26,7 @@ class ComposeController extends Controller
         private readonly ComposeSendService $composeSendService,
         private readonly AttachmentUploadService $attachmentUploadService,
         private readonly DraftMessageService $draftMessageService,
+        private readonly IL10N $l,
     ) {
         parent::__construct(
             Application::APP_ID,
@@ -58,7 +60,7 @@ class ComposeController extends Controller
                             false,
 
                         'message' =>
-                            'Keine Berechtigung zum Verfassen von Nachrichten in diesem Postfach.',
+                            $this->l->t('No permission to compose messages in this mailbox.'),
                     ],
                     403
                 );
@@ -147,7 +149,7 @@ class ComposeController extends Controller
 
                         if ($draftWarning === '') {
                             $draftWarning =
-                                'Die Nachricht wurde gesendet, der Entwurf konnte aber nicht entfernt werden.';
+                                $this->l->t('The message was sent, but the draft could not be removed.');
                         }
 
                         $warnings[] =
@@ -161,7 +163,7 @@ class ComposeController extends Controller
                      * niemals success=false.
                      */
                     $warnings[] =
-                        'Die Nachricht wurde gesendet, der Entwurf konnte aber nicht entfernt werden.';
+                        $this->l->t('The message was sent, but the draft could not be removed.');
                 }
             }
 
@@ -170,7 +172,7 @@ class ComposeController extends Controller
                     true,
 
                 'message' =>
-                    'Die Nachricht wurde erfolgreich gesendet.',
+                    $this->l->t('The message was sent successfully.'),
 
                 'messageId' =>
                     (string)(
@@ -238,7 +240,7 @@ class ComposeController extends Controller
                         false,
 
                     'message' =>
-                        'Die Nachricht konnte nicht gesendet werden.',
+                        $this->l->t('The message could not be sent.'),
                 ],
                 500
             );

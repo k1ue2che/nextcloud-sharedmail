@@ -5,11 +5,18 @@ declare(strict_types=1);
 namespace OCA\SharedMail\Service;
 
 use InvalidArgumentException;
+use OCP\IL10N;
 use OCP\IRequest;
 use RuntimeException;
 
 class AttachmentUploadService
 {
+
+    public function __construct(
+        private readonly IL10N $l,
+    ) {
+    }
+
     private const MAX_FILES = 10;
 
     private const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -50,8 +57,9 @@ class AttachmentUploadService
             > self::MAX_FILES
         ) {
             throw new InvalidArgumentException(
-                sprintf(
-                    'Es können maximal %d Anhänge versendet werden.',
+                $this->l->n(
+                    'A maximum of %n attachment can be sent.',
+                    'A maximum of %n attachments can be sent.',
                     self::MAX_FILES
                 )
             );
@@ -94,7 +102,7 @@ class AttachmentUploadService
                 || !is_readable($temporaryPath)
             ) {
                 throw new RuntimeException(
-                    'Eine hochgeladene Datei konnte nicht gelesen werden.'
+                    $this->l->t('An uploaded file could not be read.')
                 );
             }
 
@@ -111,7 +119,7 @@ class AttachmentUploadService
 
             if ($actualSize === false) {
                 throw new RuntimeException(
-                    'Die Größe eines Anhangs konnte nicht ermittelt werden.'
+                    $this->l->t('The size of an attachment could not be determined.')
                 );
             }
 
@@ -129,7 +137,7 @@ class AttachmentUploadService
 
             if ($size <= 0) {
                 throw new InvalidArgumentException(
-                    'Leere Dateien können nicht als Anhang versendet werden.'
+                    $this->l->t('Empty files cannot be sent as attachments.')
                 );
             }
 
@@ -139,11 +147,11 @@ class AttachmentUploadService
             ) {
                 throw new InvalidArgumentException(
                     sprintf(
-                        'Der Anhang "%s" ist größer als 10 MB.',
+                        $this->l->t('The attachment "%s" is larger than 10 MB.'),
                         $this->sanitizeFilename(
                             (string)(
                                 $file['name']
-                                ?? 'Datei'
+                                ?? $this->l->t('File')
                             )
                         )
                     )
@@ -158,7 +166,7 @@ class AttachmentUploadService
                 > self::MAX_TOTAL_BYTES
             ) {
                 throw new InvalidArgumentException(
-                    'Die Anhänge dürfen zusammen maximal 25 MB groß sein.'
+                    $this->l->t('Attachments may not exceed 25 MB in total.')
                 );
             }
 
@@ -169,7 +177,7 @@ class AttachmentUploadService
 
             if ($content === false) {
                 throw new RuntimeException(
-                    'Ein Anhang konnte nicht gelesen werden.'
+                    $this->l->t('An attachment could not be read.')
                 );
             }
 
@@ -435,22 +443,22 @@ class AttachmentUploadService
         return match ($error) {
             UPLOAD_ERR_INI_SIZE,
             UPLOAD_ERR_FORM_SIZE =>
-                'Ein Anhang überschreitet die zulässige Upload-Größe.',
+                $this->l->t('An attachment exceeds the allowed upload size.'),
 
             UPLOAD_ERR_PARTIAL =>
-                'Ein Anhang wurde nur unvollständig hochgeladen.',
+                $this->l->t('An attachment was only partially uploaded.'),
 
             UPLOAD_ERR_NO_TMP_DIR =>
-                'Auf dem Server fehlt das temporäre Upload-Verzeichnis.',
+                $this->l->t('The temporary upload directory is missing on the server.'),
 
             UPLOAD_ERR_CANT_WRITE =>
-                'Ein Anhang konnte auf dem Server nicht zwischengespeichert werden.',
+                $this->l->t('An attachment could not be stored temporarily on the server.'),
 
             UPLOAD_ERR_EXTENSION =>
-                'Ein Anhang wurde durch eine PHP-Erweiterung abgewiesen.',
+                $this->l->t('An attachment was rejected by a PHP extension.'),
 
             default =>
-                'Beim Hochladen eines Anhangs ist ein Fehler aufgetreten.',
+                $this->l->t('An error occurred while uploading an attachment.'),
         };
     }
 }

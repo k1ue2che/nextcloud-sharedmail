@@ -7,6 +7,7 @@ namespace OCA\SharedMail\Service;
 use InvalidArgumentException;
 use OCA\SharedMail\Db\MessageState;
 use OCA\SharedMail\Db\MessageStateMapper;
+use OCP\IL10N;
 use OCP\IUserSession;
 use RuntimeException;
 
@@ -15,6 +16,7 @@ class MessageStateService
     public function __construct(
         private readonly MessageStateMapper $messageStateMapper,
         private readonly IUserSession $userSession,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -244,13 +246,13 @@ class MessageStateService
             || $folder === ''
         ) {
             throw new InvalidArgumentException(
-                'Ungültige Nachricht.'
+                $this->l->t('Invalid message.')
             );
         }
 
         if ($normalizedStatus === null) {
             throw new InvalidArgumentException(
-                'Ungültiger Nachrichtenstatus.'
+                $this->l->t('Invalid message status.')
             );
         }
 
@@ -261,7 +263,7 @@ class MessageStateService
 
         if ($user === null) {
             throw new RuntimeException(
-                'Kein angemeldeter Benutzer.'
+                $this->l->t('No signed-in user.')
             );
         }
 

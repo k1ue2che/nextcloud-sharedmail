@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OCA\SharedMail\Service;
 
+use OCP\IL10N;
 use Horde_Imap_Client_Data_Fetch;
 use Horde_Imap_Client_Fetch_Query;
 use Horde_Imap_Client_Socket;
@@ -17,6 +18,7 @@ class DraftReadService
     public function __construct(
         private readonly CredentialService $credentialService,
         private readonly MailboxImapService $mailboxImapService,
+        private readonly IL10N $l,
     ) {
     }
 
@@ -46,7 +48,7 @@ class DraftReadService
     ): array {
         if ($uid <= 0) {
             throw new RuntimeException(
-                'Ungültige Entwurfs-ID.'
+                $this->l->t('Invalid draft ID.')
             );
         }
 
@@ -57,7 +59,7 @@ class DraftReadService
 
         if ($draftFolder === null) {
             throw new RuntimeException(
-                'Es wurde kein IMAP-Ordner für Entwürfe gefunden.'
+                $this->l->t('No IMAP folder for drafts was found.')
             );
         }
 
@@ -199,7 +201,7 @@ class DraftReadService
         if (
             $subject === ''
             && isset($message['subject'])
-            && $message['subject'] !== '(Kein Betreff)'
+            && $message['subject'] !== $this->l->t('(No subject)')
         ) {
             $subject =
                 trim(
@@ -354,7 +356,7 @@ class DraftReadService
                 || $message === false
             ) {
                 throw new RuntimeException(
-                    'Der Entwurf wurde nicht gefunden.'
+                    $this->l->t('The draft was not found.')
                 );
             }
 
@@ -369,7 +371,7 @@ class DraftReadService
                 instanceof Horde_Mime_Headers
             ) {
                 throw new RuntimeException(
-                    'Die Header des Entwurfs konnten nicht gelesen werden.'
+                    $this->l->t('The draft headers could not be read.')
                 );
             }
 

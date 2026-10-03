@@ -135,13 +135,21 @@ function validateAttachmentSelection(
             > MAX_FILE_BYTES
         ) {
             throw new Error(
-                `Der Anhang "${file.name}" ist größer als 10 MB.`
+                t(
+                    'sharedmail',
+                    'The attachment "{name}" is larger than 10 MB.',
+                    { name: file.name }
+                )
             )
         }
 
         if (file.size <= 0) {
             throw new Error(
-                `Der Anhang "${file.name}" ist leer.`
+                t(
+                    'sharedmail',
+                    'The attachment "{name}" is empty.',
+                    { name: file.name }
+                )
             )
         }
 
@@ -172,7 +180,12 @@ function validateAttachmentSelection(
         > MAX_ATTACHMENTS
     ) {
         throw new Error(
-            `Es können maximal ${MAX_ATTACHMENTS} Anhänge versendet werden.`
+            n(
+                'sharedmail',
+                'A maximum of %n attachment can be sent.',
+                'A maximum of %n attachments can be sent.',
+                MAX_ATTACHMENTS
+            )
         )
     }
 
@@ -183,7 +196,7 @@ function validateAttachmentSelection(
         > MAX_TOTAL_BYTES
     ) {
         throw new Error(
-            'Die Anhänge dürfen zusammen maximal 25 MB groß sein.'
+            t('sharedmail', 'Attachments may not exceed 25 MB in total.')
         )
     }
 
@@ -219,7 +232,7 @@ async function saveReplyDraft(
         || sourceUid <= 0
     ) {
         throw new Error(
-            'Postfach oder Nachricht konnte nicht bestimmt werden.'
+            t('sharedmail', 'Mailbox or message could not be determined.')
         )
     }
 
@@ -310,7 +323,7 @@ async function saveReplyDraft(
     ) {
         throw new Error(
             data?.message
-            || 'Der Entwurf konnte nicht gespeichert werden.'
+            || t('sharedmail', 'The draft could not be saved.')
         )
     }
 
@@ -345,7 +358,7 @@ async function sendReply(
         || uid <= 0
     ) {
         throw new Error(
-            'Postfach oder Nachricht konnte nicht bestimmt werden.'
+            t('sharedmail', 'Mailbox or message could not be determined.')
         )
     }
 
@@ -414,7 +427,7 @@ async function sendReply(
     ) {
         throw new Error(
             data?.message
-            || 'Die Antwort konnte nicht gesendet werden.'
+            || t('sharedmail', 'The reply could not be sent.')
         )
     }
 
@@ -429,7 +442,7 @@ window.SharedMailEditor = Object.freeze({
     ) {
         if (!element) {
             throw new Error(
-                'Shared Mail Editor konnte nicht initialisiert werden.'
+                t('sharedmail', 'Shared Mail Editor could not be initialized.')
             )
         }
 
@@ -574,7 +587,7 @@ function getMessageDate(message) {
     }
 
     return new Intl.DateTimeFormat(
-        'de-DE',
+        (document.documentElement.lang || navigator.language || undefined),
         {
             day: '2-digit',
             month: '2-digit',
@@ -616,7 +629,7 @@ function getOriginalMessageText(message) {
         ).trim()
     } catch (error) {
         console.error(
-            'SharedMail: HTML-Mail konnte nicht in Text umgewandelt werden.',
+            'SharedMail: HTML mail could not be converted to text.',
             error
         )
 
@@ -648,7 +661,7 @@ function buildReplyInitialData(message) {
         getAddressText(
             message?.from
         )
-        || 'Unbekannter Absender'
+        || t('sharedmail', 'Unknown sender')
 
     const date =
         getMessageDate(
@@ -662,8 +675,19 @@ function buildReplyInitialData(message) {
 
     const intro =
         date !== ''
-            ? `Am ${date} schrieb ${sender}:`
-            : `${sender} schrieb:`
+            ? t(
+                'sharedmail',
+                'On {date}, {sender} wrote:',
+                {
+                    date,
+                    sender,
+                }
+            )
+            : t(
+                'sharedmail',
+                '{sender} wrote:',
+                { sender }
+            )
 
     return `
         <p>&nbsp;</p>
@@ -684,7 +708,7 @@ async function destroyActiveEditor() {
         await activeEditor.destroy()
     } catch (error) {
         console.error(
-            'SharedMail: CKEditor konnte nicht sauber beendet werden.',
+            'SharedMail: CKEditor could not be shut down cleanly.',
             error
         )
     }
@@ -742,7 +766,7 @@ async function openReplyComposer(
         )
 
     heading.textContent =
-        'Antwort verfassen'
+        t('sharedmail', 'Compose reply')
 
 
     header.appendChild(
@@ -822,7 +846,7 @@ async function openReplyComposer(
         )
 
     subjectLabel.textContent =
-        'Betreff'
+        t('sharedmail', 'Subject')
 
 
     const subjectInput =
@@ -909,7 +933,7 @@ async function openReplyComposer(
         'button'
 
     attachmentButton.textContent =
-        '📎 Datei anhängen'
+        t('sharedmail', '📎 Attach file')
 
 
     const attachmentInput =
@@ -984,7 +1008,7 @@ async function openReplyComposer(
         'button'
 
     cancelButton.textContent =
-        'Abbrechen'
+        t('sharedmail', 'Cancel')
 
 
     const draftButton =
@@ -999,7 +1023,7 @@ async function openReplyComposer(
         'sharedmail-composer-draft'
 
     draftButton.textContent =
-        'Entwurf speichern'
+        t('sharedmail', 'Save draft')
 
 
     const sendButton =
@@ -1014,7 +1038,7 @@ async function openReplyComposer(
         'sharedmail-composer-send primary'
 
     sendButton.textContent =
-        'Senden'
+        t('sharedmail', 'Send')
 
 
     footer.appendChild(
@@ -1137,7 +1161,7 @@ async function openReplyComposer(
                 status.textContent =
                     error instanceof Error
                         ? error.message
-                        : 'Der Anhang konnte nicht hinzugefügt werden.'
+                        : t('sharedmail', 'The attachment could not be added.')
             } finally {
                 attachmentInput.value =
                     ''
@@ -1156,7 +1180,7 @@ async function openReplyComposer(
             )
     } catch (error) {
         status.textContent =
-            'Der Antworteditor konnte nicht geladen werden.'
+            t('sharedmail', 'The reply editor could not be loaded.')
 
         return
     }
@@ -1195,7 +1219,7 @@ async function openReplyComposer(
                 true
 
             status.textContent =
-                'Entwurf wird gespeichert …'
+                t('sharedmail', 'Saving draft …')
 
             try {
                 const result =
@@ -1230,15 +1254,15 @@ async function openReplyComposer(
 
                 status.textContent =
                     result.message
-                    || 'Der Entwurf wurde gespeichert.'
+                    || t('sharedmail', 'Draft saved.')
 
                 draftButton.textContent =
-                    'Entwurf aktualisieren'
+                    t('sharedmail', 'Update draft')
             } catch (error) {
                 status.textContent =
                     error instanceof Error
                         ? error.message
-                        : 'Der Entwurf konnte nicht gespeichert werden.'
+                        : t('sharedmail', 'The draft could not be saved.')
             } finally {
                 draftButton.disabled =
                     false
@@ -1280,7 +1304,7 @@ async function openReplyComposer(
 
             if (to === '') {
                 status.textContent =
-                    'Bitte einen Empfänger angeben.'
+                    t('sharedmail', 'Please specify a recipient.')
 
                 return
             }
@@ -1295,7 +1319,7 @@ async function openReplyComposer(
                 true
 
             status.textContent =
-                'Antwort wird versendet …'
+                t('sharedmail', 'Sending reply …')
 
             try {
                 const result =
@@ -1335,7 +1359,7 @@ async function openReplyComposer(
                 status.textContent =
                     error instanceof Error
                         ? error.message
-                        : 'Die Antwort konnte nicht gesendet werden.'
+                        : t('sharedmail', 'The reply could not be sent.')
 
                 sendButton.disabled =
                     false
@@ -1392,7 +1416,7 @@ function attachReplyButton(
         'sharedmail-reply-button'
 
     replyButton.textContent =
-        '↩ Antworten'
+        t('sharedmail', '↩ Reply')
 
 
     replyButton.addEventListener(
