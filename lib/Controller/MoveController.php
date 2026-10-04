@@ -138,15 +138,6 @@ class MoveController extends Controller
                     'message' =>
                         $this->l->t('The message could not be moved.'),
 
-                    /*
-                     * Entwicklungsphase:
-                     * Hilft uns beim Testen.
-                     *
-                     * Vor einem öffentlichen Release
-                     * sollten wir details entfernen.
-                     */
-                    'details' =>
-                        $e->getMessage(),
                 ],
                 500
             );
@@ -156,8 +147,8 @@ class MoveController extends Controller
         /*
          * Das IMAP-MOVE ist jetzt bereits erfolgt.
          *
-         * Fehler beim Übertragen zusätzlicher
-         * Shared-Mail-Zustände dürfen deshalb nicht
+         * Fehler beim Ãœbertragen zusÃ¤tzlicher
+         * Shared-Mail-ZustÃ¤nde dÃ¼rfen deshalb nicht
          * behaupten, die Mail sei nicht verschoben
          * worden.
          */

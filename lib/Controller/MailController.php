@@ -166,7 +166,7 @@ class MailController extends Controller
                     );
 
             /*
-             * Persönlichen Gelesen-/Ungelesen-Status
+             * PersÃ¶nlichen Gelesen-/Ungelesen-Status
              * auf die IMAP-Nachrichten anwenden.
              */
             $result['messages'] =
@@ -179,9 +179,9 @@ class MailController extends Controller
                     );
 
             /*
-             * Gemeinsamen Workflow-Status ergänzen.
+             * Gemeinsamen Workflow-Status ergÃ¤nzen.
              *
-             * Fehlende Datenbankeinträge werden vom
+             * Fehlende DatenbankeintrÃ¤ge werden vom
              * MessageStateService automatisch als NEW
              * behandelt.
              */
@@ -306,7 +306,7 @@ class MailController extends Controller
                     );
 
             /*
-             * Persönlichen Lesestatus auflösen.
+             * PersÃ¶nlichen Lesestatus auflÃ¶sen.
              */
             $imapSeen =
                 (bool)(
@@ -328,7 +328,7 @@ class MailController extends Controller
                     );
 
             /*
-             * Gemeinsamen Workflow-Status ergänzen.
+             * Gemeinsamen Workflow-Status ergÃ¤nzen.
              */
             $workflowState =
                 $this
@@ -421,6 +421,29 @@ class MailController extends Controller
             if ($folder === '') {
                 $folder =
                     'INBOX';
+            }
+
+            if (
+                !$this
+                    ->mailboxImapService
+                    ->messageExists(
+                        $mailbox,
+                        $folder,
+                        $uid
+                    )
+            ) {
+                return new JSONResponse(
+                    [
+                        'success' =>
+                            false,
+
+                        'message' =>
+                            $this->l->t(
+                                'Message was not found.'
+                            ),
+                    ],
+                    404
+                );
             }
 
             $saved =
@@ -524,6 +547,29 @@ class MailController extends Controller
             if ($folder === '') {
                 $folder =
                     'INBOX';
+            }
+
+            if (
+                !$this
+                    ->mailboxImapService
+                    ->messageExists(
+                        $mailbox,
+                        $folder,
+                        $uid
+                    )
+            ) {
+                return new JSONResponse(
+                    [
+                        'success' =>
+                            false,
+
+                        'message' =>
+                            $this->l->t(
+                                'Message was not found.'
+                            ),
+                    ],
+                    404
+                );
             }
 
             $saved =

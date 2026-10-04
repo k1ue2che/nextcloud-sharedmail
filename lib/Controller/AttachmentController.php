@@ -24,7 +24,7 @@ class AttachmentController extends Controller
     /**
      * MIME-Typen, die wir sicher inline anzeigen.
      *
-     * SVG bleibt bewusst außen vor.
+     * SVG bleibt bewusst auÃŸen vor.
      */
     private const INLINE_CONTENT_TYPES = [
         'application/pdf',
@@ -84,13 +84,6 @@ class AttachmentController extends Controller
                     'message' =>
                         $this->l->t('The attachment could not be downloaded.'),
 
-                    /*
-                     * Entwicklungsphase:
-                     * Später entfernen wir details
-                     * aus produktiven Fehlermeldungen.
-                     */
-                    'details' =>
-                        $e->getMessage(),
                 ],
                 500
             );
@@ -126,7 +119,7 @@ class AttachmentController extends Controller
                 );
 
             /*
-             * Nur ausdrücklich erlaubte Dateitypen
+             * Nur ausdrÃ¼cklich erlaubte Dateitypen
              * inline darstellen.
              */
             if (
@@ -167,7 +160,7 @@ class AttachmentController extends Controller
 
             /*
              * DataDisplayResponse verwendet ohnehin
-             * inline. Wir setzen zusätzlich einen
+             * inline. Wir setzen zusÃ¤tzlich einen
              * sauberen Dateinamen.
              */
             $response->addHeader(
@@ -187,8 +180,6 @@ class AttachmentController extends Controller
                     'message' =>
                         $this->l->t('The attachment could not be opened.'),
 
-                    'details' =>
-                        $e->getMessage(),
                 ],
                 500
             );
@@ -244,7 +235,7 @@ class AttachmentController extends Controller
 
         /*
          * Zugriff auf das Shared-Mail-Postfach
-         * immer zuerst prüfen.
+         * immer zuerst prÃ¼fen.
          */
         $mailbox =
             $this
@@ -298,7 +289,7 @@ class AttachmentController extends Controller
         }
 
         /*
-         * ASCII-Fallback für alte Clients.
+         * ASCII-Fallback fÃ¼r alte Clients.
          */
         $fallback =
             preg_replace(
