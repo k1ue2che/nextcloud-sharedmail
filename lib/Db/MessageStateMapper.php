@@ -9,6 +9,7 @@ use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
+use RuntimeException;
 
 class MessageStateMapper extends QBMapper
 {
@@ -21,7 +22,6 @@ class MessageStateMapper extends QBMapper
             MessageState::class
         );
     }
-
 
     public function findOne(
         int $mailboxId,
@@ -75,6 +75,66 @@ class MessageStateMapper extends QBMapper
         }
     }
 
+    /**
+     * Race-sicheres Insert-or-Update eines
+     * gemeinsamen Workflow-Status.
+     */
+    public function upsertState(
+        int $mailboxId,
+        string $folder,
+        int $uid,
+        string $status,
+        string $changedBy,
+        int $changedAt
+    ): MessageState {
+        $this->db->setValues(
+            $this->getTableName(),
+            [
+                'mailbox_id' =>
+                    $mailboxId,
+
+                'folder' =>
+                    $folder,
+
+                'uid' =>
+                    $uid,
+            ],
+            [
+                'status' =>
+                    $status,
+
+                'changed_by' =>
+                    $changedBy,
+
+                'changed_at' =>
+                    $changedAt,
+            ]
+        );
+
+        $state =
+            $this->findOne(
+                $mailboxId,
+                $folder,
+                $uid
+            );
+
+        if ($state === null) {
+            /*
+             * Sollte nach erfolgreichem setValues()
+             * praktisch nicht auftreten.
+             *
+             * Der technische Fehler wird nicht direkt
+             * an den Benutzer ausgegeben. Der Controller
+             * liefert dafür seine lokalisierte generische
+             * Fehlermeldung.
+             */
+            throw new RuntimeException(
+                'Message state could not be loaded after upsert.'
+            );
+        }
+
+        return $state;
+    }
 
     /**
      * Gemeinsame Workflow-Zustände mehrerer
@@ -163,7 +223,6 @@ class MessageStateMapper extends QBMapper
         return $states;
     }
 
-
     /**
      * @return MessageState[]
      */
@@ -201,7 +260,6 @@ class MessageStateMapper extends QBMapper
             $qb
         );
     }
-
 
     public function deleteByMailbox(
         int $mailboxId

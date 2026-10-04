@@ -20,7 +20,6 @@ class MessageStateService
     ) {
     }
 
-
     /**
      * Gemeinsamer Status einer einzelnen Nachricht.
      *
@@ -68,7 +67,6 @@ class MessageStateService
             $state
         );
     }
-
 
     /**
      * Gemeinsame Zustände mehrerer Nachrichten.
@@ -147,7 +145,6 @@ class MessageStateService
         return $states;
     }
 
-
     /**
      * Workflow-Zustände direkt an die
      * IMAP-Nachrichten hängen.
@@ -214,7 +211,6 @@ class MessageStateService
         return $messages;
     }
 
-
     /**
      * Gemeinsamen Workflow-Status ändern.
      *
@@ -246,13 +242,17 @@ class MessageStateService
             || $folder === ''
         ) {
             throw new InvalidArgumentException(
-                $this->l->t('Invalid message.')
+                $this->l->t(
+                    'Invalid message.'
+                )
             );
         }
 
         if ($normalizedStatus === null) {
             throw new InvalidArgumentException(
-                $this->l->t('Invalid message status.')
+                $this->l->t(
+                    'Invalid message status.'
+                )
             );
         }
 
@@ -263,82 +263,44 @@ class MessageStateService
 
         if ($user === null) {
             throw new RuntimeException(
-                $this->l->t('No signed-in user.')
+                $this->l->t(
+                    'No signed-in user.'
+                )
             );
         }
 
         $now =
             time();
 
+        /*
+         * Race-sicheres Insert-or-Update.
+         *
+         * Der Unique-Index auf
+         * mailbox_id + folder + uid stellt sicher,
+         * dass für eine Nachricht nur ein gemeinsamer
+         * Workflow-State existiert.
+         *
+         * Bei zwei gleichzeitigen ersten Änderungen
+         * wird eine Unique-Constraint-Kollision durch
+         * IDBConnection::setValues() behandelt und
+         * anschließend aktualisiert.
+         */
         $state =
             $this
                 ->messageStateMapper
-                ->findOne(
+                ->upsertState(
                     $mailboxId,
                     $folder,
-                    $uid
+                    $uid,
+                    $normalizedStatus,
+                    $user->getUID(),
+                    $now
                 );
-
-        if ($state === null) {
-            $state =
-                new MessageState();
-
-            $state->setMailboxId(
-                $mailboxId
-            );
-
-            $state->setFolder(
-                $folder
-            );
-
-            $state->setUid(
-                $uid
-            );
-
-            $state->setStatus(
-                $normalizedStatus
-            );
-
-            $state->setChangedBy(
-                $user->getUID()
-            );
-
-            $state->setChangedAt(
-                $now
-            );
-
-            $state =
-                $this
-                    ->messageStateMapper
-                    ->insert(
-                        $state
-                    );
-        } else {
-            $state->setStatus(
-                $normalizedStatus
-            );
-
-            $state->setChangedBy(
-                $user->getUID()
-            );
-
-            $state->setChangedAt(
-                $now
-            );
-
-            $state =
-                $this
-                    ->messageStateMapper
-                    ->update(
-                        $state
-                    );
-        }
 
         return $this->toArray(
             $state
         );
     }
-
 
     public function deleteByMailbox(
         int $mailboxId
@@ -353,7 +315,6 @@ class MessageStateService
                 $mailboxId
             );
     }
-
 
     /**
      * @return array{
@@ -375,7 +336,6 @@ class MessageStateService
                 null,
         ];
     }
-
 
     /**
      * @return array{
