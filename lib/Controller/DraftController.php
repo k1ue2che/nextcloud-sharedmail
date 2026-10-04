@@ -11,6 +11,7 @@ use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\DraftReadService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
+use OCA\SharedMail\Service\ReplyContextService;
 use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -28,6 +29,7 @@ class DraftController extends Controller
         private readonly DraftMessageService $draftMessageService,
         private readonly DraftReadService $draftReadService,
         private readonly AttachmentUploadService $attachmentUploadService,
+        private readonly ReplyContextService $replyContextService,
         private readonly IL10N $l,
     ) {
         parent::__construct(
@@ -85,6 +87,20 @@ class DraftController extends Controller
                         $mailbox,
                         $uid
                     );
+            
+            if (
+                ($draft['draft'] ?? false)
+                !== true
+            ) {
+                return new JSONResponse(
+                    [
+                        'success' => false,
+                        'message' =>
+                            $this->l->t('The draft was not found.'),
+                    ],
+                    404
+                );
+            }
 
             return new JSONResponse([
                 'success' => true,
@@ -265,6 +281,20 @@ class DraftController extends Controller
                             $draftUid
                         );
 
+                if (
+                    ($existingDraft['draft'] ?? false)
+                    !== true
+                ) {
+                    return new JSONResponse(
+                        [
+                            'success' => false,
+                            'message' =>
+                                $this->l->t('The draft was not found.'),
+                        ],
+                        404
+                    );
+                }
+
                 $existingKind =
                     strtolower(
                         trim(
@@ -406,6 +436,35 @@ class DraftController extends Controller
                             400
                         );
                     }
+                }
+            }
+
+            /*
+            * Bei einem neuen Antwort-Draft prüfen,
+            * ob die angegebene Originalnachricht
+            * tatsächlich in dieser Mailbox existiert.
+            */
+            if (
+                $draftUid === 0
+                && $requestIsReply
+            ) {
+                try {
+                    $this
+                        ->replyContextService
+                        ->getContext(
+                            $mailbox,
+                            $sourceFolder,
+                            $sourceUid
+                        );
+                } catch (RuntimeException) {
+                    return new JSONResponse(
+                        [
+                            'success' => false,
+                            'message' =>
+                                $this->l->t('The original message was not found.'),
+                        ],
+                        404
+                    );
                 }
             }
 

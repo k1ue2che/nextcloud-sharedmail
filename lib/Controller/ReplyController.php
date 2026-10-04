@@ -11,6 +11,7 @@ use OCA\SharedMail\Service\DraftMessageService;
 use OCA\SharedMail\Service\MailboxAccessService;
 use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\ReplySendService;
+use OCA\SharedMail\Service\DraftReadService;
 use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -26,6 +27,7 @@ class ReplyController extends Controller
         private readonly ReplySendService $replySendService,
         private readonly AttachmentUploadService $attachmentUploadService,
         private readonly DraftMessageService $draftMessageService,
+        private readonly DraftReadService $draftReadService,
         private readonly IL10N $l,
     ) {
         parent::__construct(
@@ -104,25 +106,91 @@ class ReplyController extends Controller
              * den gespeicherten Antwort-Draft entfernen.
              */
             if ($draftUid > 0) {
-                $draftResult =
-                    $this
-                        ->draftMessageService
-                        ->deleteDraft(
-                            $mailbox,
-                            $draftUid
+                try {
+                    $draft =
+                        $this
+                            ->draftReadService
+                            ->getDraft(
+                                $mailbox,
+                                $draftUid
+                            );
+
+                    $draftSourceFolder =
+                        trim(
+                            (string)(
+                                $draft['sourceFolder']
+                                ?? ''
+                            )
                         );
 
-                $draftDeleted =
-                    $draftResult['success'];
+                    $draftSourceUid =
+                        (int)(
+                            $draft['sourceUid']
+                            ?? 0
+                        );
 
-                if (
-                    !$draftResult['success']
-                    && !empty(
-                        $draftResult['message']
-                    )
-                ) {
+                    $draftKind =
+                        strtolower(
+                            trim(
+                                (string)(
+                                    $draft['kind']
+                                    ?? ''
+                                )
+                            )
+                        );
+
+                    $normalizedFolder =
+                        trim($folder);
+
+                    if ($normalizedFolder === '') {
+                        $normalizedFolder =
+                            'INBOX';
+                    }
+
+                    $matchingReplyDraft =
+                        ($draft['draft'] ?? false) === true
+                        && $draftKind === 'reply'
+                        && $draftSourceFolder === $normalizedFolder
+                        && $draftSourceUid === $uid;
+
+                    if ($matchingReplyDraft) {
+                        $draftResult =
+                            $this
+                                ->draftMessageService
+                                ->deleteDraft(
+                                    $mailbox,
+                                    $draftUid
+                                );
+
+                        $draftDeleted =
+                            $draftResult['success'];
+
+                        if (
+                            !$draftResult['success']
+                            && !empty(
+                                $draftResult['message']
+                            )
+                        ) {
+                            $warnings[] =
+                                $draftResult['message'];
+                        }
+                    } else {
+                        $warnings[] =
+                            $this->l->t(
+                                'The reply was sent, but the associated draft was not removed because it does not match the original message.'
+                            );
+                    }
+                } catch (Throwable) {
+                    /*
+                    * SMTP war bereits erfolgreich.
+                    * Ein Problem mit dem Draft darf den
+                    * Versand deshalb nicht nachträglich
+                    * als fehlgeschlagen melden.
+                    */
                     $warnings[] =
-                        $draftResult['message'];
+                        $this->l->t(
+                            'The reply was sent, but the associated draft could not be verified or removed.'
+                        );
                 }
             }
 
