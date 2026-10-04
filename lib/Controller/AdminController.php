@@ -14,6 +14,7 @@ use OCA\SharedMail\Service\CredentialService;
 use OCA\SharedMail\Service\MailConnectionTestService;
 use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageStateService;
+use OCA\SharedMail\Service\PersonalReadStateService;
 use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
@@ -38,6 +39,7 @@ class AdminController extends Controller
         private readonly IGroupManager $groupManager,
         private readonly MailConnectionTestService $connectionTestService,
         private readonly MessageStateService $messageStateService,
+        private readonly PersonalReadStateService $personalReadStateService,
         private readonly IDBConnection $db,
         private readonly IL10N $l,
     ) {
@@ -887,6 +889,12 @@ class AdminController extends Controller
 
             $this
                 ->messageStateService
+                ->deleteByMailbox(
+                    $id
+                );
+
+            $this
+                ->personalReadStateService
                 ->deleteByMailbox(
                     $id
                 );

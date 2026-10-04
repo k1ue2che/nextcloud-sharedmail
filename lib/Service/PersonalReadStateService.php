@@ -206,6 +206,24 @@ class PersonalReadStateService
         );
     }
 
+    /**
+     * Entfernt alle persönlichen Read-State-Overrides
+     * eines gelöschten Shared-Mail-Postfachs.
+     */
+    public function deleteByMailbox(
+        int $mailboxId
+    ): int {
+        if ($mailboxId <= 0) {
+            return 0;
+        }
+
+        return $this
+            ->readStateMapper
+            ->deleteByMailbox(
+                $mailboxId
+            );
+    }
+
 
     private function setState(
         int $mailboxId,
