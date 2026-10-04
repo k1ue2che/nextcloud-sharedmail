@@ -423,6 +423,88 @@ class MailboxImapService
         }
     }
 
+        /**
+     * Prüft möglichst leichtgewichtig, ob eine IMAP-UID
+     * im angegebenen Ordner tatsächlich existiert.
+     *
+     * Es werden weder MIME-Struktur noch Body geladen.
+     */
+    public function messageExists(
+        Mailbox $mailbox,
+        string $folder,
+        int $uid,
+    ): bool {
+        $folder = trim(
+            $folder
+        );
+
+        if (
+            $folder === ''
+            || $uid <= 0
+        ) {
+            return false;
+        }
+
+        $client =
+            $this->createClient(
+                $mailbox
+            );
+
+        try {
+            $client->login();
+
+            /*
+             * false = UID, nicht Sequenznummer.
+             */
+            $ids =
+                $client->getIdsOb(
+                    $uid,
+                    false
+                );
+
+            /*
+             * Nur die UID selbst abrufen.
+             *
+             * Dadurch laden wir weder Envelope,
+             * MIME-Struktur noch Body.
+             */
+            $query =
+                new Horde_Imap_Client_Fetch_Query();
+
+            $query->uid();
+
+            $results =
+                $client->fetch(
+                    $folder,
+                    $query,
+                    [
+                        'ids' =>
+                            $ids,
+                    ]
+                );
+
+            $message =
+                $results->first();
+
+            if (
+                $message === null
+                || $message === false
+            ) {
+                return false;
+            }
+
+            return
+                (int)$message->getUid()
+                === $uid;
+        } finally {
+            try {
+                $client->logout();
+            } catch (Throwable) {
+                // Verbindung wird ohnehin geschlossen.
+            }
+        }
+    }
+
     public function getMessage(
         Mailbox $mailbox,
         string $folder,

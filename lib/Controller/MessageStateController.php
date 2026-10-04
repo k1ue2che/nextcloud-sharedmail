@@ -7,13 +7,14 @@ namespace OCA\SharedMail\Controller;
 use InvalidArgumentException;
 use OCA\SharedMail\AppInfo\Application;
 use OCA\SharedMail\Service\MailboxAccessService;
+use OCA\SharedMail\Service\MailboxImapService;
 use OCA\SharedMail\Service\MailboxPermission;
 use OCA\SharedMail\Service\MessageStateService;
-use OCP\IL10N;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
+use OCP\IL10N;
 use OCP\IRequest;
 use Throwable;
 
@@ -22,6 +23,7 @@ class MessageStateController extends Controller
     public function __construct(
         IRequest $request,
         private readonly MailboxAccessService $mailboxAccessService,
+        private readonly MailboxImapService $mailboxImapService,
         private readonly MessageStateService $messageStateService,
         private readonly IL10N $l,
     ) {
@@ -31,7 +33,6 @@ class MessageStateController extends Controller
         );
     }
 
-
     #[NoAdminRequired]
     #[NoCSRFRequired]
     public function get(
@@ -39,10 +40,9 @@ class MessageStateController extends Controller
         int $uid,
         string $folder = ''
     ): JSONResponse {
-        $folder =
-            trim(
-                $folder
-            );
+        $folder = trim(
+            $folder
+        );
 
         if (
             $id <= 0
@@ -55,7 +55,9 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        $this->l->t('Invalid message.'),
+                        $this->l->t(
+                            'Invalid message.'
+                        ),
                 ],
                 400
             );
@@ -76,13 +78,38 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        $this->l->t('No read permission for this mailbox.'),
+                        $this->l->t(
+                            'No read permission for this mailbox.'
+                        ),
                 ],
                 403
             );
         }
 
         try {
+            if (
+                !$this
+                    ->mailboxImapService
+                    ->messageExists(
+                        $mailbox,
+                        $folder,
+                        $uid
+                    )
+            ) {
+                return new JSONResponse(
+                    [
+                        'success' =>
+                            false,
+
+                        'message' =>
+                            $this->l->t(
+                                'Message was not found.'
+                            ),
+                    ],
+                    404
+                );
+            }
+
             $state =
                 $this
                     ->messageStateService
@@ -108,13 +135,14 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        $this->l->t('The message status could not be loaded.'),
+                        $this->l->t(
+                            'The message status could not be loaded.'
+                        ),
                 ],
                 500
             );
         }
     }
-
 
     #[NoAdminRequired]
     public function setStatus(
@@ -123,15 +151,13 @@ class MessageStateController extends Controller
         string $folder = '',
         string $status = ''
     ): JSONResponse {
-        $folder =
-            trim(
-                $folder
-            );
+        $folder = trim(
+            $folder
+        );
 
-        $status =
-            trim(
-                $status
-            );
+        $status = trim(
+            $status
+        );
 
         if (
             $id <= 0
@@ -144,7 +170,9 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        $this->l->t('Invalid message.'),
+                        $this->l->t(
+                            'Invalid message.'
+                        ),
                 ],
                 400
             );
@@ -157,7 +185,9 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        $this->l->t('No message status was specified.'),
+                        $this->l->t(
+                            'No message status was specified.'
+                        ),
                 ],
                 400
             );
@@ -178,13 +208,38 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        $this->l->t('No permission to change the message status.'),
+                        $this->l->t(
+                            'No permission to change the message status.'
+                        ),
                 ],
                 403
             );
         }
 
         try {
+            if (
+                !$this
+                    ->mailboxImapService
+                    ->messageExists(
+                        $mailbox,
+                        $folder,
+                        $uid
+                    )
+            ) {
+                return new JSONResponse(
+                    [
+                        'success' =>
+                            false,
+
+                        'message' =>
+                            $this->l->t(
+                                'Message was not found.'
+                            ),
+                    ],
+                    404
+                );
+            }
+
             $state =
                 $this
                     ->messageStateService
@@ -222,7 +277,9 @@ class MessageStateController extends Controller
                         false,
 
                     'message' =>
-                        $this->l->t('The message status could not be saved.'),
+                        $this->l->t(
+                            'The message status could not be saved.'
+                        ),
                 ],
                 500
             );
