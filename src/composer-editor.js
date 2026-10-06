@@ -269,6 +269,8 @@ async function saveReplyDraft(
         html
     )
 
+    
+
     formData.append(
         'sourceFolder',
         sourceFolder
@@ -336,7 +338,8 @@ async function sendReply(
     to,
     subject,
     html,
-    attachments
+    attachments,
+    draftUid = 0
 ) {
     const mailboxId =
         getActiveMailboxId()
@@ -389,6 +392,17 @@ async function sendReply(
         'html',
         html
     )
+
+    if (
+        Number(draftUid) > 0
+    ) {
+        formData.append(
+            'draftUid',
+            String(
+                Number(draftUid)
+            )
+        )
+    }
 
     for (const file of attachments) {
         formData.append(
@@ -1328,7 +1342,8 @@ async function openReplyComposer(
                         to,
                         subject,
                         html,
-                        attachments
+                        attachments,
+                        currentDraftUid
                     )
 
                 if (result.warning) {
