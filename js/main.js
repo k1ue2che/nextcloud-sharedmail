@@ -2898,7 +2898,7 @@ ${html || ''}
     }
 
 
-    function renderFolders(
+    async function renderFolders(
         folders,
         folderList,
         preferredFolderName = null
@@ -3224,7 +3224,7 @@ ${html || ''}
 
 
         if (initialEntry) {
-            loadMessages(
+            await loadMessages(
                 initialEntry.folder,
                 initialEntry.button,
                 0
@@ -3419,7 +3419,7 @@ ${html || ''}
                     : []
 
 
-            renderFolders(
+            await renderFolders(
                 activeFolders,
                 folderList,
                 preferredFolderName
