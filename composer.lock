@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "706e9777a06f60b1944cd5d77684b7f3",
+    "content-hash": "5d53968fbbf9a2816e948d9c3fe71036",
     "packages": [
         {
             "name": "bytestream/horde-crypt-blowfish",
@@ -683,6 +683,65 @@
                 "source": "https://github.com/bytestream/Support/tree/v2.4.0"
             },
             "time": "2022-12-12T11:11:32+00:00"
+        },
+        {
+            "name": "bytestream/horde-text-filter",
+            "version": "v2.5.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/bytestream/Text_Filter.git",
+                "reference": "f4654f42665c1784911c63de22f3ab2eca682380"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/bytestream/Text_Filter/zipball/f4654f42665c1784911c63de22f3ab2eca682380",
+                "reference": "f4654f42665c1784911c63de22f3ab2eca682380",
+                "shasum": ""
+            },
+            "require": {
+                "bytestream/horde-exception": "^2",
+                "bytestream/horde-idna": "^1",
+                "bytestream/horde-secret": "^2",
+                "bytestream/horde-util": "^2",
+                "php": "^7.4 || ^8.0"
+            },
+            "require-dev": {
+                "bytestream/horde-text-flowed": "^2.1",
+                "phpunit/phpunit": "^9.5"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Horde_Text_Filter": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL-2.1"
+            ],
+            "authors": [
+                {
+                    "name": "Jan Schneider",
+                    "email": "jan@horde.org",
+                    "role": "lead"
+                },
+                {
+                    "name": "Chuck Hagenbuch",
+                    "email": "chuck@horde.org",
+                    "role": "lead"
+                },
+                {
+                    "name": "Michael Slusarz",
+                    "email": "slusarz@horde.org",
+                    "role": "developer"
+                }
+            ],
+            "description": "Horde text filtering and conversion library",
+            "homepage": "https://www.horde.org/libraries/Horde_Text_Filter",
+            "support": {
+                "source": "https://github.com/bytestream/Text_Filter/tree/v2.5.0"
+            },
+            "time": "2022-12-12T11:55:30+00:00"
         },
         {
             "name": "bytestream/horde-text-flowed",
